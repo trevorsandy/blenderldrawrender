@@ -122,3 +122,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Address "origin" does not support the LFS locking API error
+addons/io_scene_importldraw/loadldraw/background.exr
