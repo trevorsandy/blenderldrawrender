@@ -125,3 +125,9 @@ dmypy.json
 
 # Address "origin" does not support the LFS locking API error
 addons/io_scene_importldraw/loadldraw/background.exr
+
+# Package and upload releases
+LDrawBlenderRenderAddons.zip
+
+# PyCharm workspace
+.idea/

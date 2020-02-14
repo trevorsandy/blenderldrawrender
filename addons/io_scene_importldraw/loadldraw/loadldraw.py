@@ -361,7 +361,7 @@ def internalPrint(message):
     # Current timestamp (with milliseconds trimmed to two places)
     timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-4]
 
-    message = "{0} [importldraw] {1}".format(timestamp, message)
+    message = "{0} [renderldraw] {1}".format(timestamp, message)
     print("{0}".format(message))
 
     global globalContext

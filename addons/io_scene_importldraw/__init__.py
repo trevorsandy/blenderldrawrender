@@ -46,10 +46,10 @@ def register():
     bpy.utils.register_class(importldraw.ImportLDrawOps)
     if hasattr(bpy.types, 'TOPBAR_MT_file_import'):
         # Blender 2.80
-        bpy.types.TOPBAR_MT_file_import.append(menuImport)
+        bpy.types.TOPBAR_MT_file_import.prepend(menuImport)
     else:
         # Blender 2.79
-        bpy.types.INFO_MT_file_import.append(menuImport)
+        bpy.types.INFO_MT_file_import.prepend(menuImport)
 
 
 def unregister():
@@ -62,6 +62,7 @@ def unregister():
         # Blender 2.79
         bpy.types.INFO_MT_file_import.remove(menuImport)
 
-
 if __name__ == "__main__":
     register()
+    
+    # bpy.ops.import_scene.importldraw('INVOKE_DEFAULT') # Test call
