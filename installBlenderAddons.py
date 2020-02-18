@@ -34,6 +34,7 @@ To Run:
 
 import os
 import bpy
+import addon_utils
 
 from typing import Union, Set
 
@@ -78,8 +79,15 @@ def install_addons():
         else:
             bpy.ops.wm.addon_enable(module=string)
 
-    # save user preferences
+    # Save user preferences
     bpy.ops.wm.save_userpref()
+
+    # Get 'Render LDraw' addon version
+    for mod in addon_utils.modules():
+        if mod.bl_info.get("name", "") == "Render LDraw":
+            version = mod.bl_info.get('version', (-1, -1, -1))
+            print("ADDON VERSION:      {0}".format(".".join(map(str, version))))
+            break
 
 
 if __name__ == '__main__':
