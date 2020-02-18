@@ -397,6 +397,11 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         options={'HIDDEN'}
     )
 
+    parameterFile: StringProperty(
+        default=prefs.get("parameterFile", ""),
+        options={'HIDDEN'}
+    )
+
     modelFile: StringProperty(
         default=r"",
         options={'HIDDEN'}
@@ -498,8 +503,8 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             self.useCustomLDConfig       = ImportLDrawOps.prefs.get("useCustomLDConfig",       self.useCustomLDConfig)
             self.useLogoStuds            = ImportLDrawOps.prefs.get("useLogoStuds",            self.useLogoStuds)
             self.useLSynthParts          = ImportLDrawOps.prefs.get("useLSynthParts",          self.useLSynthParts)
-            self.useUnofficialParts      = ImportLDrawOps.prefs.get("useUnofficialParts",      self.useUnofficialParts)
-            self.verbose                 = ImportLDrawOps.prefs.get("verbose",                 self.verbose)
+            self.parameterFile           = ImportLDrawOps.prefs.get("parameterFile",        self.parameterFile)
+            self.verbose                 = ImportLDrawOps.prefs.get("verbose",              self.verbose)
 
                 # Read current preferences from the UI and save them
         else:
@@ -566,7 +571,8 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         loadldraw.Options.useLogoStuds               = self.useLogoStuds
         loadldraw.Options.useLSynthParts             = self.useLSynthParts
         loadldraw.Options.useUnofficialParts         = self.useUnofficialParts
-        loadldraw.Options.verbose                    = self.verbose
+        loadldraw.Options.parameterFile               = self.parameterFile
+        loadldraw.Options.verbose                     = self.verbose
         if not self.lsynthPath:
             loadldraw.Options.LSynthDirectory         = os.path.join(os.path.dirname(__file__), "lsynth")
         else:

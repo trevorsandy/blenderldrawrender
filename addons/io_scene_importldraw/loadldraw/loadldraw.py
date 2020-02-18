@@ -254,6 +254,10 @@ globalContext = None
 globalWeldDistance = 0.0005
 globalPoints = []
 
+globalLgeoColours = {}
+globalSlopeBricks = {}
+globalLightBricks = {}
+
 isBlender28OrLater = None
 hasCollections = None
 if isBlender28OrLater:
@@ -261,109 +265,112 @@ if isBlender28OrLater:
 else:
     lightName = "Lamp"
 
+# **************************************************************************************
+# Create a regular dictionary of lighted parts
+if not globalLightBricks:
+    globalLightBricks = {
+        '62930.dat': (1.0, 0.373, 0.059, 1.0),
+        '54869.dat': (1.0, 0.052, 0.017, 1.0)
+    }
 
 # **************************************************************************************
 # Dictionary with as keys the part numbers (without any extension for decorations)
 # of pieces that have grainy slopes, and as values a set containing the angles (in
 # degrees) of the face's normal to the horizontal plane. Use a tuple to represent a
 # range within which the angle must lie.
-globalSlopeBricks = {
-    '962':{45}, 
-    '2341':{-45}, 
-    '2449':{-16}, 
-    '2875':{45}, 
-    '2876':{(40, 63)}, 
-    '3037':{45}, 
-    '3038':{45}, 
-    '3039':{45}, 
-    '3040':{45}, 
-    '3041':{45}, 
-    '3042':{45}, 
-    '3043':{45}, 
-    '3044':{45}, 
-    '3045':{45}, 
-    '3046':{45}, 
-    '3048':{45}, 
-    '3049':{45}, 
-    '3135':{45}, 
-    '3297':{63}, 
-    '3298':{63}, 
-    '3299':{63}, 
-    '3300':{63}, 
-    '3660':{-45}, 
-    '3665':{-45}, 
-    '3675':{63}, 
-    '3676':{-45}, 
-    '3678b':{24}, 
-    '3684':{15}, 
-    '3685':{16}, 
-    '3688':{15}, 
-    '3747':{-63}, 
-    '4089':{-63}, 
-    '4161':{63}, 
-    '4286':{63}, 
-    '4287':{-63}, 
-    '4445':{45}, 
-    '4460':{16}, 
-    '4509':{63}, 
-    '4854':{-45}, 
-    '4856':{(-60, -70), -45}, 
-    '4857':{45}, 
-    '4858':{72}, 
-    '4861':{45, 63}, 
-    '4871':{-45}, 
-    '4885':{72}, 
-    '6069':{72, 45}, 
-    '6153':{(60, 70), (26, 34)}, 
-    '6227':{45}, 
-    '6270':{45}, 
-    '13269':{(40, 63)}, 
-    '13548':{45}, 
-    '15571':{45}, 
-    '18759':{-45}, 
-    '22390':{(40, 55)}, 
-    '22391':{(40, 55)}, 
-    '22889':{-45}, 
-    '28192':{45}, 
-    '30180':{47}, 
-    '30182':{45}, 
-    '30183':{-45}, 
-    '30249':{35}, 
-    '30283':{-45}, 
-    '30363':{72}, 
-    '30373':{-24}, 
-    '30382':{11, 45}, 
-    '30390':{-45}, 
-    '30499':{16}, 
-    '32083':{45}, 
-    '43708':{72}, 
-    '43710':{72, 45}, 
-    '43711':{72, 45}, 
-    '47759':{(40, 63)}, 
-    '52501':{-45}, 
-    '60219':{-45}, 
-    '60477':{72}, 
-    '60481':{24}, 
-    '63341':{45}, 
-    '72454':{-45}, 
-    '92946':{45}, 
-    '93348':{72}, 
-    '95188':{65}, 
-    '99301':{63}, 
-    '303923':{45}, 
-    '303926':{45}, 
-    '304826':{45}, 
-    '329826':{64}, 
-    '374726':{-64}, 
-    '428621':{64}, 
-    '4162628':{17}, 
-    '4195004':{45}, 
-}
-
-globalLightBricks = {
-    '62930.dat':(1.0,0.373,0.059,1.0), 
-    '54869.dat':(1.0,0.052,0.017,1.0)
-}
+if not globalSlopeBricks:
+    globalSlopeBricks = {
+        '962': {45},
+        '2341': {-45},
+        '2449': {-16},
+        '2875': {45},
+        '2876': {(40, 63)},
+        '3037': {45},
+        '3038': {45},
+        '3039': {45},
+        '3040': {45},
+        '3041': {45},
+        '3042': {45},
+        '3043': {45},
+        '3044': {45},
+        '3045': {45},
+        '3046': {45},
+        '3048': {45},
+        '3049': {45},
+        '3135': {45},
+        '3297': {63},
+        '3298': {63},
+        '3299': {63},
+        '3300': {63},
+        '3660': {-45},
+        '3665': {-45},
+        '3675': {63},
+        '3676': {-45},
+        '3678b': {24},
+        '3684': {15},
+        '3685': {16},
+        '3688': {15},
+        '3747': {-63},
+        '4089': {-63},
+        '4161': {63},
+        '4286': {63},
+        '4287': {-63},
+        '4445': {45},
+        '4460': {16},
+        '4509': {63},
+        '4854': {-45},
+        '4856': {(-60, -70), -45},
+        '4857': {45},
+        '4858': {72},
+        '4861': {45, 63},
+        '4871': {-45},
+        '4885': {72},
+        '6069': {72, 45},
+        '6153': {(60, 70), (26, 34)},
+        '6227': {45},
+        '6270': {45},
+        '13269': {(40, 63)},
+        '13548': {45},
+        '15571': {45},
+        '18759': {-45},
+        '22390': {(40, 55)},
+        '22391': {(40, 55)},
+        '22889': {-45},
+        '28192': {45},
+        '30180': {47},
+        '30182': {45},
+        '30183': {-45},
+        '30249': {35},
+        '30283': {-45},
+        '30363': {72},
+        '30373': {-24},
+        '30382': {11, 45},
+        '30390': {-45},
+        '30499': {16},
+        '32083': {45},
+        '43708': {72},
+        '43710': {72, 45},
+        '43711': {72, 45},
+        '47759': {(40, 63)},
+        '52501': {-45},
+        '60219': {-45},
+        '60477': {72},
+        '60481': {24},
+        '63341': {45},
+        '72454': {-45},
+        '92946': {45},
+        '93348': {72},
+        '95188': {65},
+        '99301': {63},
+        '303923': {45},
+        '303926': {45},
+        '304826': {45},
+        '329826': {64},
+        '374726': {-64},
+        '428621': {64},
+        '4162628': {17},
+        '4195004': {45},
+    }
 
 # Create a regular dictionary of parts with ranges of angles to check
 margin = 5  # Allow 5 degrees either way to compensate for measuring inaccuracies
@@ -551,6 +558,13 @@ class Configure:
 
         return result
 
+    def __setLDrawParameterFile():
+        if Options.parameterFile != "" and os.path.exists(Options.parameterFile):
+            Configure.parameterFile = Options.parameterFile
+            debugPrint("The LDraw Parameter file to be used is: {0}".format(Configure.parameterFile))
+        else:
+            Configure.parameterFile = ""
+
     def setLDrawDirectory():
         if Options.ldrawDirectory == "":
             Configure.ldrawInstallDirectory = Configure.findDefaultLDrawDirectory()
@@ -558,10 +572,97 @@ class Configure:
             Configure.ldrawInstallDirectory = os.path.expanduser(Options.ldrawDirectory)
 
         debugPrint("The LDraw Parts Library path to be used is: {0}".format(Configure.ldrawInstallDirectory))
+        Configure.__setLDrawParameterFile()
         Configure.__setSearchPaths()
 
     def __init__(self):
         Configure.setLDrawDirectory()
+
+
+# **************************************************************************************
+# **************************************************************************************
+class Parameters():
+    """"Load LDraw Parameters"""
+
+    @staticmethod
+    def valid_lines(f):
+        """Skip blank and commented lines"""
+
+        for l in f:
+            line = l.rstrip()
+            if line and line[:1] is not "#":
+                yield line  # .split('#')[0].rstrip()
+
+    @staticmethod
+    def loadParameters():
+        """Read the import parameter file and populate
+        lgeo colour, slope, and lighted bricks global dictionaries"""
+
+        debugPrint("Loading LDraw Parameters")
+
+        if Configure.parameterFile != "":
+
+            with open(Configure.parameterFile, "rt", encoding="utf_8") as parameter_file:
+
+                for line in Parameters.valid_lines(parameter_file):
+
+                    line_split = line.replace(" ", "").rstrip().split(",")
+
+                    item = line_split[0]
+
+                    # LGEO is a parts library for rendering LEGO using the povray rendering software.
+                    # It has a list of LEGO colours suitable for realistic rendering.
+                    # I've extracted the following colours from the LGEO file: lg_color.inc
+                    # LGEO is downloadable from http://ldraw.org/downloads-2/downloads.html
+                    # We overwrite the standard LDraw colours if we have better LGEO colours.
+                    if item == "lgeo_colour":
+                        code = line_split[1]
+                        colour = (line_split[2], line_split[3], line_split[4])
+
+                        globalLgeoColours[code] = colour
+
+                    # Dictionary with as keys the part numbers (without any extension for decorations)
+                    # of pieces that have grainy slopes, and as values a set containing the angles (in
+                    # degrees) of the face's normal to the horizontal plane. Use a tuple to represent a
+                    # range within which the angle must lie.
+                    if item == "sloped_brick":
+                        partid = line_split[1]
+                        if len(line_split) > 3:
+                            slope_range = tuple(map(int, line_split[2].split("|")))  # 1st range check
+                            if len(slope_range) > 1:
+                                tup1 = slope_range  # 1st tuple
+                            else:
+                                tup1 = line_split[2]
+                            slope_range = tuple(map(int, line_split[3].split("|")))  # 2nd range check
+                            if len(slope_range) > 1:
+                                tup2 = slope_range  # 2nd tuple
+                            else:
+                                tup2 = int(line_split[3])
+                            slope = (tup1, tup2)
+                        else:
+                            slope_range = tuple(map(int, line_split[2].split("|")))  # 1st range check
+                            if len(slope_range) > 1:
+                                tup1 = slope_range  # 1st tuple
+                            else:
+                                tup1 = int(line_split[2])
+                            slope = tup1
+
+                        globalSlopeBricks[partid] = {slope}
+
+                    # Regular dictionary of lighted parts
+                    if item == "lighted_brick":
+                        partid = line_split[1]
+                        light_brick = (
+                            line_split[2],
+                            line_split[3],
+                            line_split[4],
+                            line_split[5]
+                        )
+
+                        globalLightBricks[partid] = light_brick
+
+    def __init__(self):
+        Parameters.loadParameters()
 
 
 # **************************************************************************************
@@ -665,14 +766,17 @@ class LegoColours:
             LegoColours.colours[index]["colour"] = colour
 
     def __readColourTable():
-        """Reads the colour values from the LDConfig.ldr file. For details of the 
+        """Reads the colour values from the LDConfig.ldr file. For details of the
         Ldraw colour system see: http://www.ldraw.org/article/547"""
-        if Options.useColourScheme == "alt":
-            configFilename = "LDCfgalt.ldr"
-        else:
-            configFilename = "LDConfig.ldr"
 
-        configFilepath = os.path.join(Configure.ldrawInstallDirectory, configFilename)
+        if Options.useColourScheme == "custom":
+            configFilepath = os.path.expanduser(Options.customLDConfigPath)
+        else:
+            if Options.useColourScheme == "alt":
+                configFilename = "LDCfgalt.ldr"
+            else:
+                configFilename = "LDConfig.ldr"
+            configFilepath = os.path.join(Configure.ldrawInstallDirectory, configFilename)
 
         ldconfig_lines = ""
         if os.path.exists(configFilepath):
@@ -734,123 +838,128 @@ class LegoColours:
             # I've extracted the following colours from the LGEO file: lg_color.inc
             # LGEO is downloadable from http://ldraw.org/downloads-2/downloads.html
             # We overwrite the standard LDraw colours if we have better LGEO colours.
-            LegoColours.__overwriteColour(0,   ( 33/255,  33/255,  33/255))
-            LegoColours.__overwriteColour(1,   ( 13/255, 105/255, 171/255))
-            LegoColours.__overwriteColour(2,   ( 40/255, 127/255,  70/255))
-            LegoColours.__overwriteColour(3,   (  0/255, 143/255, 155/255))
-            LegoColours.__overwriteColour(4,   (196/255,  40/255,  27/255))
-            LegoColours.__overwriteColour(5,   (205/255,  98/255, 152/255))
-            LegoColours.__overwriteColour(6,   ( 98/255,  71/255,  50/255))
-            LegoColours.__overwriteColour(7,   (161/255, 165/255, 162/255))
-            LegoColours.__overwriteColour(8,   (109/255, 110/255, 108/255))
-            LegoColours.__overwriteColour(9,   (180/255, 210/255, 227/255))
-            LegoColours.__overwriteColour(10,  ( 75/255, 151/255,  74/255))
-            LegoColours.__overwriteColour(11,  ( 85/255, 165/255, 175/255))
-            LegoColours.__overwriteColour(12,  (242/255, 112/255,  94/255))
-            LegoColours.__overwriteColour(13,  (252/255, 151/255, 172/255))
-            LegoColours.__overwriteColour(14,  (245/255, 205/255,  47/255))
-            LegoColours.__overwriteColour(15,  (242/255, 243/255, 242/255))
-            LegoColours.__overwriteColour(17,  (194/255, 218/255, 184/255))
-            LegoColours.__overwriteColour(18,  (249/255, 233/255, 153/255))
-            LegoColours.__overwriteColour(19,  (215/255, 197/255, 153/255))
-            LegoColours.__overwriteColour(20,  (193/255, 202/255, 222/255))
-            LegoColours.__overwriteColour(21,  (224/255, 255/255, 176/255))
-            LegoColours.__overwriteColour(22,  (107/255,  50/255, 123/255))
-            LegoColours.__overwriteColour(23,  ( 35/255,  71/255, 139/255))
-            LegoColours.__overwriteColour(25,  (218/255, 133/255,  64/255))
-            LegoColours.__overwriteColour(26,  (146/255, 57/255,  120/255))
-            LegoColours.__overwriteColour(27,  (164/255, 189/255,  70/255))
-            LegoColours.__overwriteColour(28,  (149/255, 138/255, 115/255))
-            LegoColours.__overwriteColour(29,  (228/255, 173/255, 200/255))
-            LegoColours.__overwriteColour(30,  (172/255, 120/255, 186/255))
-            LegoColours.__overwriteColour(31,  (225/255, 213/255, 237/255))
-            LegoColours.__overwriteColour(32,  (  0/255,  20/255,  20/255))
-            LegoColours.__overwriteColour(33,  (123/255, 182/255, 232/255))
-            LegoColours.__overwriteColour(34,  (132/255, 182/255, 141/255))
-            LegoColours.__overwriteColour(35,  (217/255, 228/255, 167/255))
-            LegoColours.__overwriteColour(36,  (205/255,  84/255,  75/255))
-            LegoColours.__overwriteColour(37,  (228/255, 173/255, 200/255))
-            LegoColours.__overwriteColour(38,  (255/255,  43/255,   0/225))
-            LegoColours.__overwriteColour(40,  (166/255, 145/255, 130/255))
-            LegoColours.__overwriteColour(41,  (170/255, 229/255, 255/255))
-            LegoColours.__overwriteColour(42,  (198/255, 255/255,   0/255))
-            LegoColours.__overwriteColour(43,  (193/255, 223/255, 240/255))
-            LegoColours.__overwriteColour(44,  (150/255, 112/255, 159/255))
-            LegoColours.__overwriteColour(46,  (247/255, 241/255, 141/255))
-            LegoColours.__overwriteColour(47,  (252/255, 252/255, 252/255))
-            LegoColours.__overwriteColour(52,  (156/255, 149/255, 199/255))
-            LegoColours.__overwriteColour(54,  (255/255, 246/255, 123/255))
-            LegoColours.__overwriteColour(57,  (226/255, 176/255,  96/255))
-            LegoColours.__overwriteColour(65,  (236/255, 201/255,  53/255))
-            LegoColours.__overwriteColour(66,  (202/255, 176/255,   0/255))
-            LegoColours.__overwriteColour(67,  (255/255, 255/255, 255/255))
-            LegoColours.__overwriteColour(68,  (243/255, 207/255, 155/255))
-            LegoColours.__overwriteColour(69,  (142/255,  66/255, 133/255))
-            LegoColours.__overwriteColour(70,  (105/255,  64/255,  39/255))
-            LegoColours.__overwriteColour(71,  (163/255, 162/255, 164/255))
-            LegoColours.__overwriteColour(72,  ( 99/255,  95/255,  97/255))
-            LegoColours.__overwriteColour(73,  (110/255, 153/255, 201/255))
-            LegoColours.__overwriteColour(74,  (161/255, 196/255, 139/255))
-            LegoColours.__overwriteColour(77,  (220/255, 144/255, 149/255))
-            LegoColours.__overwriteColour(78,  (246/255, 215/255, 179/255))
-            LegoColours.__overwriteColour(79,  (255/255, 255/255, 255/255))
-            LegoColours.__overwriteColour(80,  (140/255, 140/255, 140/255))
-            LegoColours.__overwriteColour(82,  (219/255, 172/255,  52/255))
-            LegoColours.__overwriteColour(84,  (170/255, 125/255,  85/255))
-            LegoColours.__overwriteColour(85,  ( 52/255,  43/255, 117/255))
-            LegoColours.__overwriteColour(86,  (124/255,  92/255,  69/255))
-            LegoColours.__overwriteColour(89,  (155/255, 178/255, 239/255))
-            LegoColours.__overwriteColour(92,  (204/255, 142/255, 104/255))
-            LegoColours.__overwriteColour(100, (238/255, 196/255, 182/255))
-            LegoColours.__overwriteColour(115, (199/255, 210/255,  60/255))
-            LegoColours.__overwriteColour(134, (174/255, 122/255,  89/255))
-            LegoColours.__overwriteColour(135, (171/255, 173/255, 172/255))
-            LegoColours.__overwriteColour(137, (106/255, 122/255, 150/255))
-            LegoColours.__overwriteColour(142, (220/255, 188/255, 129/255))
-            LegoColours.__overwriteColour(148, ( 62/255,  60/255,  57/255))
-            LegoColours.__overwriteColour(151, ( 14/255,  94/255,  77/255))
-            LegoColours.__overwriteColour(179, (160/255, 160/255, 160/255))
-            LegoColours.__overwriteColour(183, (242/255, 243/255, 242/255))
-            LegoColours.__overwriteColour(191, (248/255, 187/255,  61/255))
-            LegoColours.__overwriteColour(212, (159/255, 195/255, 233/255))
-            LegoColours.__overwriteColour(216, (143/255,  76/255,  42/255))
-            LegoColours.__overwriteColour(226, (253/255, 234/255, 140/255))
-            LegoColours.__overwriteColour(232, (125/255, 187/255, 221/255))
-            LegoColours.__overwriteColour(256, ( 33/255,  33/255,  33/255))
-            LegoColours.__overwriteColour(272, ( 32/255,  58/255,  86/255))
-            LegoColours.__overwriteColour(273, ( 13/255, 105/255, 171/255))
-            LegoColours.__overwriteColour(288, ( 39/255,  70/255,  44/255))
-            LegoColours.__overwriteColour(294, (189/255, 198/255, 173/255))
-            LegoColours.__overwriteColour(297, (170/255, 127/255,  46/255))
-            LegoColours.__overwriteColour(308, ( 53/255,  33/255,   0/255))
-            LegoColours.__overwriteColour(313, (171/255, 217/255, 255/255))
-            LegoColours.__overwriteColour(320, (123/255,  46/255,  47/255))
-            LegoColours.__overwriteColour(321, ( 70/255, 155/255, 195/255))
-            LegoColours.__overwriteColour(322, (104/255, 195/255, 226/255))
-            LegoColours.__overwriteColour(323, (211/255, 242/255, 234/255))
-            LegoColours.__overwriteColour(324, (196/255,   0/255,  38/255))
-            LegoColours.__overwriteColour(326, (226/255, 249/255, 154/255))
-            LegoColours.__overwriteColour(330, (119/255, 119/255,  78/255))
-            LegoColours.__overwriteColour(334, (187/255, 165/255,  61/255))
-            LegoColours.__overwriteColour(335, (149/255, 121/255, 118/255))
-            LegoColours.__overwriteColour(366, (209/255, 131/255,   4/255))
-            LegoColours.__overwriteColour(373, (135/255, 124/255, 144/255))
-            LegoColours.__overwriteColour(375, (193/255, 194/255, 193/255))
-            LegoColours.__overwriteColour(378, (120/255, 144/255, 129/255))
-            LegoColours.__overwriteColour(379, ( 94/255, 116/255, 140/255))
-            LegoColours.__overwriteColour(383, (224/255, 224/255, 224/255))
-            LegoColours.__overwriteColour(406, (  0/255,  29/255, 104/255))
-            LegoColours.__overwriteColour(449, (129/255,   0/255, 123/255))
-            LegoColours.__overwriteColour(450, (203/255, 132/255,  66/255))
-            LegoColours.__overwriteColour(462, (226/255, 155/255,  63/255))
-            LegoColours.__overwriteColour(484, (160/255,  95/255,  52/255))
-            LegoColours.__overwriteColour(490, (215/255, 240/255,   0/255))
-            LegoColours.__overwriteColour(493, (101/255, 103/255,  97/255))
-            LegoColours.__overwriteColour(494, (208/255, 208/255, 208/255))
-            LegoColours.__overwriteColour(496, (163/255, 162/255, 164/255))
-            LegoColours.__overwriteColour(503, (199/255, 193/255, 183/255))
-            LegoColours.__overwriteColour(504, (137/255, 135/255, 136/255))
-            LegoColours.__overwriteColour(511, (250/255, 250/255, 250/255))
+            if globalLgeoColours:
+                for code, colour in globalLgeoColours.items():
+                    LegoColours.__overwriteColour(code,
+                                                  (int(colour[0]) / 255, int(colour[1]) / 255, int(colour[2]) / 255))
+            else:
+                LegoColours.__overwriteColour(  0, ( 33 / 255,  33 / 255,  33 / 255))
+                LegoColours.__overwriteColour(  1, ( 13 / 255, 105 / 255, 171 / 255))
+                LegoColours.__overwriteColour(  2, ( 40 / 255, 127 / 255,  70 / 255))
+                LegoColours.__overwriteColour(  3, (  0 / 255, 143 / 255, 155 / 255))
+                LegoColours.__overwriteColour(  4, (196 / 255,  40 / 255,  27 / 255))
+                LegoColours.__overwriteColour(  5, (205 / 255,  98 / 255, 152 / 255))
+                LegoColours.__overwriteColour(  6, ( 98 / 255,  71 / 255,  50 / 255))
+                LegoColours.__overwriteColour(  7, (161 / 255, 165 / 255, 162 / 255))
+                LegoColours.__overwriteColour(  8, (109 / 255, 110 / 255, 108 / 255))
+                LegoColours.__overwriteColour(  9, (180 / 255, 210 / 255, 227 / 255))
+                LegoColours.__overwriteColour( 10, ( 75 / 255, 151 / 255,  74 / 255))
+                LegoColours.__overwriteColour( 11, ( 85 / 255, 165 / 255, 175 / 255))
+                LegoColours.__overwriteColour( 12, (242 / 255, 112 / 255,  94 / 255))
+                LegoColours.__overwriteColour( 13, (252 / 255, 151 / 255, 172 / 255))
+                LegoColours.__overwriteColour( 14, (245 / 255, 205 / 255,  47 / 255))
+                LegoColours.__overwriteColour( 15, (242 / 255, 243 / 255, 242 / 255))
+                LegoColours.__overwriteColour( 17, (194 / 255, 218 / 255, 184 / 255))
+                LegoColours.__overwriteColour( 18, (249 / 255, 233 / 255, 153 / 255))
+                LegoColours.__overwriteColour( 19, (215 / 255, 197 / 255, 153 / 255))
+                LegoColours.__overwriteColour( 20, (193 / 255, 202 / 255, 222 / 255))
+                LegoColours.__overwriteColour( 21, (224 / 255, 255 / 255, 176 / 255))
+                LegoColours.__overwriteColour( 22, (107 / 255,  50 / 255, 123 / 255))
+                LegoColours.__overwriteColour( 23, ( 35 / 255,  71 / 255, 139 / 255))
+                LegoColours.__overwriteColour( 25, (218 / 255, 133 / 255,  64 / 255))
+                LegoColours.__overwriteColour( 26, (146 / 255,  57 / 255, 120 / 255))
+                LegoColours.__overwriteColour( 27, (164 / 255, 189 / 255,  70 / 255))
+                LegoColours.__overwriteColour( 28, (149 / 255, 138 / 255, 115 / 255))
+                LegoColours.__overwriteColour( 29, (228 / 255, 173 / 255, 200 / 255))
+                LegoColours.__overwriteColour( 30, (172 / 255, 120 / 255, 186 / 255))
+                LegoColours.__overwriteColour( 31, (225 / 255, 213 / 255, 237 / 255))
+                LegoColours.__overwriteColour( 32, (  0 / 255,  20 / 255,  20 / 255))
+                LegoColours.__overwriteColour( 33, (123 / 255, 182 / 255, 232 / 255))
+                LegoColours.__overwriteColour( 34, (132 / 255, 182 / 255, 141 / 255))
+                LegoColours.__overwriteColour( 35, (217 / 255, 228 / 255, 167 / 255))
+                LegoColours.__overwriteColour( 36, (205 / 255,  84 / 255,  75 / 255))
+                LegoColours.__overwriteColour( 37, (228 / 255, 173 / 255, 200 / 255))
+                LegoColours.__overwriteColour( 38, (255 / 255,  43 / 255,   0 / 225))
+                LegoColours.__overwriteColour( 40, (166 / 255, 145 / 255, 130 / 255))
+                LegoColours.__overwriteColour( 41, (170 / 255, 229 / 255, 255 / 255))
+                LegoColours.__overwriteColour( 42, (198 / 255, 255 / 255,   0 / 255))
+                LegoColours.__overwriteColour( 43, (193 / 255, 223 / 255, 240 / 255))
+                LegoColours.__overwriteColour( 44, (150 / 255, 112 / 255, 159 / 255))
+                LegoColours.__overwriteColour( 46, (247 / 255, 241 / 255, 141 / 255))
+                LegoColours.__overwriteColour( 47, (252 / 255, 252 / 255, 252 / 255))
+                LegoColours.__overwriteColour( 52, (156 / 255, 149 / 255, 199 / 255))
+                LegoColours.__overwriteColour( 54, (255 / 255, 246 / 255, 123 / 255))
+                LegoColours.__overwriteColour( 57, (226 / 255, 176 / 255,  96 / 255))
+                LegoColours.__overwriteColour( 65, (236 / 255, 201 / 255,  53 / 255))
+                LegoColours.__overwriteColour( 66, (202 / 255, 176 / 255,   0 / 255))
+                LegoColours.__overwriteColour( 67, (255 / 255, 255 / 255, 255 / 255))
+                LegoColours.__overwriteColour( 68, (243 / 255, 207 / 255, 155 / 255))
+                LegoColours.__overwriteColour( 69, (142 / 255,  66 / 255, 133 / 255))
+                LegoColours.__overwriteColour( 70, (105 / 255,  64 / 255,  39 / 255))
+                LegoColours.__overwriteColour( 71, (163 / 255, 162 / 255, 164 / 255))
+                LegoColours.__overwriteColour( 72, ( 99 / 255,  95 / 255,  97 / 255))
+                LegoColours.__overwriteColour( 73, (110 / 255, 153 / 255, 201 / 255))
+                LegoColours.__overwriteColour( 74, (161 / 255, 196 / 255, 139 / 255))
+                LegoColours.__overwriteColour( 77, (220 / 255, 144 / 255, 149 / 255))
+                LegoColours.__overwriteColour( 78, (246 / 255, 215 / 255, 179 / 255))
+                LegoColours.__overwriteColour( 79, (255 / 255, 255 / 255, 255 / 255))
+                LegoColours.__overwriteColour( 80, (140 / 255, 140 / 255, 140 / 255))
+                LegoColours.__overwriteColour( 82, (219 / 255, 172 / 255,  52 / 255))
+                LegoColours.__overwriteColour( 84, (170 / 255, 125 / 255,  85 / 255))
+                LegoColours.__overwriteColour( 85, ( 52 / 255,  43 / 255, 117 / 255))
+                LegoColours.__overwriteColour( 86, (124 / 255,  92 / 255,  69 / 255))
+                LegoColours.__overwriteColour( 89, (155 / 255, 178 / 255, 239 / 255))
+                LegoColours.__overwriteColour( 92, (204 / 255, 142 / 255, 104 / 255))
+                LegoColours.__overwriteColour(100, (238 / 255, 196 / 255, 182 / 255))
+                LegoColours.__overwriteColour(115, (199 / 255, 210 / 255,  60 / 255))
+                LegoColours.__overwriteColour(134, (174 / 255, 122 / 255,  89 / 255))
+                LegoColours.__overwriteColour(135, (171 / 255, 173 / 255, 172 / 255))
+                LegoColours.__overwriteColour(137, (106 / 255, 122 / 255, 150 / 255))
+                LegoColours.__overwriteColour(142, (220 / 255, 188 / 255, 129 / 255))
+                LegoColours.__overwriteColour(148, ( 62 / 255,  60 / 255,  57 / 255))
+                LegoColours.__overwriteColour(151, ( 14 / 255,  94 / 255,  77 / 255))
+                LegoColours.__overwriteColour(179, (160 / 255, 160 / 255, 160 / 255))
+                LegoColours.__overwriteColour(183, (242 / 255, 243 / 255, 242 / 255))
+                LegoColours.__overwriteColour(191, (248 / 255, 187 / 255,  61 / 255))
+                LegoColours.__overwriteColour(212, (159 / 255, 195 / 255, 233 / 255))
+                LegoColours.__overwriteColour(216, (143 / 255,  76 / 255,  42 / 255))
+                LegoColours.__overwriteColour(226, (253 / 255, 234 / 255, 140 / 255))
+                LegoColours.__overwriteColour(232, (125 / 255, 187 / 255, 221 / 255))
+                LegoColours.__overwriteColour(256, ( 33 / 255,  33 / 255,  33 / 255))
+                LegoColours.__overwriteColour(272, ( 32 / 255,  58 / 255,  86 / 255))
+                LegoColours.__overwriteColour(273, ( 13 / 255, 105 / 255, 171 / 255))
+                LegoColours.__overwriteColour(288, ( 39 / 255,  70 / 255,  44 / 255))
+                LegoColours.__overwriteColour(294, (189 / 255, 198 / 255, 173 / 255))
+                LegoColours.__overwriteColour(297, (170 / 255, 127 / 255,  46 / 255))
+                LegoColours.__overwriteColour(308, ( 53 / 255,  33 / 255,   0 / 255))
+                LegoColours.__overwriteColour(313, (171 / 255, 217 / 255, 255 / 255))
+                LegoColours.__overwriteColour(320, (123 / 255,  46 / 255,  47 / 255))
+                LegoColours.__overwriteColour(321, ( 70 / 255, 155 / 255, 195 / 255))
+                LegoColours.__overwriteColour(322, (104 / 255, 195 / 255, 226 / 255))
+                LegoColours.__overwriteColour(323, (211 / 255, 242 / 255, 234 / 255))
+                LegoColours.__overwriteColour(324, (196 / 255,   0 / 255,  38 / 255))
+                LegoColours.__overwriteColour(326, (226 / 255, 249 / 255, 154 / 255))
+                LegoColours.__overwriteColour(330, (119 / 255, 119 / 255,  78 / 255))
+                LegoColours.__overwriteColour(334, (187 / 255, 165 / 255,  61 / 255))
+                LegoColours.__overwriteColour(335, (149 / 255, 121 / 255, 118 / 255))
+                LegoColours.__overwriteColour(366, (209 / 255, 131 / 255,   4 / 255))
+                LegoColours.__overwriteColour(373, (135 / 255, 124 / 255, 144 / 255))
+                LegoColours.__overwriteColour(375, (193 / 255, 194 / 255, 193 / 255))
+                LegoColours.__overwriteColour(378, (120 / 255, 144 / 255, 129 / 255))
+                LegoColours.__overwriteColour(379, ( 94 / 255, 116 / 255, 140 / 255))
+                LegoColours.__overwriteColour(383, (224 / 255, 224 / 255, 224 / 255))
+                LegoColours.__overwriteColour(406, (  0 / 255,  29 / 255, 104 / 255))
+                LegoColours.__overwriteColour(449, (129 / 255,   0 / 255, 123 / 255))
+                LegoColours.__overwriteColour(450, (203 / 255, 132 / 255,  66 / 255))
+                LegoColours.__overwriteColour(462, (226 / 255, 155 / 255,  63 / 255))
+                LegoColours.__overwriteColour(484, (160 / 255,  95 / 255,  52 / 255))
+                LegoColours.__overwriteColour(490, (215 / 255, 240 / 255,   0 / 255))
+                LegoColours.__overwriteColour(493, (101 / 255, 103 / 255,  97 / 255))
+                LegoColours.__overwriteColour(494, (208 / 255, 208 / 255, 208 / 255))
+                LegoColours.__overwriteColour(496, (163 / 255, 162 / 255, 164 / 255))
+                LegoColours.__overwriteColour(503, (199 / 255, 193 / 255, 183 / 255))
+                LegoColours.__overwriteColour(504, (137 / 255, 135 / 255, 136 / 255))
+                LegoColours.__overwriteColour(511, (250 / 255, 250 / 255, 250 / 255))
 
         # Colour Space Management: Convert these sRGB colour values to Blender's linear RGB colour space
         for key in LegoColours.colours:
@@ -4298,9 +4407,10 @@ def loadFromFile(context, filename, isFullFilepath=True):
     globalCamerasToAdd = []
     globalContext = context
 
-    # Make sure we have the latest configuration, including the latest ldraw directory 
+    # Make sure we have the latest configuration, including the latest ldraw directory
     # and the colours derived from that.
     Configure()
+    Parameters()
     LegoColours()
     Math()
 
