@@ -201,6 +201,11 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         options={'HIDDEN'}
     )
 
+    import_only: BoolProperty(
+        default=False,
+        options={'HIDDEN'}
+    )
+
     image_file: StringProperty(
         default=image_file_path,
         options={'HIDDEN'}
@@ -388,9 +393,9 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         self.debugPrint("Image_File:          {0}".format(self.image_file))
         
         if self.load_ldraw_model:
-            assert self.preferences_file.__ne__("") ,"Preference file path not specified."
-            assert self.image_file.__ne__("") ,"Image file path not specified."
-            assert self.model_file.__ne__("") ,"Model file path not specified."
+            assert self.preferences_file.__ne__(""), "Preference file path not specified."
+            assert self.image_file.__ne__(""), "Image file path not specified."
+            assert self.model_file.__ne__(""), "Model file path not specified."
             kwargs = {
                 "preferencesFile": self.preferences_file,
                 "modelFile": self.model_file,
@@ -401,13 +406,14 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             self.debugPrint("Load Task Result:    {0}".format(self.load_Result))
 
         # Check blend file and create if not exist
+        """
         if self.cli_render and self.preferences_file:
             default_blend_file_directory = os.path.dirname(self.preferences_file)
             default_blend_file = os.path.abspath(os.path.join(default_blend_file_directory, 'lpub3d.blend'))
             if not os.path.exists(default_blend_file):
                 bpy.ops.wm.save_mainfile(filepath=default_blend_file)
                 self.debugPrint("Save default blend file to {0}".format(default_blend_file))
-
+        """
 
         now = time.time()
 
@@ -440,7 +446,8 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             self.debugPrint("Blendfile_Trusted:   {0}".format(self.blendfile_trusted))
             self.debugPrint("Blend_File:          {0}".format(self.blend_file))
 
-            self.performRenderTask()
+            if not self.import_only:
+                self.performRenderTask()
 
             return {'FINISHED'}
 

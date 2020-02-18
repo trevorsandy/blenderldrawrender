@@ -45,7 +45,7 @@ Default preferences file:
 [DEFAULT]
 
 [importldraw]
-blendfilePath                 =
+blendFile                     =
 customLDConfigFile            =
 customPartsDirectory          =
 ldrawDirectory                =
@@ -79,7 +79,6 @@ scale                         = 0.01
 smoothShading                 = True
 transparentBackground         = True
 useColourScheme               = lego
-useCustomLDConfig             = False
 useLogoStuds                  = False
 useLook                       = normal
 useLSynthParts                = True
@@ -93,9 +92,9 @@ class Preferences():
 
     __sectionName = 'importldraw'
 
-    def __init__(self, preferencesFile):
-        if preferencesFile.__ne__(""):
-            self.__prefsFilepath = preferencesFile
+    def __init__(self, preferencesfile):
+        if preferencesfile.__ne__(""):
+            self.__prefsFilepath = preferencesfile
             loadldraw.debugPrint("-----Import Settings-----")
             loadldraw.debugPrint("Preferences file:    {0}".format(self.__prefsFilepath))
         else:
@@ -193,11 +192,12 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     colourScheme: EnumProperty(
         name="Colour scheme options",
         description="Colour scheme options",
-        default=prefs.get("useColurScheme", "lgeo"),
+        default=prefs.get("useColourScheme", "lgeo"),
         items=(
             ("lgeo", "Realistic colours", "Uses the LGEO colour scheme for realistic colours."),
-            ("ldraw", "Original LDraw colours", "Uses the standard LDraw colour scheme."),
-            ("alt", "Alternate LDraw colours", "Uses the alternate LDraw colour scheme."),
+            ("ldraw", "Original LDraw colours", "Uses the standard LDraw colour scheme (LDConfig.ldr)."),
+            ("alt", "Alternate LDraw colours", "Uses the alternate LDraw colour scheme (LDCfgalt.ldr)."),
+            ("custom", "Custom LDraw colours", "Uses a user specified LDraw colour file."),
         )
     )
 
@@ -311,9 +311,8 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
 
     customLDConfigPath: StringProperty(
         name="",
-        description="Full file path to custom LDConfig",
-        default=prefs.get("customLDConfigFile", ""),
-        subtype="FILE_PATH"
+        description="Full directory path to specified custom LDraw colours (LDConfig) file",
+        default=prefs.get("customLDConfigFile", "")
     )
 
     customPartsPath: StringProperty(
@@ -456,7 +455,9 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
 
         # Reinitialize the preferences system using specified ini
         if self.cliRender and self.preferencesFile:
-            self.prefs = Preferences(self.preferencesFile)
+
+            ImportLDrawOps.prefs = Preferences(self.preferencesFile)
+
             loadldraw.debugPrint("Model file:          {0}".format(self.modelFile))
             loadldraw.debugPrint("Search custom parts: {0}".format(self.searchCustomParts))
             loadldraw.debugPrint("CLI render:          {0}".format(self.cliRender))
@@ -500,7 +501,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             self.useUnofficialParts      = ImportLDrawOps.prefs.get("useUnofficialParts",      self.useUnofficialParts)
             self.verbose                 = ImportLDrawOps.prefs.get("verbose",                 self.verbose)
 
-        # Read current preferences from the UI and save them
+                # Read current preferences from the UI and save them
         else:
             ImportLDrawOps.prefs.set("addEnvironment",         self.addEnvironment)
             ImportLDrawOps.prefs.set("bevelEdges",             self.bevelEdges)
@@ -567,15 +568,15 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         loadldraw.Options.useUnofficialParts         = self.useUnofficialParts
         loadldraw.Options.verbose                    = self.verbose
         if not self.lsynthPath:
-            loadldraw.Options.LSynthDirectory        = os.path.join(os.path.dirname(__file__), "lsynth")
+            loadldraw.Options.LSynthDirectory         = os.path.join(os.path.dirname(__file__), "lsynth")
         else:
-            loadldraw.Options.LSynthDirectory        = self.lsynthPath
+            loadldraw.Options.LSynthDirectory         = self.lsynthPath
         if not self.studLogoPath:
-            loadldraw.Options.studLogoDirectory      = os.path.join(os.path.dirname(__file__), "studs")
+            loadldraw.Options.studLogoDirectory       = os.path.join(os.path.dirname(__file__), "studs")
         else:
-            loadldraw.Options.studLogoDirectory      = self.studLogoPath
+            loadldraw.Options.studLogoDirectory       = self.studLogoPath
         if self.filepath:
-            self.modelFile                           = self.filepath
+            self.modelFile                            = self.filepath
 
         loadldraw.loadFromFile(self, self.modelFile)
 

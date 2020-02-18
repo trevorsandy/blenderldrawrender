@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Author: Trevor SANDY
-# Last Update February 12, 2020
+# Last Update February 18, 2020
 #
 # Adapted from original script by Stefan Buck
 # License: MIT
@@ -10,15 +10,18 @@
 #
 # Example:
 #
-# ./upload-github-release-asset.sh
+# cd /home/trevorsandy/projects/blenderldrawrender && ./upload-github-release-asset.sh
 #
 # This script accepts the following parameters:
-# TAG          - Release tag
-# OWNER        - Repository owner
-# REPO_NAME    - Repository 
-# REPO_PATH    - Full path to the repository
-# ASSET_NAME   - File name
-# API_TOKEN    - User GitHub Token (Use a local file containing your token)
+# TAG             - Release tag
+# OWNER           - Repository owner
+# GH_RELEASE      - Release label
+# GH_RELEASE_NOTE - Release note
+# REPO_NAME       - Repository
+# REPO_PATH       - Full path to the repository
+# REPO_BRANCH     - The specified repository branch
+# ASSET_NAME      - File name
+# API_TOKEN       - User GitHub Token (Use a local file containing your token)
 #
 
 SCRIPT_NAME=$0
@@ -27,13 +30,13 @@ HOME_DIR=$PWD
 
 echo && echo $SCRIPT_NAME && echo
 
-# Check for archive dependencies
+# Check for script dependencies
 echo
 set -e
 echo -n "Checking dependencies... "
 for name in zip jq xargs
 do
-  [[ $(which $name 2>/dev/null) ]] || { echo -en "\n$name needs to be installed. Use 'sudo apt-get install $name'";deps=1; }
+    [[ $(which $name 2>/dev/null) ]] || { echo -en "\n$name needs to be installed. Use 'sudo apt-get install $name'";deps=1; }
 done
 [[ $deps -ne 1 ]] && echo "OK" || { echo -en "\nInstall the above and rerun this script\n";exit 1; }
 
@@ -43,18 +46,19 @@ done
 CONFIG=$@
 
 for line in $CONFIG; do
-  eval "$line"
+    eval "$line"
 done
 
 # Arguments
 GH_TAG=${TAG:-v1.0.0}
 GH_OWNER=${OWNER:-trevorsandy}
 GH_REPO_NAME=${REPO_NAME:-blenderldrawrender}
+GH_REPO_BRANCH=${REPO_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}
 GH_REPO_PATH=${REPO_PATH:-/home/$GH_OWNER/projects/$GH_REPO_NAME}
+GH_RELEASE=${RELEASE:-Blender LDraw Render $(date +%d.%m.%Y)}
+GH_RELEASE_NOTE=${RELEASE_NOTE:-Initial release}
 GH_ASSET_NAME=${ASSET_NAME:-LDrawBlenderRenderAddons.zip}
-GH_API_TOKEN=${API_TOKEN:-}
-
-cd $GH_REPO_PATH
+GH_API_TOKEN=${API_TOKEN:-$(git config --global github.token)}
 
 # Define variables.
 GH_API="https://api.github.com"
@@ -63,22 +67,47 @@ GH_TAGS="$GH_REPO/releases/tags/$GH_TAG"
 GH_AUTH="Authorization: token $GH_API_TOKEN"
 WGET_ARGS="--content-disposition --auth-no-challenge --no-cookie"
 CURL_ARGS="-LJO#"
+TAG_EXIST=""
 
+# New release data
+generate_release_post_data()
+{
+  cat <<EOF
+{
+  "tag_name": "$GH_TAG",
+  "target_commitish": "$GH_REPO_BRANCH",
+  "name": "$GH_RELEASE",
+  "body": "$GH_RELEASE_NOTE",
+  "draft": false,
+  "prerelease": false
+}
+EOF
+}
+
+# Arguments display
 function display_arguments
 {
     echo
     echo "--Command Options:"
-    echo "--GH_TAG.........$GH_TAG"
-    echo "--GH_OWNER.......$GH_OWNER"    
-    echo "--GH_REPO_NAME...$GH_REPO_NAME"
-    echo "--GH_REPO_PATH...$GH_REPO_PATH"
-	echo "--GH_ASSET_NAME..$GH_ASSET_NAME"
-    echo "--GH_API.........$GH_API"
-    echo "--GH_REPO........$GH_REPO"
-    echo "--GH_TAGS........$GH_TAGS"
-    echo 
+    echo "--TAG...........$GH_TAG"
+    echo "--OWNER.........$GH_OWNER"
+    echo "--REPO_NAME.....$GH_REPO_NAME"
+    echo "--REPO_PATH.....$GH_REPO_PATH"
+    echo "--REPO_BRANCH...$GH_REPO_BRANCH"
+    echo "--ASSET_NAME....$GH_ASSET_NAME"
+    if [ -z "$TAG_EXIST" ]; then
+        echo "--RELEASE.......$GH_RELEASE"
+        echo "--RELEASE_NOTE..$GH_RELEASE_NOTE"
+        echo "--NEW RELEASE WILL BE CREATED"
+    fi
+    echo "--GH_TAGS.......$GH_TAGS"
+    echo
 }
 
+# Set working directory
+cd $GH_REPO_PATH
+
+# Logger
 ME="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 CWD=`pwd`
 f="${CWD}/$ME"
@@ -98,6 +127,12 @@ LOG="$f"
 exec > >(tee -a ${LOG} )
 exec 2> >(tee -a ${LOG} >&2)
 
+# Get latest tag
+if [[ "$GH_TAG" != 'LATEST' ]]; then
+    echo && echo "Checking specified tag..."
+    TAG_EXIST=$(git ls-remote origin refs/tags/$GH_TAG)
+fi
+
 # Show options
 display_arguments
 
@@ -106,30 +141,11 @@ sleep 1s && read -p "  Are you sure (y/n)? " -n 1 -r
 echo    # (optional) move to a new line
 if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
-  [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1 # handle exits from shell or function but don't exit interactive shell
+    [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1 # handle exits from shell or function but don't exit interactive shell
 fi
-
-# Get API Token from file [Set your file path and name accordingly]
-SECRETS_DIR=$(cd ../ && echo $PWD)/Production_cutover/secrets
-SECRETS_FILE=$SECRETS_DIR/.github_api_keys
-while IFS= read -r line; do
-  if [[ "$line" == *"GITHUB_API_TOKEN"* ]]; then
-	GH_API_TOKEN=${line#*=}
-    break
-  fi
-done < "$SECRETS_FILE"
-[[ -z "$GH_API_TOKEN" ]] && echo && echo "GH_API_TOKEN not specified. Exiting." && exit 1
-GH_AUTH="Authorization: token $GH_API_TOKEN"
-
-# Get latest tag
-echo && echo "Getting latest tag..."
-if [[ "$GH_TAG" == 'LATEST' ]]; then
-  GH_TAGS="$GH_REPO/releases/latest"
-fi
-echo "Retrieved tag: '$GH_TAGS'" && echo
 
 # Package the archive
-echo "Creating release package..."
+echo && echo "Creating release package..."
 if [ -f $GH_ASSET_NAME ];then
     rm $GH_ASSET_NAME
 fi
@@ -142,9 +158,23 @@ zip -r ldraw_render_addons.zip io_scene_importldraw io_scene_renderldraw -x \
 "io_scene_importldraw/README.md" \
 "io_scene_renderldraw/__pycache__/*"
 cd ../
-zip -r $GH_ASSET_NAME addons/ldraw_render_addons.zip installBlenderAddons.py
+zip -r $GH_ASSET_NAME addons/ldraw_render_addons.zip config/BlenderLDrawParameters.lst installBlenderAddons.py
 rm addons/ldraw_render_addons.zip
 echo && echo "Created release package '$GH_ASSET_NAME'" && echo
+# exit 1
+
+# Validate API Token [Place token in git config "git config --global github.token YOUR_TOKEN"]
+[[ -z "$GH_API_TOKEN" ]] && echo && echo "GH_API_TOKEN not specified. Exiting." && exit 1
+
+# Set latest tag or create release if specified tag does not exist
+if [[ "$GH_TAG" == 'LATEST' ]]; then
+    echo && echo "Setting latest tag..."
+    GH_TAGS="$GH_REPO/releases/latest"
+elif [[ -z "$TAG_EXIST" ]]; then
+    echo && echo "Create release '$GH_RELEASE', version '$GH_TAG', for repo '$GH_REPO_NAME' on branch '$GH_REPO_BRANCH'" && echo
+    curl --data "$(generate_release_post_data)" "$GH_REPO/releases?access_token=$GH_API_TOKEN"
+fi
+echo "Retrieved tag: '$GH_TAG'" && echo
 
 # Validate token.
 echo "Validating user token..." && echo
@@ -166,7 +196,7 @@ GH_ASSET_ID="$(echo $GH_RESPONSE | jq -r '.assets[] | select(.name == '\"$GH_ASS
 if [ "$GH_ASSET_ID" = "" ]; then
     echo "Asset id for $GH_ASSET_NAME not found so no need to overwrite"
 else
-	echo "Asset id '$GH_ASSET_ID'" && echo
+    echo "Asset id '$GH_ASSET_ID'" && echo
     echo "Deleting asset $GH_ASSET_NAME ($GH_ASSET_ID)..."
     curl "$GITHUB_OAUTH_BASIC" -X "DELETE" -H "$GH_AUTH" "$GH_REPO/releases/assets/$GH_ASSET_ID"
 fi
