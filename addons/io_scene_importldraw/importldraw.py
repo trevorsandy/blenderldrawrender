@@ -47,7 +47,7 @@ Default preferences file:
 [importldraw]
 blendFile                     =
 customLDConfigFile            =
-customPartsDirectory          =
+additionalSearchDirectories   =
 ldrawDirectory                =
 lsynthDirectory               =
 studLogoDirectory             =
@@ -315,10 +315,10 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         default=prefs.get("customLDConfigFile", "")
     )
 
-    customPartsPath: StringProperty(
+    additionalSearchPaths: StringProperty(
         name="",
-        description="Full directory path to LPub3D custom parts ",
-        default=prefs.get("customPartsDirectory", "")
+        description="Full directory paths, comma delimited, to additional LDraw search paths",
+        default=prefs.get("additionalSearchDirectories", "")
     )
 
     studLogoPath: StringProperty(
@@ -351,12 +351,6 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         default=prefs.get("useLSynthParts", True)
     )
 
-    useCustomLDConfig: BoolProperty(
-        name="Use Custom LDConfig",
-        description="Use a custom LDConfig file",
-        default=prefs.get("useCustomLDConfig", True)
-    )
-
     overwriteExistingMaterials: BoolProperty(
         name="Use Existing Material",
         description="Overwrite existing material with the same name",
@@ -375,9 +369,9 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         default=prefs.get("removeDoubles", True)
     )
 
-    searchCustomParts: BoolProperty(
-        name="Search Custom Parts",
-        description="Add custom parts directory to search paths - for fade previous steps and highlight step",
+    searchAdditionalPaths: BoolProperty(
+        name="Search additional paths",
+        description="Search additional LDraw paths (automatically set for fade previous steps and highlight step)",
         default=False
     )
 
@@ -452,7 +446,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         box.label(text="Resolve Ambiguous Normals:", icon='ORIENTATION_NORMAL')
         box.prop(self, "resolveNormals", expand=True)
 
-        box.prop(self, "searchCustomParts")
+        box.prop(self, "searchAdditionalPaths")
         box.prop(self, "verbose")
 
     def execute(self, context):
@@ -464,47 +458,50 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             ImportLDrawOps.prefs = Preferences(self.preferencesFile)
 
             loadldraw.debugPrint("Model file:          {0}".format(self.modelFile))
-            loadldraw.debugPrint("Search custom parts: {0}".format(self.searchCustomParts))
+            loadldraw.debugPrint("Search custom parts: {0}".format(self.searchAdditionalPaths))
             loadldraw.debugPrint("CLI render:          {0}".format(self.cliRender))
             loadldraw.debugPrint("-------------------------")
 
             # Update properties with the reinitialized preferences
-            self.addEnvironment          = ImportLDrawOps.prefs.get("addEnvironment",          self.addEnvironment)
-            self.addGaps                 = ImportLDrawOps.prefs.get("gaps",                    self.addGaps)
-            self.bevelEdges              = ImportLDrawOps.prefs.get("bevelEdges",              self.bevelEdges)
-            self.bevelWidth              = ImportLDrawOps.prefs.get("bevelWidth",              self.bevelWidth)
-            self.cameraBorderPercentage  = ImportLDrawOps.prefs.get("cameraBorderPercentage",  self.cameraBorderPercentage)
-            self.colourScheme            = ImportLDrawOps.prefs.get("useColourScheme",         self.colourScheme)
-            self.curvedWalls             = ImportLDrawOps.prefs.get("curvedWalls",             self.curvedWalls)
-            self.customLDConfigPath      = ImportLDrawOps.prefs.get("customLDConfigFile",      self.customLDConfigPath)
-            self.customPartsPath         = ImportLDrawOps.prefs.get("customPartsDirectory",    self.customPartsPath)
-            self.defaultColour           = ImportLDrawOps.prefs.get("defaultColour",           self.defaultColour)
-            self.flatten                 = ImportLDrawOps.prefs.get("flattenHierarchy",        self.flatten)
-            self.gapsSize                = ImportLDrawOps.prefs.get("gapWidth",                self.gapsSize)
-            self.importCameras           = ImportLDrawOps.prefs.get("importCameras",           self.importCameras)
-            self.importScale             = ImportLDrawOps.prefs.get("scale",                   self.importScale)
-            self.instanceStuds           = ImportLDrawOps.prefs.get("instanceStuds",           self.instanceStuds)
-            self.ldrawPath               = ImportLDrawOps.prefs.get("ldrawDirectory",          self.ldrawPath)
-            self.linkParts               = ImportLDrawOps.prefs.get("linkParts",               self.linkParts)
-            self.logoStudVersion         = ImportLDrawOps.prefs.get("logoStudVersion",         self.logoStudVersion)
-            self.look                    = ImportLDrawOps.prefs.get("useLook",                 self.look)
-            self.lsynthPath              = ImportLDrawOps.prefs.get("lsynthDirectory",         self.lsynthPath)
-            self.numberNodes             = ImportLDrawOps.prefs.get("numberNodes",             self.numberNodes)
+            self.addEnvironment          = ImportLDrawOps.prefs.get("addEnvironment",       self.addEnvironment)
+            self.addGaps                 = ImportLDrawOps.prefs.get("gaps",                 self.addGaps)
+            self.bevelEdges              = ImportLDrawOps.prefs.get("bevelEdges",           self.bevelEdges)
+            self.bevelWidth              = ImportLDrawOps.prefs.get("bevelWidth",           self.bevelWidth)
+            self.cameraBorderPercentage  = ImportLDrawOps.prefs.get("cameraBorderPercentage", self.cameraBorderPercentage)
+            self.colourScheme            = ImportLDrawOps.prefs.get("useColourScheme",      self.colourScheme)
+            self.curvedWalls             = ImportLDrawOps.prefs.get("curvedWalls",          self.curvedWalls)
+            self.customLDConfigPath      = ImportLDrawOps.prefs.get("customLDConfigFile",   self.customLDConfigPath)
+            self.additionalSearchPaths   = ImportLDrawOps.prefs.get("additionalSearchDirectories", self.additionalSearchPaths)
+            self.defaultColour           = ImportLDrawOps.prefs.get("defaultColour",        self.defaultColour)
+            self.flatten                 = ImportLDrawOps.prefs.get("flattenHierarchy",     self.flatten)
+            self.gapsSize                = ImportLDrawOps.prefs.get("gapWidth",             self.gapsSize)
+            self.importCameras           = ImportLDrawOps.prefs.get("importCameras",        self.importCameras)
+            self.importScale             = ImportLDrawOps.prefs.get("scale",                self.importScale)
+            self.instanceStuds           = ImportLDrawOps.prefs.get("instanceStuds",        self.instanceStuds)
+            self.ldrawPath               = ImportLDrawOps.prefs.get("ldrawDirectory",       self.ldrawPath)
+            self.linkParts               = ImportLDrawOps.prefs.get("linkParts",            self.linkParts)
+            self.logoStudVersion         = ImportLDrawOps.prefs.get("logoStudVersion",      self.logoStudVersion)
+            self.look                    = ImportLDrawOps.prefs.get("useLook",              self.look)
+            self.lsynthPath              = ImportLDrawOps.prefs.get("lsynthDirectory",      self.lsynthPath)
+            self.numberNodes             = ImportLDrawOps.prefs.get("numberNodes",          self.numberNodes)
             self.overwriteExistingMaterials = ImportLDrawOps.prefs.get("overwriteExistingMaterials", self.overwriteExistingMaterials)
             self.overwriteExistingMeshes = ImportLDrawOps.prefs.get("overwriteExistingMeshes", self.overwriteExistingMeshes)
-            self.positionCamera          = ImportLDrawOps.prefs.get("positionCamera",          self.positionCamera)
+            self.positionCamera          = ImportLDrawOps.prefs.get("positionCamera",       self.positionCamera)
             self.positionOnGround        = ImportLDrawOps.prefs.get("positionObjectOnGroundAtOrigin", self.positionOnGround)
-            self.removeDoubles           = ImportLDrawOps.prefs.get("removeDoubles",           self.removeDoubles)
-            self.resolveNormals          = ImportLDrawOps.prefs.get("resolveNormals",          self.resolveNormals)
-            self.resPrims                = ImportLDrawOps.prefs.get("resolution",              self.resPrims)
-            self.searchCustomParts       = ImportLDrawOps.prefs.get("searchCustomParts",       self.searchCustomParts)  #TODO add to loadldraw.Options
-            self.smoothParts             = ImportLDrawOps.prefs.get("smoothShading",           self.smoothParts)
-            self.studLogoPath            = ImportLDrawOps.prefs.get("studLogoDirectory",       self.studLogoPath)
-            self.useCustomLDConfig       = ImportLDrawOps.prefs.get("useCustomLDConfig",       self.useCustomLDConfig)
-            self.useLogoStuds            = ImportLDrawOps.prefs.get("useLogoStuds",            self.useLogoStuds)
-            self.useLSynthParts          = ImportLDrawOps.prefs.get("useLSynthParts",          self.useLSynthParts)
+            self.removeDoubles           = ImportLDrawOps.prefs.get("removeDoubles",        self.removeDoubles)
+            self.resolveNormals          = ImportLDrawOps.prefs.get("resolveNormals",       self.resolveNormals)
+            self.resPrims                = ImportLDrawOps.prefs.get("resolution",           self.resPrims)
+            self.searchAdditionalPaths   = ImportLDrawOps.prefs.get("searchAdditionalPaths", self.searchAdditionalPaths)
+            self.smoothParts             = ImportLDrawOps.prefs.get("smoothShading",        self.smoothParts)
+            self.studLogoPath            = ImportLDrawOps.prefs.get("studLogoDirectory",    self.studLogoPath)
+            self.useLogoStuds            = ImportLDrawOps.prefs.get("useLogoStuds",         self.useLogoStuds)
+            self.useLSynthParts          = ImportLDrawOps.prefs.get("useLSynthParts",       self.useLSynthParts)
+            self.useUnofficialParts      = ImportLDrawOps.prefs.get("useUnofficialParts",   self.useUnofficialParts)
             self.parameterFile           = ImportLDrawOps.prefs.get("parameterFile",        self.parameterFile)
             self.verbose                 = ImportLDrawOps.prefs.get("verbose",              self.verbose)
+
+            if self.colourScheme == "custom":
+                assert self.customLDConfigPath.__ne__(""), "Custom LDraw colour (LDConfig) file path not specified."
 
                 # Read current preferences from the UI and save them
         else:
@@ -526,7 +523,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             ImportLDrawOps.prefs.set("resolution",             self.resPrims)
             ImportLDrawOps.prefs.set("resolveNormals",         self.resolveNormals)
             ImportLDrawOps.prefs.set("scale",                  self.importScale)
-            ImportLDrawOps.prefs.set("searchCustomParts",      self.searchCustomParts)  #TODO add to loadldraw.Options
+            ImportLDrawOps.prefs.set("searchAdditionalPaths",  self.searchAdditionalPaths)
             ImportLDrawOps.prefs.set("smoothShading",          self.smoothParts)
             ImportLDrawOps.prefs.set("useColourScheme",        self.colourScheme)
             ImportLDrawOps.prefs.set("useLogoStuds",           self.useLogoStuds)
@@ -540,38 +537,41 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         loadldraw.hasCollections = hasattr(bpy.data, "collections")
 
         # Set import options and import
-        loadldraw.Options.addBevelModifier           = self.bevelEdges and not loadldraw.Options.instructionsLook
-        loadldraw.Options.addGroundPlane             = self.addEnvironment
-        loadldraw.Options.addWorldEnvironmentTexture = self.addEnvironment
-        loadldraw.Options.bevelWidth                 = self.bevelWidth
-        loadldraw.Options.cameraBorderPercent        = self.cameraBorderPercentage / 100.0
-        loadldraw.Options.createInstances            = self.linkParts
-        loadldraw.Options.curvedWalls                = self.curvedWalls
-        loadldraw.Options.defaultColour              = self.defaultColour
-        loadldraw.Options.edgeSplit                  = self.smoothParts  # Edge split is appropriate only if we are smoothing
-        loadldraw.Options.flattenHierarchy           = self.flatten
-        loadldraw.Options.gaps                       = self.addGaps
-        loadldraw.Options.gapWidth                   = self.gapsSize
-        loadldraw.Options.importCameras              = self.importCameras
-        loadldraw.Options.instanceStuds              = self.instanceStuds
-        loadldraw.Options.instructionsLook           = self.look == "instructions"
-        loadldraw.Options.ldrawDirectory             = self.ldrawPath
-        loadldraw.Options.logoStudVersion            = self.logoStudVersion
-        loadldraw.Options.numberNodes                = self.numberNodes
-        loadldraw.Options.overwriteExistingMaterials = self.overwriteExistingMaterials
-        loadldraw.Options.overwriteExistingMeshes    = self.overwriteExistingMeshes
-        loadldraw.Options.positionCamera             = self.positionCamera
+        loadldraw.Options.addBevelModifier            = self.bevelEdges and not loadldraw.Options.instructionsLook
+        loadldraw.Options.addGroundPlane              = self.addEnvironment
+        loadldraw.Options.addWorldEnvironmentTexture  = self.addEnvironment
+        loadldraw.Options.bevelWidth                  = self.bevelWidth
+        loadldraw.Options.cameraBorderPercent         = self.cameraBorderPercentage / 100.0
+        loadldraw.Options.createInstances             = self.linkParts
+        loadldraw.Options.curvedWalls                 = self.curvedWalls
+        loadldraw.Options.defaultColour               = self.defaultColour
+        loadldraw.Options.edgeSplit                   = self.smoothParts  # Edge split is appropriate only if we are smoothing
+        loadldraw.Options.flattenHierarchy            = self.flatten
+        loadldraw.Options.gaps                        = self.addGaps
+        loadldraw.Options.gapWidth                    = self.gapsSize
+        loadldraw.Options.importCameras               = self.importCameras
+        loadldraw.Options.instanceStuds               = self.instanceStuds
+        loadldraw.Options.instructionsLook            = self.look == "instructions"
+        loadldraw.Options.ldrawDirectory              = self.ldrawPath
+        loadldraw.Options.logoStudVersion             = self.logoStudVersion
+        loadldraw.Options.numberNodes                 = self.numberNodes
+        loadldraw.Options.overwriteExistingMaterials  = self.overwriteExistingMaterials
+        loadldraw.Options.overwriteExistingMeshes     = self.overwriteExistingMeshes
+        loadldraw.Options.positionCamera              = self.positionCamera
         loadldraw.Options.positionObjectOnGroundAtOrigin = self.positionOnGround
-        loadldraw.Options.removeDoubles              = self.removeDoubles
-        loadldraw.Options.resolution                 = self.resPrims
-        loadldraw.Options.resolveAmbiguousNormals    = self.resolveNormals
-        loadldraw.Options.scale                      = self.importScale
-        loadldraw.Options.smoothShading              = self.smoothParts
-        loadldraw.Options.useColourScheme            = self.colourScheme
-        loadldraw.Options.useLogoStuds               = self.useLogoStuds
-        loadldraw.Options.useLSynthParts             = self.useLSynthParts
-        loadldraw.Options.useUnofficialParts         = self.useUnofficialParts
+        loadldraw.Options.removeDoubles               = self.removeDoubles
+        loadldraw.Options.resolution                  = self.resPrims
+        loadldraw.Options.resolveAmbiguousNormals     = self.resolveNormals
+        loadldraw.Options.scale                       = self.importScale
+        loadldraw.Options.smoothShading               = self.smoothParts
+        loadldraw.Options.useColourScheme             = self.colourScheme
+        loadldraw.Options.useLogoStuds                = self.useLogoStuds
+        loadldraw.Options.useLSynthParts              = self.useLSynthParts
+        loadldraw.Options.useUnofficialParts          = self.useUnofficialParts
         loadldraw.Options.parameterFile               = self.parameterFile
+        loadldraw.Options.searchAdditionalPaths       = self.searchAdditionalPaths
+        loadldraw.Options.additionalSearchDirectories = self.additionalSearchPaths
+        loadldraw.Options.customLDConfigPath          = self.customLDConfigPath
         loadldraw.Options.verbose                     = self.verbose
         if not self.lsynthPath:
             loadldraw.Options.LSynthDirectory         = os.path.join(os.path.dirname(__file__), "lsynth")

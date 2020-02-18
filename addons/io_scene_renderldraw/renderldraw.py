@@ -177,9 +177,9 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         default=True
     )
 
-    search_custom_parts: BoolProperty(
-        name="Search Custom Parts",
-        description="Add custom parts directory to search paths - automatically added for step fade or highlight",
+    search_additional_paths: BoolProperty(
+        name="Search additional paths",
+        description="Search additional LDraw paths (automatically set for fade previous steps and highlight step)",
         default=False
     )
 
@@ -355,7 +355,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         box.prop(self, "transparent_background")
         box.prop(self, "blendfile_trusted")
         box.prop(self, "render_window")
-        box.prop(self, "search_custom_parts")
+        box.prop(self, "search_additional_paths")
         box.prop(self, "load_ldraw_model")
         box.prop(self, "verbose")
 
@@ -387,7 +387,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         self.debugPrint("Resolution_Width:    {0}".format(self.resolution_width))
         self.debugPrint("Resolution_Height:   {0}".format(self.resolution_height))
         self.debugPrint("Render_Percentage:   {0}".format(self.render_percentage))
-        self.debugPrint("Search_Custom_Parts: {0}".format(self.search_custom_parts))
+        self.debugPrint("Search_Addl_paths:   {0}".format(self.search_additional_paths))
         self.debugPrint("Preferences_File:    {0}".format(self.preferences_file))
         self.debugPrint("Model_File:          {0}".format(self.model_file))
         self.debugPrint("Image_File:          {0}".format(self.image_file))
@@ -399,7 +399,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             kwargs = {
                 "preferencesFile": self.preferences_file,
                 "modelFile": self.model_file,
-                "searchCustomParts": self.search_custom_parts,
+                "searchAdditionalPaths": self.search_additional_paths,
                 "cliRender": self.cli_render
             }
             self.load_Result = bpy.ops.import_scene.importldraw('EXEC_DEFAULT', **kwargs)

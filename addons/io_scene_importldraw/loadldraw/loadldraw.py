@@ -186,6 +186,8 @@ class Options:
     flattenHierarchy   = False          # All parts are under the root object - no sub-models
     flattenGroups      = False          # All LEOCad groups are ignored - no groups
     usePrincipledShaderWhenAvailable = True  # Use the new principled shader
+    searchAdditionalPaths = False       # Search additional LDraw paths (automatically set for fade previous steps and highlight step)
+    additionalSearchDirectories = r""   # Full directory paths, comma delimited, to additional LDraw search paths.
     customLDConfigPath = r""            # Full directory path to specified custom LDraw colours (LDConfig) file.
     scriptDirectory    = os.path.dirname(os.path.realpath(__file__))
 
@@ -472,11 +474,20 @@ class Configure:
         if os.path.exists(path):
             Configure.searchPaths.append(path)
 
-   def __setSearchPaths():
+    def __setSearchPaths():
         Configure.searchPaths = []
 
         # Always search for parts in the 'models' folder
         Configure.__appendPath(os.path.join(Configure.ldrawInstallDirectory, "models"))
+
+        # Search additional search paths
+        if Options.additionalSearchDirectories != "" and Options.searchAdditionalPaths:
+            dirs = Options.additionalSearchDirectories.replace("\\\\", "\\").strip().split(",")
+            for dir in dirs:
+                dir = os.path.expanduser(dir.strip("\"").strip("'"))
+                if dir.lower() not in {path.lower() for path in Configure.searchPaths} and os.path.exists(dir):
+                    Configure.__appendPath(dir)
+                    debugPrint("Additional LDraw path to be used is: {0}".format(dir))
 
         # Search for stud logo parts
         if Options.useLogoStuds and Options.studLogoDirectory != "":
@@ -529,12 +540,12 @@ class Configure:
         # Get list of possible ldraw installation directories for the platform
         if Configure.isWindows():
             ldrawPossibleDirectories = [
-                                            "C:\\LDraw", 
-                                            "C:\\Program Files\\LDraw", 
-                                            "C:\\Program Files (x86)\\LDraw",
-                                       ]
+                r"C:\LDraw",
+                r"C:\Program Files\LDraw",
+                r"C:\Program Files (x86)\LDraw",
+            ]
         elif Configure.isMac():
-            ldrawPossibleDirectories = [ 
+            ldrawPossibleDirectories = [
                 "~/ldraw/",
                 "/Applications/LDraw/",
                 "/Applications/ldraw/",
@@ -556,6 +567,14 @@ class Configure:
                 result = dir
                 break
 
+        # Search LDRAW_DIRECTORY environment variable
+        if result == "":
+            ldrawDir = os.environ.get('LDRAW_DIRECTORY')
+            if ldrawDir is not None:
+                dir = os.path.expanduser(ldrawDir).rstrip()
+                if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
+                    result = dir
+
         return result
 
     def __setLDrawParameterFile():
@@ -569,7 +588,7 @@ class Configure:
         if Options.ldrawDirectory == "":
             Configure.ldrawInstallDirectory = Configure.findDefaultLDrawDirectory()
         else:
-            Configure.ldrawInstallDirectory = os.path.expanduser(Options.ldrawDirectory)
+            Configure.ldrawInstallDirectory = os.path.expanduser(Options.ldrawDirectory.replace("\\\\", "\\"))
 
         debugPrint("The LDraw Parts Library path to be used is: {0}".format(Configure.ldrawInstallDirectory))
         Configure.__setLDrawParameterFile()
