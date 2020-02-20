@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Render LDraw GPLv2 license.
+"""LPub3D Render LDraw GPLv2 license.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -22,14 +22,14 @@ import bpy
 from . import renderldraw
 
 bl_info = {
-    "name": "Render LDraw",
+    "name": "LPub3D Render LDraw",
     "description": "Render LDraw model as .png file",
     "author": "Trevor SANDY <trevor.sandy@gmail.com>",
     "version": (1, 0, 0),
     "blender": (2, 81, 0),
     "location": "Render",
     "warning": "",
-    "wiki_url": "https://trevorsandy.github.io/lpub3d",
+    "wiki_url": "https://github.com/trevorsandy/blenderldrawrender",
     "tracker_url": "https://github.com/trevorsandy/blenderldrawrender/issues",
     "category": "Render"
 }
@@ -39,13 +39,13 @@ bl_info = {
 def menuRender(self, context):
     """Render menu listing label."""
     self.layout.operator(renderldraw.RenderLDrawOps.bl_idname,
-                         text="Render LDraw Model (.png)",
+                         text="LPub3D Render LDraw (.png)",
                          icon='RENDER_RESULT')
 
 
 # When enabling the addon.
 def register():
-    """Register Render LDraw."""
+    """Register LPub3D Render LDraw."""
     bpy.utils.register_class(renderldraw.RenderLDrawOps)
     if hasattr(bpy.types, 'TOPBAR_MT_render'):
         # Blender 2.80
@@ -57,7 +57,7 @@ def register():
 
 # When disabling the addon.
 def unregister():
-    """Unregister Render LDraw."""
+    """Unregister LPub3D Render LDraw."""
     bpy.utils.unregister_class(renderldraw.RenderLDrawOps)
     if hasattr(bpy.types, 'TOPBAR_MT_render'):
         # Blender 2.80
@@ -70,4 +70,4 @@ def unregister():
 if __name__ == "__main__":
     register()
 
-    # bpy.ops.render_scene.renderldraw('INVOKE_DEFAULT') # Test call
+    # bpy.ops.render_scene.lpub3drenderldraw('INVOKE_DEFAULT') # Test call

@@ -1,21 +1,26 @@
-# Import LDraw #
+# LPub3D Import LDraw Files into Blender#
 
 > A [Blender](https://www.blender.org)&trade; plug-in for importing [LDraw](http://www.ldraw.org)&trade; file format models and parts.
 
+## History ##
+This plug-in was adapted from [Import LDraw](https://github.com/TobyLobster/ImportLDraw) by Toby Nelson (tobymnelson@gmail.com) and was initially written in May 2016.
+
 ## Purpose ##
-*Import LDraw* imports [LEGO](https://www.lego.com/)® models into Blender.
+*LPub3D Import LDraw* imports [LEGO](https://www.lego.com/)® models into Blender. This addon is intended to support direct Blender integration with [LPub3D](https://trevorsandy.github.io/lpub3d)
 
 It supports **.mpd**, **.ldr**, **.l3b**, and **.dat** file formats.
 
-It's intended to be accurate, compatible, and fast (in that order of priority).
-
 ## Features ##
-+ Available for both Blender 2.79 and Blender 2.81
-+ **Mac** and **Windows** supported (and hopefully **Linux**, but this is currently untested).
-+ **Bricksmith** compatible.
++ Available for Blender 2.80 and later (2.79 backport in progress).
++ **Mac**, **Windows** and **Linux** supported.
 + **MPD** file compatible.
++ **Settings configurable from LPub3D** user Interface
 + **LeoCAD** groups and cameras (both perspective and orthographic) supported.
 + **LSynth** bendable parts supported (synthesized models).
++ **LDCad**  generated parts supported.
++ **Additional LDraw parts paths** can be specified.
++ **LGEO colours, sloped bricks and lighted bricks** can be custom configured via parameter (ini) file.
++ **LDraw archive (.zip) or disc library** supported. Archive libraries are auto detected when available at the specified LDraw directory path.
 + *Cycles* and *Blender Render* engines supported. It renders either engine from a single scene.
 + Import **photorealistic** look, or **Instructions** look.
 + **Physically Based Realistic materials** - standard brick material, transparent, rubber, chrome, metal, pearlescent, glow-in-the-dark, glitter and speckle.
@@ -32,13 +37,10 @@ It's intended to be accurate, compatible, and fast (in that order of priority).
 + **Light bricks** - Bricks that emit light are supported.
 + **Fast** - even large models can be imported in seconds.
 
-## History ##
-This plug-in is by Toby Nelson (tobymnelson@gmail.com) and was initially written in May 2016.
-
 It was inspired by and initially based on code from [LDR-Importer](https://github.com/le717/LDR-Importer) but has since been completely rewritten.
 
 ## License ##
 
-*Import LDraw* is licensed under the [GPLv2](http://www.gnu.org/licenses/gpl-2.0.html) or any later version.
+*LPub3D Import LDraw* is licensed under the [GPLv2](http://www.gnu.org/licenses/gpl-2.0.html) or any later version.
 
 **LEGO**® is a registered trademark of the Lego Group<br clear=left>

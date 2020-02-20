@@ -124,7 +124,7 @@ dmypy.json
 .pyre/
 
 # Address "origin" does not support the LFS locking API error
-addons/io_scene_importldraw/loadldraw/background.exr
+addons/io_scene_lpub3d_importldraw/loadldraw/background.exr
 
 # Package and upload releases
 LDrawBlenderRenderAddons.zip

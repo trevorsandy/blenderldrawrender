@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Import LDraw GPLv2 license.
+"""LPub3D Import LDraw GPLv2 license.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -18,7 +18,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
 """
-Import LDraw
+LPub3D Import LDraw
 
 This file defines the importer for Blender.
 It stores and recalls preferences for the importer.
@@ -88,7 +88,7 @@ verbose                       = 0
 
 
 class Preferences():
-    """Import LDraw - Preferences"""
+    """LPub3D Import LDraw - Preferences"""
 
     __sectionName = 'importldraw'
 
@@ -137,11 +137,11 @@ class Preferences():
 
 
 class ImportLDrawOps(bpy.types.Operator, ImportHelper):
-    """Import LDraw - Import Operator."""
+    """LPub3D Import LDraw - Import Operator."""
 
-    bl_idname = "import_scene.importldraw"
+    bl_idname = "import_scene.lpub3dimportldraw"
     bl_description = "Import LDraw models (.mpd/.ldr/.l3b/.dat)"
-    bl_label = "Import LDraw Models"
+    bl_label = "LPub3D Import LDraw Models"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_options = {'REGISTER', 'UNDO', 'PRESET'}

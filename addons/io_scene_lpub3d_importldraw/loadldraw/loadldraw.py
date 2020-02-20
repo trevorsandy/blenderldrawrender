@@ -19,7 +19,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 from typing import Dict, Any
 
 """
-Import LDraw
+LPub3D Import LDraw
 
 This module loads LDraw compatible files into Blender. Set the 
 Options first, then call loadFromFile() function with the full 

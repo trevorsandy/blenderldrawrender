@@ -46,10 +46,10 @@ def install_addons():
         tup = bpy.app.version
     isBlender28OrLater = tup >= (2, 80)
 
-    # Define path to Import LDraw script
+    # Define path to LPub3D Import LDraw script
     path_to_script_dir = os.getcwd()
 
-    # Define path to Import LDraw add-on bundle
+    # Define path to LPub3D Import LDraw add-on bundle
     path_to_addon_dir: Union[bytes, str] = os.path.join(path_to_script_dir, "addons")
 
     # Define a list of the files in this add-on folder.
@@ -69,7 +69,7 @@ def install_addons():
                                      filepath=path_to_file, filter_python=True, filter_glob='*.py;*.zip')
 
     # Specify which add-ons to enable.
-    enable_these_addons: Set[str] = {'io_scene_importldraw', 'io_scene_renderldraw'}
+    enable_these_addons: Set[str] = {'io_scene_lpub3d_importldraw', 'io_scene_lpub3d_renderldraw'}
 
     # Enable addons.
     for string in enable_these_addons:
@@ -82,9 +82,9 @@ def install_addons():
     # Save user preferences
     bpy.ops.wm.save_userpref()
 
-    # Get 'Render LDraw' addon version
+    # Get 'LPub3D Render LDraw' addon version
     for mod in addon_utils.modules():
-        if mod.bl_info.get("name", "") == "Render LDraw":
+        if mod.bl_info.get("name", "") == "LPub3D Render LDraw":
             version = mod.bl_info.get('version', (-1, -1, -1))
             print("ADDON VERSION:      {0}".format(".".join(map(str, version))))
             break

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Import LDraw GPLv2 license.
+"""LPub3D Import LDraw GPLv2 license.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -22,15 +22,15 @@ import bpy
 from . import importldraw
 
 bl_info = {
-    "name": "Import LDraw",
+    "name": "LPub3D Import LDraw",
     "description": "Import LDraw models in .mpd .ldr .l3b and .dat formats",
-    "author": "Toby Nelson <tobymnelson@gmail.com>",
-    "version": (1, 1, 11),
+    "author": "Trevor SANDY <trevor.sandy@gmail.com>",
+    "version": (1, 0, 0),
     "blender": (2, 81, 0),
     "location": "File > Import",
     "warning": "",
-    "wiki_url": "https://github.com/TobyLobster/ImportLDraw",
-    "tracker_url": "https://github.com/TobyLobster/ImportLDraw/issues",
+    "wiki_url": "https://github.com/trevorsandy/blenderldrawrender",
+    "tracker_url": "https://github.com/trevorsandy/blenderldrawrender/issues",
     "category": "Import-Export"
     }
 
@@ -38,7 +38,7 @@ bl_info = {
 def menuImport(self, context):
     """Import menu listing label."""
     self.layout.operator(importldraw.ImportLDrawOps.bl_idname,
-                         text="LDraw (.mpd/.ldr/.l3b/.dat)")
+                         text="LPub3D Import LDraw (.mpd/.ldr/.l3b/.dat)")
 
 
 def register():
@@ -65,4 +65,4 @@ def unregister():
 if __name__ == "__main__":
     register()
     
-    # bpy.ops.import_scene.importldraw('INVOKE_DEFAULT') # Test call
+    # bpy.ops.import_scene.lpub3dimportldraw('INVOKE_DEFAULT') # Test call

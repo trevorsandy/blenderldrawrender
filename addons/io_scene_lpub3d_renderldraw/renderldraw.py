@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Render LDraw GPLv2 license.
+"""LPub3D Render LDraw GPLv2 license.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -18,7 +18,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
 """
-Render LDraw
+LPub3D Render LDraw
 
 This file defines the CLI load class.
 """
@@ -98,16 +98,16 @@ def format_elapsed(interval, long_form=False, seconds_places=3):
 
 
 class RenderLDrawOps(bpy.types.Operator, ExportHelper):
-    """Render LDraw - Render Operator."""
+    """LPub3D Render LDraw - Render Operator."""
 
-    bl_idname = "render_scene.renderldraw"
+    bl_idname = "render_scene.lpub3drenderldraw"
     bl_description = "Render LDraw model as .png file"
-    bl_label = "Render LDraw Models"
+    bl_label = "LPub3D Render LDraw Models"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
-    prefs_directory = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../io_scene_importldraw'))
+    prefs_directory = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../io_scene_lpub3d_importldraw'))
     prefs_file_path = os.path.join(prefs_directory, 'ImportLDrawPreferences.ini')
     image_directory = os.path.abspath(os.path.expanduser("~"))
     image_file_path = os.path.join(image_directory, 'blender_ldraw_image.png')
@@ -375,7 +375,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         return {'RUNNING_MODAL'}
 
     def execute(self, context):
-        """Render LDraw model."""
+        """LPub3D Render LDraw model."""
 
         self.debugPrint("-------------------------")
         self.debugPrint("Performing Import Task...")
@@ -402,7 +402,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
                 "searchAdditionalPaths": self.search_additional_paths,
                 "cliRender": self.cli_render
             }
-            self.load_Result = bpy.ops.import_scene.importldraw('EXEC_DEFAULT', **kwargs)
+            self.load_Result = bpy.ops.import_scene.lpub3dimportldraw('EXEC_DEFAULT', **kwargs)
             self.debugPrint("Load Task Result:    {0}".format(self.load_Result))
 
         # Check blend file and create if not exist
@@ -431,7 +431,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             
             # Get preferences properties from importldraw module
             if self.load_ldraw_model:
-                from io_scene_importldraw import importldraw
+                from io_scene_lpub3d_importldraw import importldraw
                 self.use_look               = importldraw.ImportLDrawOps.prefs.get('useLook', 'normal')
                 self.overwrite_image        = importldraw.ImportLDrawOps.prefs.get('overwriteImage', self.overwrite_image)
                 self.transparent_background = importldraw.ImportLDrawOps.prefs.get('transparentBackground', self.transparent_background)
