@@ -50,6 +50,52 @@ from pprint import pprint
 
 
 # **************************************************************************************
+def internalPrint(message):
+    """Debug print with identification timestamp."""
+
+    # Current timestamp (with milliseconds trimmed to two places)
+    timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-4]
+
+    message = "{0} [renderldraw] {1}".format(timestamp, message)
+    print("{0}".format(message))
+
+    global globalContext
+    if globalContext is not None:
+        globalContext.report({'INFO'}, message)
+
+
+# **************************************************************************************
+def debugPrint(message):
+    """Debug print with identification timestamp."""
+
+    if Options.verbose:
+        internalPrint(message)
+
+
+# **************************************************************************************
+def printWarningOnce(key, message=None):
+    if message is None:
+        message = key
+
+    if key not in Configure.warningSuppression:
+        internalPrint("WARNING: {0}".format(message))
+        Configure.warningSuppression[key] = True
+
+        global globalContext
+        if globalContext is not None:
+            globalContext.report({'WARNING'}, message)
+
+
+# **************************************************************************************
+def printError(message):
+    internalPrint("ERROR: {0}".format(message))
+
+    global globalContext
+    if globalContext is not None:
+        globalContext.report({'ERROR'}, message)
+
+
+# **************************************************************************************
 def matmul(a, b):
     """Perform matrix multiplication in a blender 2.7 and 2.8 safe way"""
     if isBlender28OrLater:
@@ -173,6 +219,7 @@ units = (
     (24, "d", "day", "days"),
     (7, "wk", "week", "weeks"))
 
+
 def formatElapsed(interval, long_form=False, seconds_places=3):
     """
     Returns an accurate indication of the specified interval in seconds.
@@ -214,6 +261,7 @@ def formatElapsed(interval, long_form=False, seconds_places=3):
     # end while
     return result
 
+
 # **************************************************************************************
 # **************************************************************************************
 class Options:
@@ -243,6 +291,7 @@ class Options:
     searchAdditionalPaths = False       # Search additional LDraw paths (automatically set for fade previous steps and highlight step)
     additionalSearchDirectories = r""   # Full directory paths, comma delimited, to additional LDraw search paths.
     customLDConfigPath = r""            # Full directory path to specified custom LDraw colours (LDConfig) file.
+    parameterFile      = r""            # Full file path to file containing slope brick angels, lgeo colours and lighted bricks colours
     scriptDirectory    = os.path.dirname(os.path.realpath(__file__))
 
     # We have the option of including the 'LEGO' logo on each stud
@@ -280,6 +329,10 @@ class Options:
         return "_".join([str(Options.scale),
                          str(Options.useUnofficialParts),
                          str(Options.instructionsLook),
+                         str(Options.searchAdditionalPaths),
+                         str(Options.parameterFile),
+                         str(Options.customLDConfigPath),
+                         str(Options.additionalSearchDirectories),
                          str(Options.resolution),
                          str(Options.defaultColour),
                          str(Options.createInstances),
@@ -313,6 +366,7 @@ globalPoints = []
 globalLgeoColours = {}
 globalSlopeBricks = {}
 globalLightBricks = {}
+globalSlopeAngles = {}
 
 isBlender28OrLater = None
 hasCollections = None
@@ -321,166 +375,7 @@ if isBlender28OrLater:
 else:
     lightName = "Lamp"
 
-# **************************************************************************************
-# Create a regular dictionary of lighted parts
-if not globalLightBricks:
-    globalLightBricks = {
-        '62930.dat': (1.0, 0.373, 0.059, 1.0),
-        '54869.dat': (1.0, 0.052, 0.017, 1.0)
-    }
-
-# **************************************************************************************
-# Dictionary with as keys the part numbers (without any extension for decorations)
-# of pieces that have grainy slopes, and as values a set containing the angles (in
-# degrees) of the face's normal to the horizontal plane. Use a tuple to represent a
-# range within which the angle must lie.
-if not globalSlopeBricks:
-    globalSlopeBricks = {
-        '962': {45},
-        '2341': {-45},
-        '2449': {-16},
-        '2875': {45},
-        '2876': {(40, 63)},
-        '3037': {45},
-        '3038': {45},
-        '3039': {45},
-        '3040': {45},
-        '3041': {45},
-        '3042': {45},
-        '3043': {45},
-        '3044': {45},
-        '3045': {45},
-        '3046': {45},
-        '3048': {45},
-        '3049': {45},
-        '3135': {45},
-        '3297': {63},
-        '3298': {63},
-        '3299': {63},
-        '3300': {63},
-        '3660': {-45},
-        '3665': {-45},
-        '3675': {63},
-        '3676': {-45},
-        '3678b': {24},
-        '3684': {15},
-        '3685': {16},
-        '3688': {15},
-        '3747': {-63},
-        '4089': {-63},
-        '4161': {63},
-        '4286': {63},
-        '4287': {-63},
-        '4445': {45},
-        '4460': {16},
-        '4509': {63},
-        '4854': {-45},
-        '4856': {(-60, -70), -45},
-        '4857': {45},
-        '4858': {72},
-        '4861': {45, 63},
-        '4871': {-45},
-        '4885': {72},
-        '6069': {72, 45},
-        '6153': {(60, 70), (26, 34)},
-        '6227': {45},
-        '6270': {45},
-        '13269': {(40, 63)},
-        '13548': {45},
-        '15571': {45},
-        '18759': {-45},
-        '22390': {(40, 55)},
-        '22391': {(40, 55)},
-        '22889': {-45},
-        '28192': {45},
-        '30180': {47},
-        '30182': {45},
-        '30183': {-45},
-        '30249': {35},
-        '30283': {-45},
-        '30363': {72},
-        '30373': {-24},
-        '30382': {11, 45},
-        '30390': {-45},
-        '30499': {16},
-        '32083': {45},
-        '43708': {72},
-        '43710': {72, 45},
-        '43711': {72, 45},
-        '47759': {(40, 63)},
-        '52501': {-45},
-        '60219': {-45},
-        '60477': {72},
-        '60481': {24},
-        '63341': {45},
-        '72454': {-45},
-        '92946': {45},
-        '93348': {72},
-        '95188': {65},
-        '99301': {63},
-        '303923': {45},
-        '303926': {45},
-        '304826': {45},
-        '329826': {64},
-        '374726': {-64},
-        '428621': {64},
-        '4162628': {17},
-        '4195004': {45},
-    }
-
-# Create a regular dictionary of parts with ranges of angles to check
-margin = 5  # Allow 5 degrees either way to compensate for measuring inaccuracies
-globalSlopeAngles = {}
-for part in globalSlopeBricks:
-    globalSlopeAngles[part] = {(c - margin, c + margin) if type(c) is not tuple else (min(c) - margin, max(c) + margin)
-                               for c in globalSlopeBricks[part]}
-
-
-# **************************************************************************************
-def internalPrint(message):
-    """Debug print with identification timestamp."""
-
-    # Current timestamp (with milliseconds trimmed to two places)
-    timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-4]
-
-    message = "{0} [renderldraw] {1}".format(timestamp, message)
-    print("{0}".format(message))
-
-    global globalContext
-    if globalContext is not None:
-        globalContext.report({'INFO'}, message)
-
-
-# **************************************************************************************
-def debugPrint(message):
-    """Debug print with identification timestamp."""
-
-    if Options.verbose:
-        internalPrint(message)
-
-
-# **************************************************************************************
-def printWarningOnce(key, message=None):
-    if message is None:
-        message = key
-
-    if key not in Configure.warningSuppression:
-        internalPrint("WARNING: {0}".format(message))
-        Configure.warningSuppression[key] = True
-
-        global globalContext
-        if globalContext is not None:
-            globalContext.report({'WARNING'}, message)
-
-
-# **************************************************************************************
-def printError(message):
-    internalPrint("ERROR: {0}".format(message))
-
-    global globalContext
-    if globalContext is not None:
-        globalContext.report({'ERROR'}, message)
-
+usingArchiveLibraries = False
 
 # **************************************************************************************
 # **************************************************************************************
@@ -632,9 +527,11 @@ class Configure:
         return result
 
     def __setLDrawParameterFile():
-        if Options.parameterFile != "" and os.path.exists(Options.parameterFile):
-            Configure.parameterFile = Options.parameterFile
-            debugPrint("The LDraw Parameter file to be used is: {0}".format(Configure.parameterFile))
+        parameterFilePath = Options.parameterFile if Options.parameterFile != "" else \
+            os.path.join(os.path.dirname(__file__), "BlenderLDrawParameters.lst")
+        if os.path.exists(parameterFilePath):
+            Configure.parameterFile = parameterFilePath.replace("\\\\", "\\")
+            debugPrint("The LDraw parameter file to be used is: {0}".format(Configure.parameterFile))
         else:
             Configure.parameterFile = ""
 
@@ -642,9 +539,12 @@ class Configure:
         if Options.ldrawDirectory == "":
             Configure.ldrawInstallDirectory = Configure.findDefaultLDrawDirectory()
         else:
-            Configure.ldrawInstallDirectory = os.path.expanduser(Options.ldrawDirectory.replace("\\\\", "\\"))
-
-        debugPrint("The LDraw Parts Library path to be used is: {0}".format(Configure.ldrawInstallDirectory))
+            global usingArchiveLibraries
+            usingArchiveLibraries = Configure.hasArchiveLibraries(Options.ldrawDirectory.replace("\\\\", "\\"))
+            if not usingArchiveLibraries:
+                Configure.ldrawInstallDirectory = os.path.expanduser(Options.ldrawDirectory.replace("\\\\", "\\"))
+        if not usingArchiveLibraries:
+            debugPrint("The LDraw parts library path to be used is: {0}".format(Configure.ldrawInstallDirectory))
         Configure.__setLDrawParameterFile()
         Configure.__setSearchPaths()
 
@@ -658,7 +558,25 @@ class Parameters():
     """"Load LDraw Parameters"""
 
     @staticmethod
-    def valid_lines(f):
+    def validValue(value, decimal=False):
+        """Ensure value is either integer or decimal as specified"""
+
+        for s in value:
+            if decimal:
+                try:
+                    float(s)
+                except ValueError:
+                    return False
+            else:
+                try:
+                    int(s)
+                except ValueError:
+                    return False
+
+        return True
+
+    @staticmethod
+    def validLines(f):
         """Skip blank and commented lines"""
 
         for l in f:
@@ -671,17 +589,29 @@ class Parameters():
         """Read the import parameter file and populate
         lgeo colour, slope, and lighted bricks global dictionaries"""
 
-        debugPrint("Loading LDraw Parameters")
+        global globalSlopeBricks
+        global globalSlopeAngles
+        global globalLightBricks
+
+        globalSlopeBricks = {}
+        globalSlopeAngles = {}
+        globalLightBricks = {}
+
+        margin = 5  # Allow 5 degrees either way to compensate for slope brick angles measuring inaccuracies
 
         if Configure.parameterFile != "":
 
-            with open(Configure.parameterFile, "rt", encoding="utf_8") as parameter_file:
+            global globalLgeoColours
 
-                for line in Parameters.valid_lines(parameter_file):
+            globalLgeoColours = {}
 
-                    line_split = line.replace(" ", "").rstrip().split(",")
+            with open(Configure.parameterFile, "rt", encoding="utf_8") as parameterFile:
 
-                    item = line_split[0]
+                for line in Parameters.validLines(parameterFile):
+
+                    lineSplit = line.replace(" ", "").rstrip().split(",")
+
+                    item = lineSplit[0]
 
                     # LGEO is a parts library for rendering LEGO using the povray rendering software.
                     # It has a list of LEGO colours suitable for realistic rendering.
@@ -689,50 +619,176 @@ class Parameters():
                     # LGEO is downloadable from http://ldraw.org/downloads-2/downloads.html
                     # We overwrite the standard LDraw colours if we have better LGEO colours.
                     if item == "lgeo_colour":
-                        code = line_split[1]
-                        colour = (line_split[2], line_split[3], line_split[4])
+                        colour = ()
+                        if Parameters.validValue(lineSplit[1]):
+                            code = int(lineSplit[1])
+                        else:
+                            printError("Colour code must be an integer: {0}.".format(lineSplit[1]))
 
-                        globalLgeoColours[code] = colour
+                        if Parameters.validValue((lineSplit[2:])):
+                            colour = tuple(map(int, lineSplit[2:]))
+                        else:
+                            printError("Colour tuple must be integers: {0}".format(lineSplit[2:]))
+
+                        if len(colour):
+                            globalLgeoColours[code] = colour
 
                     # Dictionary with as keys the part numbers (without any extension for decorations)
                     # of pieces that have grainy slopes, and as values a set containing the angles (in
                     # degrees) of the face's normal to the horizontal plane. Use a tuple to represent a
                     # range within which the angle must lie.
                     if item == "sloped_brick":
-                        partid = line_split[1]
-                        if len(line_split) > 3:
-                            slope_range = tuple(map(int, line_split[2].split("|")))  # 1st range check
-                            if len(slope_range) > 1:
-                                tup1 = slope_range  # 1st tuple
+                        partid = lineSplit[1]
+                        slopeRange1 = (lineSplit[2].split("|"))
+                        if Parameters.validValue(slopeRange1):      # 1st range check
+                            if len(slopeRange1) > 1:
+                                slopeRange1 = tuple(map(int, slopeRange1))
                             else:
-                                tup1 = line_split[2]
-                            slope_range = tuple(map(int, line_split[3].split("|")))  # 2nd range check
-                            if len(slope_range) > 1:
-                                tup2 = slope_range  # 2nd tuple
-                            else:
-                                tup2 = int(line_split[3])
-                            slope = (tup1, tup2)
+                                slopeRange1 = int(slopeRange1[0])
                         else:
-                            slope_range = tuple(map(int, line_split[2].split("|")))  # 1st range check
-                            if len(slope_range) > 1:
-                                tup1 = slope_range  # 1st tuple
+                            printError("Slope value(s) must be integers: {0}".format(slopeRange1))
+
+                        if len(lineSplit) > 3:
+                            slopeRange2 = (lineSplit[3].split("|"))
+                            if Parameters.validValue(slopeRange2):  # 2nd range check
+                                if len(slopeRange2) > 1:
+                                    slopeRange2 = tuple(map(int, slopeRange2))
+                                else:
+                                    slopeRange2 = int(slopeRange2[0])
                             else:
-                                tup1 = int(line_split[2])
-                            slope = tup1
+                                printError("Slope value(s) must be integers: {0}".format(slopeRange2))
 
-                        globalSlopeBricks[partid] = {slope}
+                            globalSlopeBricks[partid] = {slopeRange1, slopeRange2}
+                        else:
+                            globalSlopeBricks[partid] = {slopeRange1}
 
-                    # Regular dictionary of lighted parts
+                    # Create a regular dictionary of lighted parts
                     if item == "lighted_brick":
-                        partid = line_split[1]
-                        light_brick = (
-                            line_split[2],
-                            line_split[3],
-                            line_split[4],
-                            line_split[5]
-                        )
+                        light_brick = ()
+                        partid = lineSplit[1]
+                        if Parameters.validValue((lineSplit[2:]), decimal=True):
+                            light_brick = tuple(map(float, lineSplit[2:]))
+                        else:
+                            printError("Light brick light and intensity must be floating point numbers: {0}"
+                                       .format(lineSplit[2:]))
 
-                        globalLightBricks[partid] = light_brick
+                        if len(light_brick):
+                            globalLightBricks[partid] = light_brick
+
+            debugPrint("Loading angles for slope bricks from parameter list")
+            # Create a regular dictionary of parts with ranges of angles to check
+            for part in globalSlopeBricks:
+                globalSlopeAngles[part] = {
+                    (c - margin, c + margin) if type(c) is not tuple else (min(c) - margin, max(c) + margin)
+                    for c in globalSlopeBricks[part]
+                }
+            debugPrint("Loading light brick colours from parameter list")
+        else:
+            debugPrint("Loading built-in light brick colours")
+            globalLightBricks = {
+                '62930.dat': (1.0, 0.373, 0.059, 1.0),
+                '54869.dat': (1.0, 0.052, 0.017, 1.0)
+            }
+            debugPrint("Loading built-in angles for slope bricks")
+            globalSlopeBricks = {
+                '962': {45},
+                '2341': {-45},
+                '2449': {-16},
+                '2875': {45},
+                '2876': {(40, 63)},
+                '3037': {45},
+                '3038': {45},
+                '3039': {45},
+                '3040': {45},
+                '3041': {45},
+                '3042': {45},
+                '3043': {45},
+                '3044': {45},
+                '3045': {45},
+                '3046': {45},
+                '3048': {45},
+                '3049': {45},
+                '3135': {45},
+                '3297': {63},
+                '3298': {63},
+                '3299': {63},
+                '3300': {63},
+                '3660': {-45},
+                '3665': {-45},
+                '3675': {63},
+                '3676': {-45},
+                '3678b': {24},
+                '3684': {15},
+                '3685': {16},
+                '3688': {15},
+                '3747': {-63},
+                '4089': {-63},
+                '4161': {63},
+                '4286': {63},
+                '4287': {-63},
+                '4445': {45},
+                '4460': {16},
+                '4509': {63},
+                '4854': {-45},
+                '4856': {(-60, -70), -45},
+                '4857': {45},
+                '4858': {72},
+                '4861': {45, 63},
+                '4871': {-45},
+                '4885': {72},
+                '6069': {72, 45},
+                '6153': {(60, 70), (26, 34)},
+                '6227': {45},
+                '6270': {45},
+                '13269': {(40, 63)},
+                '13548': {(45, 35)},
+                '15571': {45},
+                '18759': {-45},
+                '22390': {(40, 55)},
+                '22391': {(40, 55)},
+                '22889': {-45},
+                '28192': {45},
+                '30180': {47},
+                '30182': {45},
+                '30183': {-45},
+                '30249': {35},
+                '30283': {-45},
+                '30363': {72},
+                '30373': {-24},
+                '30382': {11, 45},
+                '30390': {-45},
+                '30499': {16},
+                '32083': {45},
+                '43708': {72},
+                '43710': {72, 45},
+                '43711': {72, 45},
+                '47759': {(40, 63)},
+                '52501': {-45},
+                '60219': {-45},
+                '60477': {72},
+                '60481': {24},
+                '63341': {45},
+                '72454': {-45},
+                '92946': {45},
+                '93348': {72},
+                '95188': {65},
+                '99301': {63},
+                '303923': {45},
+                '303926': {45},
+                '304826': {45},
+                '329826': {64},
+                '374726': {-64},
+                '428621': {64},
+                '4162628': {17},
+                '4195004': {45},
+            }
+
+            # Create a regular dictionary of parts with ranges of angles to check
+            for part in globalSlopeBricks:
+                globalSlopeAngles[part] = {
+                    (c - margin, c + margin) if type(c) is not tuple else (min(c) - margin, max(c) + margin)
+                    for c in globalSlopeBricks[part]
+                }
 
     def __init__(self):
         Parameters.loadParameters()
@@ -912,10 +968,12 @@ class LegoColours:
             # LGEO is downloadable from http://ldraw.org/downloads-2/downloads.html
             # We overwrite the standard LDraw colours if we have better LGEO colours.
             if globalLgeoColours:
+                debugPrint("Loading lgeo colours from parameter list.")
                 for code, colour in globalLgeoColours.items():
                     LegoColours.__overwriteColour(code,
-                                                  (int(colour[0]) / 255, int(colour[1]) / 255, int(colour[2]) / 255))
+                                                  (colour[0] / 255, colour[1] / 255, colour[2] / 255))
             else:
+                debugPrint("Loading built-in lgeo colours.")
                 LegoColours.__overwriteColour(  0, ( 33 / 255,  33 / 255,  33 / 255))
                 LegoColours.__overwriteColour(  1, ( 13 / 255, 105 / 255, 171 / 255))
                 LegoColours.__overwriteColour(  2, ( 40 / 255, 127 / 255,  70 / 255))
@@ -1072,8 +1130,7 @@ class FileSystem:
     """
     Reads text files in different encodings. Locates full filepath for a part.
     """
-
-    # Takes a case-insensitive filepath and constructs a case sensitive version (based on an actual existing file)
+        # Takes a case-insensitive filepath and constructs a case sensitive version (based on an actual existing file)
     # See https://stackoverflow.com/questions/8462449/python-case-insensitive-file-name/8462613#8462613
     def pathInsensitive(path):
         """
@@ -1663,7 +1720,7 @@ class LDrawFile:
             parameters = line.strip().split()
             if len(parameters) > 2:
                 if parameters[0] == "0" and parameters[1] == "FILE":
-                    if foundEnd == False:
+                    if foundEnd is False:
                         endLine = lineCount
                         if endLine > startLine:
                             sections.append((sectionFilename, lines[startLine:endLine]))
@@ -1678,7 +1735,7 @@ class LDrawFile:
                     sections.append((sectionFilename, lines[startLine:endLine]))
             lineCount += 1
 
-        if foundEnd == False:
+        if foundEnd is False:
             endLine = lineCount
             if endLine > startLine:
                 sections.append((sectionFilename, lines[startLine:endLine]))
@@ -1721,16 +1778,16 @@ class LDrawFile:
             "stud15.dat",
             "stud20.dat",
             "studa.dat",
-            "stud-logo3.dat",   "stud-logo4.dat",   "stud-logo5.dat", 
+            "stud-logo3.dat",   "stud-logo4.dat",   "stud-logo5.dat",
             "stud2-logo3.dat",  "stud2-logo4.dat",  "stud2-logo5.dat",
-            "stud6-logo3.dat",  "stud6-logo4.dat",  "stud6-logo5.dat", 
-            "stud6a-logo3.dat", "stud6a-logo4.dat", "stud6a-logo5.dat", 
-            "stud7-logo3.dat",  "stud7-logo4.dat",  "stud7-logo5.dat", 
-            "stud10-logo3.dat", "stud10-logo4.dat", "stud10-logo5.dat", 
-            "stud13-logo3.dat", "stud13-logo4.dat", "stud13-logo5.dat", 
-            "stud15-logo3.dat", "stud15-logo4.dat", "stud15-logo5.dat", 
-            "stud20-logo3.dat", "stud20-logo4.dat", "stud20-logo5.dat", 
-            "studa-logo3.dat",  "studa-logo4.dat",  "studa-logo5.dat", 
+            "stud6-logo3.dat",  "stud6-logo4.dat",  "stud6-logo5.dat",
+            "stud6a-logo3.dat", "stud6a-logo4.dat", "stud6a-logo5.dat",
+            "stud7-logo3.dat",  "stud7-logo4.dat",  "stud7-logo5.dat",
+            "stud10-logo3.dat", "stud10-logo4.dat", "stud10-logo5.dat",
+            "stud13-logo3.dat", "stud13-logo4.dat", "stud13-logo5.dat",
+            "stud15-logo3.dat", "stud15-logo4.dat", "stud15-logo5.dat",
+            "stud20-logo3.dat", "stud20-logo4.dat", "stud20-logo5.dat",
+            "studa-logo3.dat",  "studa-logo4.dat",  "studa-logo5.dat",
         )
 
     def __isStudLogo(filename):
@@ -1751,6 +1808,7 @@ class LDrawFile:
         self.lines            = lines
         self.isPart           = False
         self.isSubPart        = isSubPart
+        self.isModel          = False
         self.isStud           = LDrawFile.__isStud(filename)
         self.isStudLogo       = LDrawFile.__isStudLogo(filename)
         self.isLSynthPart     = False
@@ -4529,18 +4587,18 @@ def loadFromFile(context, filename, isFullFilepath=True):
     # Load and parse file to create geometry
     filename = os.path.expanduser(filename)
 
-    debugPrint("Loading files")
+    debugPrint("Loading LDraw part files")
     node = LDrawNode(filename, isFullFilepath, os.path.dirname(filename))
     node.load()
     # node.printBFC()
 
-    # Fix top level rotation from LDraw coordinate space to Blender coordinate space
-    node.file.geometry.points = list(map((lambda p: matvecmul(Math.rotationMatrix, p)), node.file.geometry.points))
-    node.file.geometry.edges = list(
-        map((lambda e: (matvecmul(Math.rotationMatrix, e[0]), matvecmul(Math.rotationMatrix, e[1]))),
-            node.file.geometry.edges))
-    for childNode in node.file.childNodes:
-        childNode.matrix = matmul(Math.rotationMatrix, childNode.matrix)
+    #  Fix slope material when importing individual parts - See PR https://github.com/TobyLobster/ImportLDraw/pull/50/
+    if node.file.isModel:
+        # Fix top level rotation from LDraw coordinate space to Blender coordinate space
+        node.file.geometry.points = list(map((lambda p: matvecmul(Math.rotationMatrix, p)), node.file.geometry.points))
+        node.file.geometry.edges = list(map((lambda e: matvecmul(Math.rotationMatrix, e)), node.file.geometry.edges))
+        for childNode in node.file.childNodes:
+            childNode.matrix = matmul(Math.rotationMatrix, childNode.matrix)
 
     # Switch to Object mode and deselect all
     if bpy.ops.object.mode_set.poll():
@@ -4563,6 +4621,9 @@ def loadFromFile(context, filename, isFullFilepath=True):
     # Create Blender objects from the loaded file
     debugPrint("Creating Blender objects")
     rootOb = createBlenderObjectsFromNode(node, node.matrix, name)
+
+    if not node.file.isModel:
+        rootOb.data.transform(Math.rotationMatrix)
 
     scene  = bpy.context.scene
     camera = scene.camera
@@ -4591,8 +4652,8 @@ def loadFromFile(context, filename, isFullFilepath=True):
         # obj_cell = bpy.data.objects.new(name="convexHull", object_data=mesh_dst)
         # linkToScene(obj_cell)
 
-    # Centre object
-    if globalPoints:
+    # Centre object only if root node is a model - See PR https://github.com/TobyLobster/ImportLDraw/pull/50/
+    if node.file.isModel and globalPoints:
         # Calculate our bounding box in global coordinate space
         boundingBoxMin = mathutils.Vector((0, 0, 0))
         boundingBoxMax = mathutils.Vector((0, 0, 0))
@@ -4614,25 +4675,27 @@ def loadFromFile(context, filename, isFullFilepath=True):
             globalPoints = [p + offsetToCentreModel for p in globalPoints]
             offsetToCentreModel = mathutils.Vector((0, 0, 0))
 
-    if camera is not None:
-        if Options.positionCamera:
-            debugPrint("Positioning Camera")
+        # Fix slope material when importing individual parts - See PR
+        # https://github.com/TobyLobster/ImportLDraw/pull/50/
+        if camera is not None:
+            if Options.positionCamera:
+                debugPrint("Positioning Camera")
 
-            # Set up a default camera position and rotation
-            camera.location = mathutils.Vector((6.5, -6.5, 4.75))
-            camera.rotation_mode = 'XYZ'
-            camera.rotation_euler = mathutils.Euler((1.0471975803375244, 0.0, 0.7853981852531433), 'XYZ')
+                # Set up a default camera position and rotation
+                camera.location = mathutils.Vector((6.5, -6.5, 4.75))
+                camera.rotation_mode = 'XYZ'
+                camera.rotation_euler = mathutils.Euler((1.0471975803375244, 0.0, 0.7853981852531433), 'XYZ')
 
-            # Must have at least three vertices to move the camera
-            if len(globalPoints) >= 3:
-                isOrtho = camera.data.type == 'ORTHO'
-                if isOrtho:
-                    iterateCameraPosition(camera, render, vcentre, True)
-                else:
-                    for i in range(20):
-                        error = iterateCameraPosition(camera, render, vcentre, True)
-                        if (error < 0.001):
-                            break
+                # Must have at least three vertices to move the camera
+                if len(globalPoints) >= 3:
+                    isOrtho = camera.data.type == 'ORTHO'
+                    if isOrtho:
+                        iterateCameraPosition(camera, render, vcentre, True)
+                    else:
+                        for i in range(20):
+                            error = iterateCameraPosition(camera, render, vcentre, True)
+                            if (error < 0.001):
+                                break
 
     # Get existing scene names
     sceneObjectNames = [x.name for x in scene.objects]
