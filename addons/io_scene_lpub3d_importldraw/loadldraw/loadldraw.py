@@ -42,6 +42,7 @@ import struct
 import re
 import bmesh
 import copy
+import time
 import platform
 import itertools
 import operator
@@ -159,6 +160,59 @@ def getDiffuseColor(color):
     else:
         return color
 
+
+# **************************************************************************************
+units = (
+    # sequence of quadruples, first element is multiplier to apply to
+    # previous quadruple, or nr of seconds for first quadruple, second
+    # element is abbreviated unit name, third element is singular unit
+    # name, fourth element is plural unit name.
+    (1, "s", "second", "seconds"),
+    (60, "m", "minute", "minutes"),
+    (60, "h", "hour", "hours"),
+    (24, "d", "day", "days"),
+    (7, "wk", "week", "weeks"))
+
+def formatElapsed(interval, long_form=False, seconds_places=3):
+    """
+    Returns an accurate indication of the specified interval in seconds.
+    long_form indicates whether to display the units in long form or short form,
+    while seconds_places indicates the number of decimal places to use for showing
+    the seconds.
+    """
+    unitindex = 0
+    result = ""
+    while True:
+        if unitindex == len(units):
+            break
+        unit = units[unitindex]
+        if unitindex + 1 < len(units):
+            factor = units[unitindex + 1][0]
+            place = interval % factor
+        else:
+            factor = None
+            place = interval
+
+        place = "{:.{places}f}{}".format(
+            place,
+            (unit[1], " " + unit[2:4][place != 1])[long_form],
+            places=(0, seconds_places)[unitindex == 0]
+        )
+        result = (
+                place
+                +
+                ("", (" ", (", ", " and ")[unitindex == 1])[long_form])[unitindex > 0]
+                +
+                result
+        )
+        if factor is None:
+            break
+        interval //= factor
+        if interval == 0:
+            break
+        unitindex += 1
+    # end while
+    return result
 
 # **************************************************************************************
 # **************************************************************************************
@@ -4420,6 +4474,8 @@ def iterateCameraPosition(camera, render, vcentre3d, moveCamera):
 
 # **************************************************************************************
 def loadFromFile(context, filename, isFullFilepath=True):
+    startTime = time.time()
+
     global globalCamerasToAdd
     global globalContext
 
@@ -4649,5 +4705,6 @@ def loadFromFile(context, filename, isFullFilepath=True):
     else:
         setupRealisticLook()
 
-    debugPrint("Load Done")
+    elapsed = time.time() - startTime
+    debugPrint("Load Done - Elapsed Time: {0}".format(formatElapsed(elapsed)))
     return rootOb
