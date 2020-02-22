@@ -26,6 +26,13 @@ The execute() function kicks off the import process.
 The python module loadldraw does the actual work.
 """
 
+# Import From Files - See PR https://github.com/TobyLobster/ImportLDraw/pull/49/
+if "bpy" in locals():
+    import importlib
+    importlib.reload(loadldraw)
+else:
+    from .loadldraw import loadldraw
+
 import configparser
 import sys
 import os
@@ -37,7 +44,6 @@ from bpy.props import (StringProperty,
                        BoolProperty
                        )
 from bpy_extras.io_utils import ImportHelper
-from .loadldraw import loadldraw
 
 """
 Default preferences file:
