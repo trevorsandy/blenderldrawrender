@@ -1,4 +1,4 @@
-# LPub3D Import LDraw Files into Blender #
+## LPub3D Import LDraw Files into Blender ##
 
 > A [Blender](https://www.blender.org)&trade; plug-in for importing [LDraw](http://www.ldraw.org)&trade; file format models and parts.
 
