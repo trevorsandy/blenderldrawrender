@@ -225,6 +225,12 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         default=prefs.get("curvedWalls", True)
     )
 
+    addSubsurface: BoolProperty(
+        name="Add subsurface",
+        description="Adds subsurface to principled shader",
+        default=prefs.get("addSubsurface", True)
+    )
+
     importCameras: BoolProperty(
         name="Import cameras",
         description="Import camera definitions (from models authored in LeoCAD)",
@@ -433,6 +439,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         box.prop(self, "colourScheme", expand=True)
         box.prop(self, "resPrims", expand=True)
         box.prop(self, "smoothParts")
+        box.prop(self, "addSubsurface")
         box.prop(self, "bevelEdges")
         box.prop(self, "bevelWidth")
         box.prop(self, "addGaps")
@@ -499,6 +506,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             self.resPrims                = ImportLDrawOps.prefs.get("resolution",           self.resPrims)
             self.searchAdditionalPaths   = ImportLDrawOps.prefs.get("searchAdditionalPaths", self.searchAdditionalPaths)
             self.smoothParts             = ImportLDrawOps.prefs.get("smoothShading",        self.smoothParts)
+            self.addSubsurface           = ImportLDrawOps.prefs.get("addSubsurface",        self.addSubsurface)
             self.studLogoPath            = ImportLDrawOps.prefs.get("studLogoDirectory",    self.studLogoPath)
             self.useLogoStuds            = ImportLDrawOps.prefs.get("useLogoStuds",         self.useLogoStuds)
             self.useLSynthParts          = ImportLDrawOps.prefs.get("useLSynthParts",       self.useLSynthParts)
@@ -531,6 +539,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             ImportLDrawOps.prefs.set("scale",                  self.importScale)
             ImportLDrawOps.prefs.set("searchAdditionalPaths",  self.searchAdditionalPaths)
             ImportLDrawOps.prefs.set("smoothShading",          self.smoothParts)
+            ImportLDrawOps.prefs.set("addSubsurface",          self.addSubsurface)
             ImportLDrawOps.prefs.set("useColourScheme",        self.colourScheme)
             ImportLDrawOps.prefs.set("useLogoStuds",           self.useLogoStuds)
             ImportLDrawOps.prefs.set("useLook",                self.look)
@@ -550,6 +559,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         loadldraw.Options.cameraBorderPercent         = self.cameraBorderPercentage / 100.0
         loadldraw.Options.createInstances             = self.linkParts
         loadldraw.Options.curvedWalls                 = self.curvedWalls
+        loadldraw.Options.addSubsurface               = self.addSubsurface
         loadldraw.Options.defaultColour               = self.defaultColour
         loadldraw.Options.edgeSplit                   = self.smoothParts  # Edge split is appropriate only if we are smoothing
         loadldraw.Options.flattenHierarchy            = self.flatten
