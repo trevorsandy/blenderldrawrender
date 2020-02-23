@@ -284,6 +284,7 @@ class Options:
     gaps               = True           # Introduces a tiny space between each brick
     gapWidth           = 0.01           # Width of gap between bricks (in Blender units)
     curvedWalls        = True           # Manipulate normals to make surfaces look slightly concave
+    addSubsurface      = True           # Adds subsurface to principled shader
     importCameras      = True           # LeoCAD can specify cameras within the ldraw file format. Choose to load them or ignore them.
     positionObjectOnGroundAtOrigin = True   # Centre the object at the origin, sitting on the z=0 plane
     flattenHierarchy   = False          # All parts are under the root object - no sub-models
@@ -498,32 +499,36 @@ class Configure:
                     debugPrint("Additional LDraw path to be used is: {0}".format(dir))
 
     def hasArchiveLibraries(path):
+        import fnmatch
         Configure.ldrawInstallDirectory = path.replace("\\\\", "\\")
         for libraryName in os.listdir(path):
             if libraryName.endswith(".zip") and libraryName not in Configure.loadedLibraries:
                 libraryPath = os.path.join(path, libraryName)
                 with ZipFile(libraryPath) as library:
-                    if "ldraw/LDConfig.ldr" in library.namelist():
+                    if "ldraw/LDConfig.ldr" in library.namelist() and \
+                       "ldraw/parts/1.dat" in library.namelist() and \
+                       "ldraw/p/h2.dat" in library.namelist():
                         CachedLibraries.setOfficialCache(library)
                         Configure.hasOfficialLibrary = True
                         Configure.loadedLibraries.append(libraryName)
                         debugPrint("Official archive library to be used is: {0}".format(libraryPath))
                     else:
-                        try:
-                            unofficialLibrary = \
-                                next(pid for pid in library.namelist()
-                                     if (pid.endswith(".dat") or pid.endswith(".ldr") or pid.endswith(".mpd")))
-                        except StopIteration:
-                            continue
-                        else:
-                            if unofficialLibrary:
-                                if CachedLibraries.isInitialUpdate:
-                                    CachedLibraries.setUnofficialCache(library)
-                                else:
-                                    CachedLibraries.updateUnofficialCache(library)
-                                Configure.hasUnofficialLibrary = True
-                                Configure.loadedLibraries.append(libraryName)
-                                debugPrint("Unofficial archive library to be used is: {0}".format(libraryPath))
+                        if Options.useUnofficialParts:
+                            try:
+                                unofficialLibrary = \
+                                    next(pid for pid in library.namelist()
+                                         if (pid.endswith(".dat") or pid.endswith(".ldr") or pid.endswith(".mpd")))
+                            except StopIteration:
+                                continue
+                            else:
+                                if unofficialLibrary:
+                                    if CachedLibraries.isInitialUpdate:
+                                        CachedLibraries.setUnofficialCache(library)
+                                    else:
+                                        CachedLibraries.updateUnofficialCache(library)
+                                    Configure.hasUnofficialLibrary = True
+                                    Configure.loadedLibraries.append(libraryName)
+                                    debugPrint("Unofficial archive library to be used is: {0}".format(libraryPath))
 
         result = Configure.hasOfficialLibrary or Configure.hasUnofficialLibrary
         if not result:
