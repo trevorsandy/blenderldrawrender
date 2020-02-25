@@ -378,6 +378,8 @@ else:
     lightName = "Lamp"
 
 usingArchiveLibraries = False
+ldrawModelLoaded      = False
+ldrawModelFile        = ""
 
 # **************************************************************************************
 # **************************************************************************************
@@ -4718,9 +4720,12 @@ def iterateCameraPosition(camera, render, vcentre3d, moveCamera):
 def loadFromFile(context, filename, isFullFilepath=True):
     startTime = time.time()
 
+    global ldrawModelFile
+    global ldrawModelLoaded
     global globalCamerasToAdd
     global globalContext
 
+    ldrawModelFile = filename
     globalCamerasToAdd = []
     globalContext = context
 
@@ -4964,4 +4969,5 @@ def loadFromFile(context, filename, isFullFilepath=True):
 
     elapsed = time.time() - startTime
     debugPrint("Load Done - Elapsed Time: {0}".format(formatElapsed(elapsed)))
+    ldrawModelLoaded = True
     return rootOb

@@ -146,8 +146,8 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     """LPub3D Import LDraw - Import Operator."""
 
     bl_idname = "import_scene.lpub3dimportldraw"
-    bl_description = "Import LDraw models (.mpd/.ldr/.l3b/.dat)"
-    bl_label = "LPub3D Import LDraw Models"
+    bl_description = "Import LDraw model (.mpd/.ldr/.l3b/.dat)"
+    bl_label = "Import LDraw Model"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_options = {'REGISTER', 'UNDO', 'PRESET'}

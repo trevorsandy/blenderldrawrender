@@ -29,7 +29,8 @@ import bpy
 import time
 import datetime
 from bpy_extras.io_utils import ExportHelper
-from bpy.props import StringProperty, BoolProperty, IntProperty
+from io_scene_lpub3d_importldraw import importldraw
+from bpy.props import StringProperty, BoolProperty, IntProperty, EnumProperty
 
 units = (
     # sequence of quadruples, first element is multiplier to apply to
@@ -101,8 +102,8 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
     """LPub3D Render LDraw - Render Operator."""
 
     bl_idname = "render_scene.lpub3drenderldraw"
-    bl_description = "Render LDraw model as .png file"
-    bl_label = "LPub3D Render LDraw Models"
+    bl_description = "Render LDraw model (.png)"
+    bl_label = "Render LDraw Model"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_options = {'REGISTER', 'UNDO', 'PRESET'}
@@ -153,6 +154,16 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         default=100
     )
 
+    use_look: EnumProperty(
+        name="Overall Look",
+        description="Realism or Schematic look",
+        default="normal",
+        items=(
+            ("normal", "Realistic Look", "Render to look realistic."),
+            ("instructions", "Lego Instructions Look", "Render to look like the instruction book pictures."),
+        )
+    )
+
     overwrite_image: BoolProperty(
         name="Overwrite Rendered Image",
         description="Specify whether to overwrite an existing rendered image file.",
@@ -173,7 +184,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
 
     render_window: BoolProperty(
         name="Display Render Window",
-        description="Specify whether to display the render window",
+        description="Specify whether to display the render window during Blender user interface image render",
         default=True
     )
 
@@ -334,6 +345,21 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
                                                            format_elapsed(now - start_time)))
         # end if (overwrite)
 
+    def setImportLDrawPreferences(self):
+        self.use_look               = importldraw.ImportLDrawOps.prefs.get('useLook', 'normal')
+        self.overwrite_image        = importldraw.ImportLDrawOps.prefs.get('overwriteImage', self.overwrite_image)
+        self.transparent_background = importldraw.ImportLDrawOps.prefs.get('transparentBackground', self.transparent_background)
+        self.render_window          = importldraw.ImportLDrawOps.prefs.get('renderWindow', self.render_window)
+        self.blendfile_trusted      = importldraw.ImportLDrawOps.prefs.get('blendfileTrusted', self.blendfile_trusted)
+        self.blend_file             = importldraw.ImportLDrawOps.prefs.get('blendFile', "")
+
+        self.debugPrint("Look:                {0}".format(self.use_look))
+        self.debugPrint("Overwrite_Image:     {0}".format(self.overwrite_image))
+        self.debugPrint("Trans_background:    {0}".format(self.transparent_background))
+        self.debugPrint("Render_Window:       {0}".format(self.render_window))
+        self.debugPrint("Blendfile_Trusted:   {0}".format(self.blendfile_trusted))
+        self.debugPrint("Blend_File:          {0}".format(self.blend_file))
+
     def draw(self, context):
         """Display render options."""
 
@@ -362,6 +388,11 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
     def invoke(self, context, event):
         """Setup render options."""
 
+        if importldraw.loadldraw.ldrawModelLoaded:
+            self.setImportLDrawPreferences()
+            self.model_file = importldraw.loadldraw.ldrawModelFile
+            self.image_file = self.model_file + ".png"
+
         if not self.filepath:
             blend_filepath = context.blend_data.filepath
             if not blend_filepath:
@@ -377,22 +408,26 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
     def execute(self, context):
         """LPub3D Render LDraw model."""
 
-        self.debugPrint("-------------------------")
-        self.debugPrint("Performing Import Task...")
+        if importldraw.loadldraw.ldrawModelLoaded:
+            self.debugPrint("Preferences_File:    {0}".format(self.preferences_file))
+            self.debugPrint("Model_File:          {0}".format(self.model_file))
 
-        start_time = time.time()
+        elif self.load_ldraw_model:
+            self.debugPrint("-------------------------")
+            self.debugPrint("Performing Import Task...")
 
-        self.debugPrint("CLI_Render:          {0}".format(self.cli_render))
-        self.debugPrint("Load_Ldraw_Model:    {0}".format(self.load_ldraw_model))
-        self.debugPrint("Resolution_Width:    {0}".format(self.resolution_width))
-        self.debugPrint("Resolution_Height:   {0}".format(self.resolution_height))
-        self.debugPrint("Render_Percentage:   {0}".format(self.render_percentage))
-        self.debugPrint("Search_Addl_paths:   {0}".format(self.search_additional_paths))
-        self.debugPrint("Preferences_File:    {0}".format(self.preferences_file))
-        self.debugPrint("Model_File:          {0}".format(self.model_file))
-        self.debugPrint("Image_File:          {0}".format(self.image_file))
-        
-        if self.load_ldraw_model:
+            start_time = time.time()
+
+            self.debugPrint("CLI_Render:          {0}".format(self.cli_render))
+            self.debugPrint("Load_Ldraw_Model:    {0}".format(self.load_ldraw_model))
+            self.debugPrint("Resolution_Width:    {0}".format(self.resolution_width))
+            self.debugPrint("Resolution_Height:   {0}".format(self.resolution_height))
+            self.debugPrint("Render_Percentage:   {0}".format(self.render_percentage))
+            self.debugPrint("Search_Addl_paths:   {0}".format(self.search_additional_paths))
+            self.debugPrint("Preferences_File:    {0}".format(self.preferences_file))
+            self.debugPrint("Model_File:          {0}".format(self.model_file))
+            self.debugPrint("Image_File:          {0}".format(self.image_file))
+
             assert self.preferences_file.__ne__(""), "Preference file path not specified."
             assert self.image_file.__ne__(""), "Image file path not specified."
             assert self.model_file.__ne__(""), "Model file path not specified."
@@ -402,49 +437,36 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
                 "searchAdditionalPaths": self.search_additional_paths,
                 "cliRender": self.cli_render
             }
-            self.load_Result = bpy.ops.import_scene.lpub3dimportldraw('EXEC_DEFAULT', **kwargs)
-            self.debugPrint("Load Task Result:    {0}".format(self.load_Result))
+            load_Result = bpy.ops.import_scene.lpub3dimportldraw('EXEC_DEFAULT', **kwargs)
+            self.debugPrint("Load Task Result:    {0}".format(load_Result))
 
-        # Check blend file and create if not exist
-        """
-        if self.cli_render and self.preferences_file:
-            default_blend_file_directory = os.path.dirname(self.preferences_file)
-            default_blend_file = os.path.abspath(os.path.join(default_blend_file_directory, 'lpub3d.blend'))
-            if not os.path.exists(default_blend_file):
-                bpy.ops.wm.save_mainfile(filepath=default_blend_file)
-                self.debugPrint("Save default blend file to {0}".format(default_blend_file))
-        """
+            # Check blend file and create if not exist
+            """
+            if self.cli_render and self.preferences_file:
+                default_blend_file_directory = os.path.dirname(self.preferences_file)
+                default_blend_file = os.path.abspath(os.path.join(default_blend_file_directory, 'lpub3d.blend'))
+                if not os.path.exists(default_blend_file):
+                    bpy.ops.wm.save_mainfile(filepath=default_blend_file)
+                    self.debugPrint("Save default blend file to {0}".format(default_blend_file))
+            """
 
-        now = time.time()
+            now = time.time()
 
-        if self.load_Result == {'FINISHED'}:
-            self.debugPrint("Imported '{0}' in {1}".format(os.path.basename(self.model_file),
-                                                    format_elapsed(now - start_time)))
-        else:
-            self.report({'ERROR'}, "ERROR {0} import failed. Elapsed time {1}".
-                        format(os.path.basename(self.model_file),
-                               format_elapsed(now - start_time)))
+            if load_Result == {'FINISHED'}:
+                self.debugPrint("Imported '{0}' in {1}".format(os.path.basename(self.model_file),
+                                                        format_elapsed(now - start_time)))
+            else:
+                self.report({'ERROR'}, "ERROR {0} import failed. Elapsed time {1}".
+                            format(os.path.basename(self.model_file),
+                                   format_elapsed(now - start_time)))
 
         if self.cli_render:
             self.debugPrint("-------------------------")
             self.debugPrint("Performing Headless Render Task...")
-            
+
             # Get preferences properties from importldraw module
             if self.load_ldraw_model:
-                from io_scene_lpub3d_importldraw import importldraw
-                self.use_look               = importldraw.ImportLDrawOps.prefs.get('useLook', 'normal')
-                self.overwrite_image        = importldraw.ImportLDrawOps.prefs.get('overwriteImage', self.overwrite_image)
-                self.transparent_background = importldraw.ImportLDrawOps.prefs.get('transparentBackground', self.transparent_background)
-                self.render_window          = importldraw.ImportLDrawOps.prefs.get('renderWindow', self.render_window)
-                self.blendfile_trusted      = importldraw.ImportLDrawOps.prefs.get('blendfileTrusted', self.blendfile_trusted)
-                self.blend_file             = importldraw.ImportLDrawOps.prefs.get('blendFile', "")
-
-            self.debugPrint("Look:                {0}".format(self.use_look))
-            self.debugPrint("Overwrite_Image:     {0}".format(self.overwrite_image))
-            self.debugPrint("Trans_background:    {0}".format(self.transparent_background))
-            self.debugPrint("Render_Window:       {0}".format(self.render_window))
-            self.debugPrint("Blendfile_Trusted:   {0}".format(self.blendfile_trusted))
-            self.debugPrint("Blend_File:          {0}".format(self.blend_file))
+                self.setImportLDrawPreferences()
 
             if not self.import_only:
                 self.performRenderTask()
@@ -476,7 +498,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
     def modal(self, context, event):
         """Render Modal."""
 
-        if event.type in {'RIGHTMOUSE', 'ESC'}:
+        if event.type in {'ESC'}:
             bpy.app.handlers.render_pre.remove(self.pre)
             bpy.app.handlers.render_post.remove(self.post)
             bpy.app.handlers.render_cancel.remove(self.cancelled)
