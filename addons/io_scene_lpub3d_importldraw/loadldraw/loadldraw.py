@@ -1806,35 +1806,41 @@ class LDrawCamera:
     """Data about a camera"""
 
     def __init__(self):
-        self.vert_fov_degrees = 30.0
-        self.near             = 25.0
-        self.far              = 50000.0
-        self.position         = mathutils.Vector((0.0, 0.0, 0.0))
-        self.target_position  = mathutils.Vector((1.0, 0.0, 0.0))
-        self.up_vector        = mathutils.Vector((0.0, 1.0, 0.0))
-        self.name             = "Camera"
-        self.orthographic     = False
-        self.hidden           = False
+        self.fov_degrees       = 30.0
+        self.near              = 25.0
+        self.far               = 50000.0
+        self.latitude          = 23.0
+        self.longitude         = 45.0
+        self.distance          = 1.0       # LDU factored distance (not used)
+        self.position          = mathutils.Vector((0.0, 0.0, 0.0))
+        self.target_position   = mathutils.Vector((1.0, 0.0, 0.0))
+        self.up_vector         = mathutils.Vector((0.0, 1.0, 0.0))
+        self.fov_radians       = math.radians(self.fov_degrees)
+        self.name              = "LPub3D_Camera"
+        self.orthographic      = False
+        self.hidden            = False
 
     def createCameraNode(self):
         camData = bpy.data.cameras.new(self.name)
         camera = bpy.data.objects.new(self.name, camData)
 
         # Add to scene
-        camera.location = self.position
+        camera.data.lens_unit  = 'FOV'
         camera.data.sensor_fit = 'VERTICAL'
-        camera.data.angle = self.vert_fov_degrees * 3.1415926 / 180.0
-        camera.data.clip_end = self.far
+        camera.location        = self.position
+        camera.data.angle      = self.fov_radians
+        camera.data.clip_end   = self.far
         camera.data.clip_start = self.near
-        camera.hide = self.hidden
+        camera.data['hide']    = self.hidden
+        camera.data.show_name  = True
         self.hidden = False
         if self.orthographic:
             dist_target_to_camera = (self.position - self.target_position).length
             camera.data.ortho_scale = dist_target_to_camera / 1.92
-            camera.data.type = 'ORTHO'
+            camera.data.type  = 'ORTHO'
             self.orthographic = False
         else:
-            camera.data.type = 'PERSP'
+            camera.data.type  = 'PERSP'
 
         linkToScene(camera)
         LDrawNode.look_at(camera, self.target_position, self.up_vector)
@@ -1848,7 +1854,7 @@ class LDrawFile:
     Specifically this represents an LDR, L3B, DAT or one '0 FILE' section of an MPD.
     Splits up an MPD file into '0 FILE' sections and caches them."""
 
-    def __loadLegoFile(self, filepath, isFullFilepath, parentFilepath):
+    def __loadLDrawFile(self, filepath, isFullFilepath, parentFilepath):
         # Resolve full filepath if necessary
         result = ()
 
@@ -1990,7 +1996,7 @@ class LDrawFile:
 
         if self.lines is None:
             # Load the file into self.lines
-            if not self.__loadLegoFile(self.filename, isFullFilepath, parentFilepath):
+            if not self.__loadLDrawFile(self.filename, isFullFilepath, parentFilepath):
                 return
         else:
             # We are loading a section of our parent document, so full filepath is that of the parent
@@ -2067,9 +2073,18 @@ class LDrawFile:
                     if parameters[2] == "CAMERA":
                         if Options.importCameras:
                             parameters = parameters[3:]
-                            while (len(parameters) > 0):
-                                if parameters[0] == "FOV":
-                                    camera.vert_fov_degrees = float(parameters[1])
+                            while len(parameters) > 0:
+                                if parameters[0] == "LATITUDE":
+                                    camera.latitude = float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "LONGITUDE":
+                                    camera.longitude = float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "DISTANCE":
+                                    camera.distance = float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "FOV":
+                                    camera.fov_degrees = float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "ZNEAR":
                                     camera.near = Options.scale * float(parameters[1])
@@ -2096,7 +2111,7 @@ class LDrawFile:
                                     camera.hidden = True
                                     parameters = parameters[1:]
                                 elif parameters[0] == "NAME":
-                                    camera.name = line.split(" NAME ", 1)[1].strip()
+                                    camera.name = "Imported{0}".format(line.split(" NAME ", 1)[1].strip())
 
                                     globalCamerasToAdd.append(camera)
                                     camera = LDrawCamera()
@@ -4815,6 +4830,7 @@ def loadFromFile(context, filename, isFullFilepath=True):
     scene  = bpy.context.scene
     camera = scene.camera
     render = scene.render
+    importedCameraName = ""
 
     debugPrint("Number of vertices: " + str(len(globalPoints)))
 
@@ -4862,11 +4878,14 @@ def loadFromFile(context, filename, isFullFilepath=True):
             globalPoints = [p + offsetToCentreModel for p in globalPoints]
             offsetToCentreModel = mathutils.Vector((0, 0, 0))
 
-        # Fix slope material when importing individual parts - See PR
-        # https://github.com/TobyLobster/ImportLDraw/pull/50/
-        if camera is not None:
-            if Options.positionCamera:
-                debugPrint("Positioning Camera")
+        if Options.positionCamera:
+            if len(globalCamerasToAdd):
+                # Capture the first imported camera name
+                importedCameraName = globalCamerasToAdd[0].name
+                debugPrint("Positioning Camera: {0}".format(importedCameraName))
+
+            elif camera is not None:
+                debugPrint("Positioning Camera: {0}".format(camera.data.name))
 
                 # Set up a default camera position and rotation
                 camera.location = mathutils.Vector((6.5, -6.5, 4.75))
@@ -4956,6 +4975,10 @@ def loadFromFile(context, filename, isFullFilepath=True):
                     obj.data.materials[0] = material
                 else:
                     obj.data.materials.append(material)
+
+    # Setup the first imported camera
+    if importedCameraName != "" and importedCameraName in sceneObjectNames:
+        scene.camera = scene.objects[importedCameraName]
 
     # Set to render at full resolution
     if Options.setRenderSettings:
