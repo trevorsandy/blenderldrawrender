@@ -305,7 +305,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
                         with open(self.image_file, 'wb') as image_file:
                             pil_image.save(image_file, format='PNG')
                 else:
-                    self.report({'WARNING'}, "Pillow package not detected. Image crop cannot be performed.")
+                    self.report({'ERROR'}, "Pillow package not detected. Image crop not performed.")
                     self.task_status = "WARNING: {0} crop failed. Time:".format(os.path.basename(self.image_file))
             else:
                 self.report({'ERROR'}, "Crop image criteria not satisfied. Check settings.")
@@ -429,7 +429,8 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         self.debugPrint("Trans_Background:    {0}".format(self.transparent_background))
         self.debugPrint("Add_Environment:     {0}".format(self.add_environment))
         self.debugPrint("Crop_Image:          {0}".format(self.crop_image))
-        self.debugPrint("Render_Window:       {0}".format(self.render_window))
+        if not self.cli_render:
+            self.debugPrint("Render_Window:       {0}".format(self.render_window))
         if not self.blend_file == "":
             self.debugPrint("Blendfile_Trusted:   {0}".format(self.blendfile_trusted))
             self.debugPrint("Blend_File:          {0}".format(self.blend_file))
@@ -571,8 +572,9 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             self.debugPrint("Performing GUI Render Task...")
 
             # Define the variables during execution. This allows us to define when called from a button
-            self.stop = False
-            self.busy = False
+            self.complete = False
+            self.stop     = False
+            self.busy     = False
 
             # Set task(s)
             self.tasks = ['RENDER_TASK']
@@ -582,6 +584,8 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             bpy.app.handlers.render_pre.append(self.pre)
             bpy.app.handlers.render_post.append(self.post)
             bpy.app.handlers.render_cancel.append(self.cancelled)
+            bpy.app.handlers.render_complete.append(self.complete)
+            bpy.app.handlers.render_complete.append(self.autocrop_image)
 
             # The timer gets created and the modal handler is added to the window manager
             self._timer = context.window_manager.event_timer_add(0.5, window=context.window)
@@ -593,10 +597,9 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         """Render Modal."""
 
         if event.type in {'ESC'}:
-            bpy.app.handlers.render_pre.remove(self.pre)
-            bpy.app.handlers.render_post.remove(self.post)
-            bpy.app.handlers.render_cancel.remove(self.cancelled)
-            context.window_manager.event_timer_remove(self._timer)
+
+            self.releaseHandlers(context)
+
             self.stop = True
 
             self.report({'WARNING'}, 'Render operation cancelled.')
@@ -605,13 +608,10 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         if event.type == 'TIMER':  # This event is signaled every half a second and will start the render if available
 
             # If cancelled or no more tasks to render, finish.
-            if True in (not self.tasks, self.stop is True):
+            if True in (not self.tasks and self.complete is True, self.stop is True):
 
                 # We remove the handlers and the modal timer to clean everything
-                bpy.app.handlers.render_pre.remove(self.pre)
-                bpy.app.handlers.render_post.remove(self.post)
-                bpy.app.handlers.render_cancel.remove(self.cancelled)
-                context.window_manager.event_timer_remove(self._timer)
+                self.releaseHandlers(context)
 
                 self.debugPrint("Render operation finished.")
                 return {"FINISHED"}

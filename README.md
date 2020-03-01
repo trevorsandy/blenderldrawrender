@@ -11,13 +11,15 @@ It supports **.mpd**, **.ldr**, and **.dat** file formats.
 
 The LDraw import sub-module is based on [Import LDraw](https://github.com/TobyLobster/ImportLDraw) by Toby Nelson (tobymnelson@gmail.com).
 
-## Features ##
+## Render Features ##
 + Available for Blender 2.80 and later (2.79 backport in progress).
 + **Mac**, **Windows** and **Linux** supported.
 + **MPD** file compatible.
-+ **Settings configurable from LPub3D** user interface.
-+ **Monitor render progress** from LPub3D user interface.
++ **Render settings configurable** from LPub3D user interface.
++ **Monitor render progress** from LPub3D user interface or launch Blender and directly invoke render routine from manu item.
 + **Render Portable Network Graphics (.png)** image files.
++ **Crop images** with transparent background to their opaque bounds
++ **Specify transparent background** from render settings
 
 ### License ###
 
