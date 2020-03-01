@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update February 06, 2020
+Last Update March 01, 2020
 Copyright (c) 2020 by Trevor SANDY
 
 LPub3D Blender LDraw Addon GPLv2 license.
@@ -38,6 +38,17 @@ import addon_utils
 
 from typing import Union, Set
 
+def installPackage(package):
+    import importlib
+    package_spec = importlib.util.find_spec("pip")
+    if package_spec is not None:
+        import pip
+        if hasattr(pip, 'main'):
+            pip.main(['install', '--user', '--no-deps', package])
+        else:
+            pip._internal.main(['install', '--user', '--no-deps', package])
+    else:
+        print("WARNING - Could not install {0} - pip module is not installed.".format(package))
 
 def install_addons():
     # Capture installed version
@@ -81,6 +92,10 @@ def install_addons():
 
     # Save user preferences
     bpy.ops.wm.save_userpref()
+
+    # install Pillow
+    print("Installing Pillow to enable image crop...")
+    installPackage('Pillow')
 
     # Get 'LPub3D Render LDraw' addon version
     for mod in addon_utils.modules():

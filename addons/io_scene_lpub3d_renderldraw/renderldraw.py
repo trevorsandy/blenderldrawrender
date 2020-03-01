@@ -20,7 +20,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 LPub3D Render LDraw
 
-This file defines the CLI load class.
+This file defines the LDraw render routines.
 """
 
 import os
@@ -43,6 +43,7 @@ units = (
     (24, "d", "day", "days"),
     (7, "wk", "week", "weeks"))
 
+
 def render_print(message):
     """Debug print with identification timestamp."""
 
@@ -52,6 +53,7 @@ def render_print(message):
     message = "{0} [renderldraw] {1}".format(timestamp, message)
     # print("{0}".format(message))
     sys.stdout.write("{0}\n".format(message))
+
 
 def format_elapsed(interval, long_form=False, seconds_places=3):
     """
@@ -94,7 +96,6 @@ def format_elapsed(interval, long_form=False, seconds_places=3):
     # end while
     return result
 
-
 # end format_elapsed
 
 
@@ -108,20 +109,25 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
     bl_region_type = "WINDOW"
     bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
+    image_file_name = 'rendered_ldraw_image.png'
     prefs_directory = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../io_scene_lpub3d_importldraw'))
     prefs_file_path = os.path.join(prefs_directory, 'ImportLDrawPreferences.ini')
     image_directory = os.path.abspath(os.path.expanduser("~"))
-    image_file_path = os.path.join(image_directory, 'blender_ldraw_image.png')
+    image_file_path = os.path.join(image_directory, image_file_name)
 
-    node_name = None  # not used
-    node_file = None  # not used
-    scene_name = None  # not used
+    temp_image_file = None
+    task_status     = None
+    node_name       = None  # not used
+    node_file       = None  # not used
+    scene_name      = None  # not used
 
     # Define variables to register
-    _timer = None
-    tasks = None
-    stop = None
-    busy = None
+    _start_time = None
+    _timer      = None
+    complete    = None
+    stop        = None
+    busy        = None
+    tasks       = None
 
     # Properties
     model_file: StringProperty(
@@ -182,6 +188,12 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         default=False
     )
 
+    crop_image: BoolProperty(
+        name="Crop Image",
+        description="Crop the image border at opaque content. Requires transparent background set to True",
+        default=False,
+    )
+
     render_window: BoolProperty(
         name="Display Render Window",
         description="Specify whether to display the render window during Blender user interface image render",
@@ -217,6 +229,11 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         options={'HIDDEN'}
     )
 
+    add_environment: BoolProperty(
+        default=True,
+        options={'HIDDEN'}
+    )
+
     image_file: StringProperty(
         default=image_file_path,
         options={'HIDDEN'}
@@ -236,14 +253,27 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
     )
 
     # Define handler functions. I use pre and post to know if Blender "is busy"
-    def pre(self, dummy):
+    def pre(self, dummyfoo, dummyboo):
         self.busy = True
 
-    def post(self, dummy):
+    # Post is triggered after each frame
+    def post(self, dummyfoo, dummyboo):
         self.busy = False
 
-    def cancelled(self, dummy):
+    # Complete is triggered after the entire render job
+    def complete(self, dummyfoo, dummyboo):
+        self.complete = True
+
+    def cancelled(self, dummyfoo, dummyboo):
         self.stop = True
+
+    def releaseHandlers(self, context):
+        bpy.app.handlers.render_pre.remove(self.pre)
+        bpy.app.handlers.render_post.remove(self.post)
+        bpy.app.handlers.render_cancel.remove(self.cancelled)
+        bpy.app.handlers.render_complete.remove(self.complete)
+        bpy.app.handlers.render_complete.remove(self.autocrop_image)
+        context.window_manager.event_timer_remove(self._timer)
 
     # Print function
     def debugPrint(self, message):
@@ -251,6 +281,39 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
 
         if self.verbose:
             render_print(message)
+
+    def autocrop_image(self, dummyfoo, dummyboo):
+        """Automatically crop transparent image border"""
+
+        if self.crop_image:
+            if self.transparent_background and not self.add_environment:
+                import importlib
+                package_spec = importlib.util.find_spec("PIL")
+                if package_spec is not None:
+                    from PIL import Image
+
+                    # Get the opaque bounding box
+                    pil_image = Image.open(self.image_file)
+                    cropped_box = pil_image.convert("RGBa").getbbox()
+                    self.debugPrint("Rendered Image Size: w{0} x h{1}".format(pil_image.width, pil_image.height))
+
+                    # Crop the image
+                    pil_image = pil_image.crop(cropped_box)
+                    self.debugPrint("Cropped Image Size:  w{0} x h{1}".format(pil_image.width, pil_image.height))
+
+                    if pil_image:
+                        with open(self.image_file, 'wb') as image_file:
+                            pil_image.save(image_file, format='PNG')
+                else:
+                    self.report({'WARNING'}, "Pillow package not detected. Image crop cannot be performed.")
+                    self.task_status = "WARNING: {0} crop failed. Time:".format(os.path.basename(self.image_file))
+            else:
+                self.report({'ERROR'}, "Crop image criteria not satisfied. Check settings.")
+
+        now = time.time()
+
+        self.task_status = "SUCCESS: {0} rendered in".format(os.path.basename(self.image_file))
+        self.debugPrint("{0} {1}".format(self.task_status, format_elapsed(now - self._start_time)))
 
     # Render function
     def performRenderTask(self):
@@ -302,6 +365,12 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         if active_scene.node_tree is None and (len(image_inputs) > 0):
             self.report({'WARNING'}, "blendfile “{0}” does not have compositor nodes".format(self.blend_file))
         # end if
+        if self.crop_image and self.add_environment:
+            self.report({'WARNING'}, "'Crop Image' specified but 'Add Environment' is set to True")
+        # end if
+        if self.crop_image and not self.transparent_background:
+            self.report({'WARNING'}, "'Crop Image' specified but 'Transparent Background' is set to False")
+        # end if
         if self.transparent_background and self.use_look == 'normal':
             if active_scene.render.engine == 'CYCLES':
                 active_scene.render.image_settings.color_mode = 'RGBA'
@@ -311,7 +380,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         if not self.overwrite_image and os.path.exists(self.image_file):
             self.report({'ERROR'}, "ERROR LDraw image “{}” already exists".format(self.image_file))
         else:
-            start_time = time.time()
+            self._start_time = time.time()
 
             if len(image_inputs) > 0:
                 self.debugPrint("image_inputs = {!r}".format(image_inputs))  # debug
@@ -323,6 +392,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
                 # end if
                 input_node.image = bpy.data.images.load(image_inputs[input_name])
             # end for
+
             if self.filepath:
                 self.image_file = self.filepath
             elif not self.image_file:
@@ -339,26 +409,30 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
                 bpy.ops.render.render('INVOKE_DEFAULT', write_still=True)
             # end if
 
-            now = time.time()
-            
-            self.debugPrint("SUCCESS: {0} rendered in {1}".format(os.path.basename(self.image_file),
-                                                           format_elapsed(now - start_time)))
         # end if (overwrite)
 
     def setImportLDrawPreferences(self):
+        """Import parameter settings when running from command line or LDraw file already loaded."""
+
         self.use_look               = importldraw.ImportLDrawOps.prefs.get('useLook', 'normal')
         self.overwrite_image        = importldraw.ImportLDrawOps.prefs.get('overwriteImage', self.overwrite_image)
         self.transparent_background = importldraw.ImportLDrawOps.prefs.get('transparentBackground', self.transparent_background)
+        self.add_environment        = importldraw.ImportLDrawOps.prefs.get('addEnvironment', self.add_environment)
+        self.crop_image             = importldraw.ImportLDrawOps.prefs.get('cropImage', self.crop_image)
         self.render_window          = importldraw.ImportLDrawOps.prefs.get('renderWindow', self.render_window)
         self.blendfile_trusted      = importldraw.ImportLDrawOps.prefs.get('blendfileTrusted', self.blendfile_trusted)
         self.blend_file             = importldraw.ImportLDrawOps.prefs.get('blendFile', "")
+        self.verbose                = importldraw.ImportLDrawOps.prefs.get('verbose', self.verbose)
 
         self.debugPrint("Look:                {0}".format(self.use_look))
         self.debugPrint("Overwrite_Image:     {0}".format(self.overwrite_image))
-        self.debugPrint("Trans_background:    {0}".format(self.transparent_background))
+        self.debugPrint("Trans_Background:    {0}".format(self.transparent_background))
+        self.debugPrint("Add_Environment:     {0}".format(self.add_environment))
+        self.debugPrint("Crop_Image:          {0}".format(self.crop_image))
         self.debugPrint("Render_Window:       {0}".format(self.render_window))
-        self.debugPrint("Blendfile_Trusted:   {0}".format(self.blendfile_trusted))
-        self.debugPrint("Blend_File:          {0}".format(self.blend_file))
+        if not self.blend_file == "":
+            self.debugPrint("Blendfile_Trusted:   {0}".format(self.blendfile_trusted))
+            self.debugPrint("Blend_File:          {0}".format(self.blend_file))
 
     def draw(self, context):
         """Display render options."""
@@ -379,6 +453,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         box.prop(self, "overwrite_image")
 
         box.prop(self, "transparent_background")
+        box.prop(self, "crop_image")
         box.prop(self, "blendfile_trusted")
         box.prop(self, "render_window")
         box.prop(self, "search_additional_paths")
@@ -438,6 +513,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
                 "cliRender": self.cli_render
             }
             load_Result = bpy.ops.import_scene.lpub3dimportldraw('EXEC_DEFAULT', **kwargs)
+
             self.debugPrint("Load Task Result:    {0}".format(load_Result))
 
             # Check blend file and create if not exist
@@ -453,8 +529,17 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             now = time.time()
 
             if load_Result == {'FINISHED'}:
+                # If auto crop and local dependent settings not applied, get settings from load parameter file
+                if self.crop_image:
+                    if not self.transparent_background:
+                        self.transparent_background = importldraw.ImportLDrawOps.prefs.get('transparentBackground',
+                                                                                           self.transparent_background)
+                    if self.add_environment:
+                        self.add_environment = importldraw.ImportLDrawOps.prefs.get('addEnvironment',
+                                                                                    self.add_environment)
+
                 self.debugPrint("Imported '{0}' in {1}".format(os.path.basename(self.model_file),
-                                                        format_elapsed(now - start_time)))
+                                                               format_elapsed(now - start_time)))
             else:
                 self.report({'ERROR'}, "ERROR {0} import failed. Elapsed time {1}".
                             format(os.path.basename(self.model_file),
@@ -464,12 +549,21 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             self.debugPrint("-------------------------")
             self.debugPrint("Performing Headless Render Task...")
 
+            # Register auto crop
+            if not self.import_only:
+                bpy.app.handlers.render_complete.append(self.autocrop_image)
+
             # Get preferences properties from importldraw module
             if self.load_ldraw_model:
                 self.setImportLDrawPreferences()
 
+            # Render image
             if not self.import_only:
                 self.performRenderTask()
+
+            # Cleanup handler
+            if not self.import_only:
+                bpy.app.handlers.render_complete.remove(self.autocrop_image)
 
             return {'FINISHED'}
 

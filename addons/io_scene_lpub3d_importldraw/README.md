@@ -10,19 +10,21 @@ This plug-in was adapted from [Import LDraw](https://github.com/TobyLobster/Impo
 
 It supports **.mpd**, **.ldr**, **.l3b**, and **.dat** file formats.
 
-## Features ##
+## Import Features ##
 + Available for Blender 2.80 and later (2.79 backport in progress).
 + **Mac**, **Windows** and **Linux** supported.
 + **MPD** file compatible.
-+ **Settings configurable from LPub3D** user Interface
++ **Import settings configurable** from LPub3D user interface.
 + **LeoCAD** groups and cameras (both perspective and orthographic) supported.
 + **LSynth** bendable parts supported (synthesized models).
 + **LDCad**  generated parts supported.
 + **Additional LDraw parts paths** can be specified.
 + **LGEO colours, sloped bricks and lighted bricks** can be custom configured via parameter (ini) file.
++ **Import and apply camera settings** from LPub3D generated LDraw content
++ **Import and apply light settings** from LPub3D generated LDraw content. Point and sunlight configurations available
 + **LDraw archive (.zip) or disc library** supported. Archive libraries are auto detected when available at the specified LDraw directory path.
 + *Cycles* and *Blender Render* engines supported. It renders either engine from a single scene.
-+ Import **photorealistic** look, or **Instructions** look.
++ Import **Photorealistic** look, or **Instructions** look.
 + **Physically Based Realistic materials** - standard brick material, transparent, rubber, chrome, metal, pearlescent, glow-in-the-dark, glitter and speckle.
 + **Principled Shader supported** Uses Blender's 'Principled Shader' where available for optimal look (but still works well when unavailable).
 + **Accurate colour handling**. Correct colour space management is used so that e.g. black parts look black.
