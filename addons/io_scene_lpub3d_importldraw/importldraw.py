@@ -237,6 +237,12 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         default=prefs.get("importCameras", True)
     )
 
+    importLights: BoolProperty(
+        name="Import lights",
+        description="Import Light definitions (from models authored in LPub3D)",
+        default=prefs.get("importLights", True)
+    )
+
     linkParts: BoolProperty(
         name="Link identical parts",
         description="Identical parts (of the same type and colour) share the same mesh",
@@ -446,6 +452,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         box.prop(self, "gapsSize")
         box.prop(self, "curvedWalls")
         box.prop(self, "importCameras")
+        box.prop(self, "importLights")
         box.prop(self, "linkParts")
         box.prop(self, "useUnofficialParts")
 
@@ -489,6 +496,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             self.flatten                 = ImportLDrawOps.prefs.get("flattenHierarchy",     self.flatten)
             self.gapsSize                = ImportLDrawOps.prefs.get("gapWidth",             self.gapsSize)
             self.importCameras           = ImportLDrawOps.prefs.get("importCameras",        self.importCameras)
+            self.importLights            = ImportLDrawOps.prefs.get("importLights",         self.importLights)
             self.importScale             = ImportLDrawOps.prefs.get("scale",                self.importScale)
             self.instanceStuds           = ImportLDrawOps.prefs.get("instanceStuds",        self.instanceStuds)
             self.ldrawPath               = ImportLDrawOps.prefs.get("ldrawDirectory",       self.ldrawPath)
@@ -528,6 +536,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             ImportLDrawOps.prefs.set("gaps",                   self.addGaps)
             ImportLDrawOps.prefs.set("gapWidth",               self.gapsSize)
             ImportLDrawOps.prefs.set("importCameras",          self.importCameras)
+            ImportLDrawOps.prefs.set("importLights",           self.importLights)
             ImportLDrawOps.prefs.set("instanceStuds",          self.instanceStuds)
             ImportLDrawOps.prefs.set("ldrawDirectory",         self.ldrawPath)
             ImportLDrawOps.prefs.set("linkParts",              self.linkParts)
@@ -566,6 +575,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         loadldraw.Options.gaps                        = self.addGaps
         loadldraw.Options.gapWidth                    = self.gapsSize
         loadldraw.Options.importCameras               = self.importCameras
+        loadldraw.Options.importLights                = self.importLights
         loadldraw.Options.instanceStuds               = self.instanceStuds
         loadldraw.Options.instructionsLook            = self.look == "instructions"
         loadldraw.Options.ldrawDirectory              = self.ldrawPath

@@ -286,6 +286,7 @@ class Options:
     curvedWalls        = True           # Manipulate normals to make surfaces look slightly concave
     addSubsurface      = True           # Adds subsurface to principled shader
     importCameras      = True           # LeoCAD can specify cameras within the ldraw file format. Choose to load them or ignore them.
+    importLights       = True           # LPub3D can specify lights within the ldraw file format. Choose to load them or ignore them
     positionObjectOnGroundAtOrigin = True   # Centre the object at the origin, sitting on the z=0 plane
     flattenHierarchy   = False          # All parts are under the root object - no sub-models
     flattenGroups      = False          # All LEOCad groups are ignored - no groups
@@ -361,6 +362,7 @@ class Options:
 globalBrickCount = 0
 globalObjectsToAdd = []         # Blender objects to add to the scene
 globalCamerasToAdd = []         # Camera data to add to the scene
+globalLightsToAdd  = []         # Light data to add to the scene
 globalContext = None
 globalWeldDistance = 0.0005
 globalPoints = []
@@ -372,10 +374,6 @@ globalSlopeAngles = {}
 
 isBlender28OrLater = None
 hasCollections = None
-if isBlender28OrLater:
-    lightName = "Light"
-else:
-    lightName = "Lamp"
 
 usingArchiveLibraries = False
 ldrawModelLoaded      = False
@@ -1644,44 +1642,46 @@ class LDrawNode:
         self.isRootNode     = isRootNode
         self.groupNames     = groupNames.copy()
 
-    def look_at(obj_camera, target, up_vector):
+    def look_at(scene_obj, target, up_vector):
         if isBlender28OrLater:
             bpy.context.view_layer.update()
         else:
             bpy.context.scene.update()
 
-        loc_camera = obj_camera.matrix_world.to_translation()
+        loc_scene_obj = scene_obj.matrix_world.to_translation()
 
-        # print("CamLoc = " + str(loc_camera[0]) + "," + str(loc_camera[1]) + "," + str(loc_camera[2]))
-        # print("TarLoc = " + str(target[0]) + "," + str(target[1]) + "," + str(target[2]))
-        # print("UpVec  = " + str(up_vector[0]) + "," + str(up_vector[1]) + "," + str(up_vector[2]))
+        if scene_obj.type == 'CAMERA':
 
-        # back vector is a vector pointing from the target to the camera
-        back = loc_camera - target;
-        back.normalize()
+            # print("CamLoc = " + str(loc_scene_obj[0]) + "," + str(loc_scene_obj[1]) + "," + str(loc_scene_obj[2]))
+            # print("TarLoc = " + str(target[0]) + "," + str(target[1]) + "," + str(target[2]))
+            # print("UpVec  = " + str(up_vector[0]) + "," + str(up_vector[1]) + "," + str(up_vector[2]))
 
-        # If our back and up vectors are very close to pointing the same way (or opposite), choose a different up_vector
-        if (abs(back.dot(up_vector)) > 0.9999):
-            up_vector = mathutils.Vector((0.0, 0.0, 1.0))
+            # back vector is a vector pointing from the target to the camera
+            back = loc_scene_obj - target;
+            back.normalize()
+
+            # If our back and up vectors are very close to pointing the same way (or opposite), choose a different up_vector
             if (abs(back.dot(up_vector)) > 0.9999):
-                up_vector = mathutils.Vector((1.0, 0.0, 0.0))
+                up_vector = mathutils.Vector((0.0, 0.0, 1.0))
+                if (abs(back.dot(up_vector)) > 0.9999):
+                    up_vector = mathutils.Vector((1.0, 0.0, 0.0))
 
-        right = up_vector.cross(back)
-        right.normalize()
-        up = back.cross(right)
-        up.normalize()
+            right = up_vector.cross(back)
+            right.normalize()
+            up = back.cross(right)
+            up.normalize()
 
-        row1 = [   right.x,   up.x,   back.x, loc_camera.x ]
-        row2 = [   right.y,   up.y,   back.y, loc_camera.y ]
-        row3 = [   right.z,   up.z,   back.z, loc_camera.z ]
-        row4 = [       0.0,    0.0,      0.0,          1.0 ]
+            row1 = [   right.x,   up.x,   back.x, loc_scene_obj.x ]
+            row2 = [   right.y,   up.y,   back.y, loc_scene_obj.y ]
+            row3 = [   right.z,   up.z,   back.z, loc_scene_obj.z ]
+            row4 = [       0.0,    0.0,      0.0,          1.0 ]
 
-        # bpy.ops.mesh.primitive_ico_sphere_add(location=loc_camera+up,size=0.1)
-        # bpy.ops.mesh.primitive_cylinder_add(location=loc_camera+back,radius = 0.1, depth=0.2)
-        # bpy.ops.mesh.primitive_cone_add(location=loc_camera+right,radius1=0.1, radius2=0, depth=0.2)
+            # bpy.ops.mesh.primitive_ico_sphere_add(location=loc_scene_obj+up,size=0.1)
+            # bpy.ops.mesh.primitive_cylinder_add(location=loc_scene_obj+back,radius = 0.1, depth=0.2)
+            # bpy.ops.mesh.primitive_cone_add(location=loc_scene_obj+right,radius1=0.1, radius2=0, depth=0.2)
 
-        obj_camera.matrix_world = mathutils.Matrix((row1, row2, row3, row4))
-        # print(obj_camera.matrix_world)
+            scene_obj.matrix_world = mathutils.Matrix((row1, row2, row3, row4))
+            # print(obj_camera.matrix_world)
 
     def isBlenderObjectNode(self):
         """
@@ -1849,6 +1849,48 @@ class LDrawCamera:
 
 # **************************************************************************************
 # **************************************************************************************
+class LDrawLight:
+    """Data about a light"""
+
+    def __init__(self):
+        self.type            = 'POINT'
+        self.factor          = 0
+        self.exponent        = 1000
+        self.specular        = 1.0
+        self.cutoff_distance = 40
+        self.name            = "LPub3D_Light"
+        self.color           = mathutils.Vector((1.0, 1.0, 1.0))
+        self.use_cutoff      = False
+        self.position        = mathutils.Vector((0.0, 0.0, 0.0))
+        self.target_position = mathutils.Vector((1.0, 0.0, 0.0))
+        self.up_vector       = mathutils.Vector((0.0, 1.0, 0.0))
+
+    def createLightNode(self):
+        if isBlender28OrLater:
+            lightData = bpy.data.lights.new(name=self.name, type=self.type)
+        else:
+            lightData = bpy.data.lamps.new(name=self.name, type=self.type)
+        light = bpy.data.objects.new(self.name, lightData)
+
+        # Add to scene
+        light.data.color                = self.color
+        light.data.energy               = self.exponent
+        light.data.specular_factor      = self.specular
+        light.data.use_custom_distance  = self.use_cutoff
+        light.data.cutoff_distance      = self.cutoff_distance
+        if self.type == 'POINT':
+            light.data.shadow_soft_size = self.factor
+        elif self.type == 'SUN':
+            light.data.angle            = math.radians(self.factor)
+        light.location                  = self.position
+
+        linkToScene(light)
+        LDrawNode.look_at(light, self.target_position, self.up_vector)
+        return light
+
+
+# **************************************************************************************
+# **************************************************************************************
 class LDrawFile:
     """Stores the contents of a single LDraw file.
     Specifically this represents an LDR, L3B, DAT or one '0 FILE' section of an MPD.
@@ -1978,6 +2020,7 @@ class LDrawFile:
         """Loads an LDraw file (LDR, L3B, DAT or MPD)"""
 
         global globalCamerasToAdd
+        global globalLightsToAdd
 
         self.filename         = filename
         self.lines            = lines
@@ -2009,6 +2052,7 @@ class LDrawFile:
         bfcInvertNext         = False
         processingLSynthParts = False
         camera = LDrawCamera()
+        light  = LDrawLight()
 
         currentGroupNames = []
 
@@ -2111,7 +2155,7 @@ class LDrawFile:
                                     camera.hidden = True
                                     parameters = parameters[1:]
                                 elif parameters[0] == "NAME":
-                                    camera.name = "Imported{0}".format(line.split(" NAME ", 1)[1].strip())
+                                    camera.name = "Imported {0}".format(line.split(" NAME ", 1)[1].strip())
 
                                     globalCamerasToAdd.append(camera)
                                     camera = LDrawCamera()
@@ -2120,7 +2164,54 @@ class LDrawFile:
                                     parameters = []
                                 else:
                                     parameters = parameters[1:]
+                    elif parameters[2] == "LIGHT":
+                        if Options.importLights:
+                            parameters = parameters[3:]
+                            while len(parameters) > 0:
+                                if parameters[0] == "POSITION":
+                                    light.position = matvecmul(Math.scaleMatrix, mathutils.Vector(
+                                        (float(parameters[1]), float(parameters[2]), float(parameters[3]))))
+                                    parameters = parameters[4:]
+                                elif parameters[0] == "TARGET_POSITION":
+                                    light.target_position = matvecmul(Math.scaleMatrix, mathutils.Vector(
+                                        (float(parameters[1]), float(parameters[2]), float(parameters[3]))))
+                                    parameters = parameters[4:]
+                                elif parameters[0] == "COLOR_RGB":
+                                    light.color = mathutils.Vector(
+                                        (float(parameters[1]), float(parameters[2]), float(parameters[3])))
+                                    parameters = parameters[4:]
+                                elif parameters[0] == "POWER":
+                                    light.exponent = float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "RADIUS":
+                                    light.factor = float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "STRENGTH":
+                                    light.exponent = float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "ANGLE":
+                                    light.factor = Options.scale * float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "SPECULAR":
+                                    light.specular = float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "CUTOFF_DISTANCE":
+                                    light.use_cutoff = True
+                                    light.cutoff_distance = float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "TYPE":
+                                    light.type = parameters[1].upper().strip()
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "NAME":
+                                    light.name = "Imported {0}".format(line.split(" NAME ", 1)[1].strip())
 
+                                    globalLightsToAdd.append(light)
+                                    light = LDrawLight()
+
+                                    # By definition this is the last of the light parameters
+                                    parameters = []
+                                else:
+                                    parameters = parameters[1:]
 
             else:
                 if self.bfcCertified is None:
@@ -4738,10 +4829,12 @@ def loadFromFile(context, filename, isFullFilepath=True):
     global ldrawModelFile
     global ldrawModelLoaded
     global globalCamerasToAdd
+    global globalLightsToAdd
     global globalContext
 
     ldrawModelFile = filename
     globalCamerasToAdd = []
+    globalLightsToAdd = []
     globalContext = context
 
     # Make sure we have the latest configuration, including the latest ldraw directory
@@ -4831,6 +4924,10 @@ def loadFromFile(context, filename, isFullFilepath=True):
     camera = scene.camera
     render = scene.render
     importedCameraName = ""
+    if isBlender28OrLater:
+        lightName = "Light"
+    else:
+        lightName = "Lamp"
 
     debugPrint("Number of vertices: " + str(len(globalPoints)))
 
@@ -4910,27 +5007,37 @@ def loadFromFile(context, filename, isFullFilepath=True):
     if Options.removeDefaultObjects:
         if "Cube" in sceneObjectNames:
             cube = scene.objects['Cube']
-            if (cube.location.length < 0.001):
+            if cube.location.length < 0.001:
                 unlinkFromScene(cube)
 
-        if lightName in sceneObjectNames:
-            light = scene.objects[lightName]
-            lampVector = light.location - mathutils.Vector((4.076245307922363, 1.0054539442062378, 5.903861999511719))
-            if (lampVector.length < 0.001):
-                unlinkFromScene(light)
+        if len(globalLightsToAdd):
+            if lightName in sceneObjectNames:
+                light = scene.objects[lightName]
+                lampVector = light.location - mathutils.Vector((4.076245307922363, 1.0054539442062378, 5.903861999511719))
+                if lampVector.length < 0.001:
+                    unlinkFromScene(light)
+
+        if len(globalCamerasToAdd):
+            unlinkFromScene(camera)
 
     # Finally add each object to the scene
     debugPrint("Adding {0} objects to scene".format(len(globalObjectsToAdd)))
     for ob in globalObjectsToAdd:
         linkToScene(ob)
 
+    # Add lights to the scene
+    for ob in globalLightsToAdd:
+        light = ob.createLightNode()
+        light.parent = rootOb
+
     # Add cameras to the scene
     for ob in globalCamerasToAdd:
-        cam = ob.createCameraNode()
-        cam.parent = rootOb
+        camera = ob.createCameraNode()
+        camera.parent = rootOb
 
     globalObjectsToAdd = []
     globalCamerasToAdd = []
+    globalLightsToAdd = []
 
     # Select the newly created root object
     selectObject(rootOb)
