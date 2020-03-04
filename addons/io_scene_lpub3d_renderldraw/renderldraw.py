@@ -117,9 +117,6 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
 
     temp_image_file = None
     task_status     = None
-    node_name       = None  # not used
-    node_file       = None  # not used
-    scene_name      = None  # not used
 
     # Define variables to register
     _start_time = None
@@ -128,6 +125,9 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
     stop        = None
     busy        = None
     tasks       = None
+
+    # Preferences (used to confirm LDraw path and crop settings)
+    prefs       = type('', (), {})()
 
     # Properties
     model_file: StringProperty(
@@ -138,7 +138,19 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
 
     blend_file: StringProperty(
         name="",
-        description="Specify additional blend file absolute file path - optional",
+        description="Specify absolute file path to supplement blend file - optional",
+        default=r"",
+    )
+
+    ldraw_path: StringProperty(
+        name="",
+        description="Full filepath to the LDraw Parts Library (download from http://www.ldraw.org)",
+        default=r""
+    )
+
+    images_directory: StringProperty(
+        name="",
+        description="Full directory path to image files for compositor image node",
         default=r"",
     )
 
@@ -160,16 +172,6 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         default=100
     )
 
-    use_look: EnumProperty(
-        name="Overall Look",
-        description="Realism or Schematic look",
-        default="normal",
-        items=(
-            ("normal", "Realistic Look", "Render to look realistic."),
-            ("instructions", "Lego Instructions Look", "Render to look like the instruction book pictures."),
-        )
-    )
-
     overwrite_image: BoolProperty(
         name="Overwrite Rendered Image",
         description="Specify whether to overwrite an existing rendered image file.",
@@ -188,6 +190,12 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         default=False
     )
 
+    add_environment: BoolProperty(
+        name="Add Environment",
+        description="Adds a ground plane and environment texture (for realistic look only)",
+        default=True
+    )
+
     crop_image: BoolProperty(
         name="Crop Image",
         description="Crop the image border at opaque content. Requires transparent background set to True",
@@ -200,22 +208,32 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         default=True
     )
 
-    search_additional_paths: BoolProperty(
-        name="Search additional paths",
-        description="Search additional LDraw paths (automatically set for fade previous steps and highlight step)",
-        default=False
-    )
-
     load_ldraw_model: BoolProperty(
         name="Load LDraw Model",
         description="Specify whether to load the specified LDraw model before rendering - default is True).",
         default=True
     )
 
+    use_look: EnumProperty(
+        name="Overall Look",
+        description="Realism or Schematic look",
+        default="normal",
+        items=(
+            ("normal", "Realistic Look", "Render to look realistic."),
+            ("instructions", "Lego Instructions Look", "Render to look like the instruction book pictures."),
+        )
+    )
+
+    search_additional_paths: BoolProperty(
+        name="Search Additional Paths",
+        description="Search additional LDraw paths (automatically set for fade previous steps and highlight step)",
+        default=False
+    )
+
     verbose: BoolProperty(
         name="Verbose Output",
         description="Output all messages while working, else only show warnings and errors",
-        default=False
+        default=True
     )
 
     # Hidden properties
@@ -229,11 +247,6 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         options={'HIDDEN'}
     )
 
-    add_environment: BoolProperty(
-        default=True,
-        options={'HIDDEN'}
-    )
-
     image_file: StringProperty(
         default=image_file_path,
         options={'HIDDEN'}
@@ -243,7 +256,6 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         default=prefs_file_path,
         options={'HIDDEN'}
     )
-    # End Hidden properties
 
     # File type filter in file browser
     filename_ext = ".png"
@@ -251,6 +263,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         default="*.png",
         options={'HIDDEN'}
     )
+    # End Hidden properties
 
     # Define handler functions. I use pre and post to know if Blender "is busy"
     def pre(self, dummyfoo, dummyboo):
@@ -272,7 +285,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         bpy.app.handlers.render_post.remove(self.post)
         bpy.app.handlers.render_cancel.remove(self.cancelled)
         bpy.app.handlers.render_complete.remove(self.complete)
-        bpy.app.handlers.render_complete.remove(self.autocrop_image)
+        bpy.app.handlers.render_complete.remove(self.autocropImage)
         context.window_manager.event_timer_remove(self._timer)
 
     # Print function
@@ -282,9 +295,10 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         if self.verbose:
             render_print(message)
 
-    def autocrop_image(self, dummyfoo, dummyboo):
-        """Automatically crop transparent image border"""
+    def autocropImage(self, dummyfoo, dummyboo):
+        """Crop images with transparent background on opaque bounds"""
 
+        self.task_status = None
         if self.crop_image:
             if self.transparent_background and not self.add_environment:
                 import importlib
@@ -305,15 +319,16 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
                         with open(self.image_file, 'wb') as image_file:
                             pil_image.save(image_file, format='PNG')
                 else:
-                    self.report({'ERROR'}, "Pillow package not detected. Image crop not performed.")
-                    self.task_status = "WARNING: {0} crop failed. Time:".format(os.path.basename(self.image_file))
+                    self.task_status = "{0} 'Crop failed. Pillow package not installed.".format(os.path.basename(self.image_file))
             else:
-                self.report({'ERROR'}, "Crop image criteria not satisfied. Check settings.")
+                self.task_status = "Crop failed. Transparent Background and/or Add Environment settings not satisfied."
 
         now = time.time()
 
-        self.task_status = "SUCCESS: {0} rendered in".format(os.path.basename(self.image_file))
-        self.debugPrint("{0} {1}".format(self.task_status, format_elapsed(now - self._start_time)))
+        if self.task_status is not None:
+            self.report({'ERROR'}, "{0} Time: {1}".format(self.task_status, format_elapsed(now - self._start_time)))
+        else:
+            render_print("SUCCESS: {0} rendered in".format(os.path.basename(self.image_file)))
 
     # Render function
     def performRenderTask(self):
@@ -332,26 +347,16 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
 
         image_inputs = {}
 
-        i = 0
-        while True:
-            i += 1
-            """
-            Not used--
-            --input=«node-name»=«file-path»
-            specifies an image file to load for a given compositor
-            image node. Specify this as many times as necessary, once
-            for each image node.
-            node_name = TBD
-            node_file = TBD
-            """
-            if not self.node_name or not self.node_file:
-                break
-            image_inputs[self.node_name] = self.node_file
-        # end while
-
-        if self.scene_name is not None:
-            bpy.context.screen.scene = bpy.data.scenes[self.scene_name]
+        # specifies an image file to load for a given compositor image node.
+        if self.images_directory.__ne__(""):
+            image_list = sorted(os.listdir(self.images_directory))
+            for image in image_list:
+                node_name = "node_" + os.path.splitext(os.path.basename(image))[0]
+                node_file = os.path.join(self.images_directory, node_name)
+                image_inputs[node_name] = node_file
+            # end for
         # end if
+
         active_scene = bpy.context.scene
         if self.render_percentage is not None:
             active_scene.render.resolution_percentage = self.render_percentage
@@ -411,29 +416,36 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
 
         # end if (overwrite)
 
-    def setImportLDrawPreferences(self):
-        """Import parameter settings when running from command line or LDraw file already loaded."""
-
-        self.use_look               = importldraw.ImportLDrawOps.prefs.get('useLook', 'normal')
-        self.overwrite_image        = importldraw.ImportLDrawOps.prefs.get('overwriteImage', self.overwrite_image)
-        self.transparent_background = importldraw.ImportLDrawOps.prefs.get('transparentBackground', self.transparent_background)
-        self.add_environment        = importldraw.ImportLDrawOps.prefs.get('addEnvironment', self.add_environment)
-        self.crop_image             = importldraw.ImportLDrawOps.prefs.get('cropImage', self.crop_image)
-        self.render_window          = importldraw.ImportLDrawOps.prefs.get('renderWindow', self.render_window)
-        self.blendfile_trusted      = importldraw.ImportLDrawOps.prefs.get('blendfileTrusted', self.blendfile_trusted)
-        self.blend_file             = importldraw.ImportLDrawOps.prefs.get('blendFile', "")
-        self.verbose                = importldraw.ImportLDrawOps.prefs.get('verbose', self.verbose)
-
+    def debugPrintPreferences(self):
+        self.debugPrint("-------------------------")
         self.debugPrint("Look:                {0}".format(self.use_look))
         self.debugPrint("Overwrite_Image:     {0}".format(self.overwrite_image))
         self.debugPrint("Trans_Background:    {0}".format(self.transparent_background))
         self.debugPrint("Add_Environment:     {0}".format(self.add_environment))
         self.debugPrint("Crop_Image:          {0}".format(self.crop_image))
+        self.debugPrint("Search_Addl_Paths:   {0}".format(self.search_additional_paths))
         if not self.cli_render:
             self.debugPrint("Render_Window:       {0}".format(self.render_window))
         if not self.blend_file == "":
             self.debugPrint("Blendfile_Trusted:   {0}".format(self.blendfile_trusted))
             self.debugPrint("Blend_File:          {0}".format(self.blend_file))
+        self.debugPrint("Verbose:             {0}".format(self.verbose))
+
+    def setImportLDrawPreferences(self):
+        """Import parameter settings when running from command line or LDraw file already loaded."""
+
+        self.use_look                = importldraw.ImportLDrawOps.prefs.get('useLook',          self.use_look)
+        self.overwrite_image         = importldraw.ImportLDrawOps.prefs.get('overwriteImage',   self.overwrite_image)
+        self.transparent_background  = importldraw.ImportLDrawOps.prefs.get('transparentBackground', self.transparent_background)
+        self.add_environment         = importldraw.ImportLDrawOps.prefs.get('addEnvironment',   self.add_environment)
+        self.crop_image              = importldraw.ImportLDrawOps.prefs.get('cropImage',        self.crop_image)
+        self.render_window           = importldraw.ImportLDrawOps.prefs.get('renderWindow',     self.render_window)
+        self.blendfile_trusted       = importldraw.ImportLDrawOps.prefs.get('blendfileTrusted', self.blendfile_trusted)
+        self.blend_file              = importldraw.ImportLDrawOps.prefs.get('blendFile',        self.blend_file)
+        self.search_additional_paths = importldraw.ImportLDrawOps.prefs.get('searchAdditionalPaths', self.search_additional_paths)
+        self.verbose                 = importldraw.ImportLDrawOps.prefs.get('verbose',          self.verbose)
+
+        self.debugPrintPreferences()
 
     def draw(self, context):
         """Display render options."""
@@ -442,7 +454,10 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         layout.use_property_split = True  # Active single-column layout
 
         box = layout.box()
-        box.label(text="LDraw Model Render Options", icon='PREFERENCES')
+        box.label(text="LDraw Render Options", icon='PREFERENCES')
+        if not importldraw.loadldraw.ldrawModelLoaded and self.ldraw_path.__eq__(""):
+            box.label(text="LDraw filepath:", icon='FILEBROWSER')
+            box.prop(self, "ldraw_path")
         box.label(text="Model filepath:", icon='FILEBROWSER')
         box.prop(self, "model_file")
         box.label(text="Blend filepath:", icon='FILEBROWSER')
@@ -451,15 +466,19 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         box.prop(self, "resolution_width")
         box.prop(self, "resolution_height")
         box.prop(self, "render_percentage")
-        box.prop(self, "overwrite_image")
 
-        box.prop(self, "transparent_background")
-        box.prop(self, "crop_image")
-        box.prop(self, "blendfile_trusted")
         box.prop(self, "render_window")
-        box.prop(self, "search_additional_paths")
-        box.prop(self, "load_ldraw_model")
-        box.prop(self, "verbose")
+        box.prop(self, "overwrite_image")
+        box.prop(self, "blendfile_trusted")
+
+        if not importldraw.loadldraw.ldrawModelLoaded:
+            box.prop(self, "load_ldraw_model")
+            box.prop(self, "use_look", expand=True)
+            box.prop(self, "transparent_background")
+            box.prop(self, "add_environment")
+            box.prop(self, "crop_image")
+            box.prop(self, "search_additional_paths")
+            box.prop(self, "verbose")
 
     def invoke(self, context, event):
         """Setup render options."""
@@ -468,6 +487,20 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             self.setImportLDrawPreferences()
             self.model_file = importldraw.loadldraw.ldrawModelFile
             self.image_file = self.model_file + ".png"
+        else:
+            self.prefs = importldraw.Preferences(self.preferences_file)
+
+            self.ldraw_path              = self.prefs.get('ldrawDirectory',        importldraw.loadldraw.Configure.findDefaultLDrawDirectory())
+            self.use_look                = self.prefs.get('useLook',               self.use_look)
+            self.overwrite_image         = self.prefs.get('overwriteImage',        self.overwrite_image)
+            self.transparent_background  = self.prefs.get('transparentBackground', self.transparent_background)
+            self.add_environment         = self.prefs.get('addEnvironment',        self.add_environment)
+            self.crop_image              = self.prefs.get('cropImage',             self.crop_image)
+            self.render_window           = self.prefs.get('renderWindow',          self.render_window)
+            self.blendfile_trusted       = self.prefs.get('blendfileTrusted',      self.blendfile_trusted)
+            self.blend_file              = self.prefs.get('blendFile',             self.blend_file)
+            self.search_additional_paths = self.prefs.get('searchAdditionalPaths', self.search_additional_paths)
+            self.verbose                 = self.prefs.get('verbose',               self.verbose)
 
         if not self.filepath:
             blend_filepath = context.blend_data.filepath
@@ -499,7 +532,6 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             self.debugPrint("Resolution_Width:    {0}".format(self.resolution_width))
             self.debugPrint("Resolution_Height:   {0}".format(self.resolution_height))
             self.debugPrint("Render_Percentage:   {0}".format(self.render_percentage))
-            self.debugPrint("Search_Addl_paths:   {0}".format(self.search_additional_paths))
             self.debugPrint("Preferences_File:    {0}".format(self.preferences_file))
             self.debugPrint("Model_File:          {0}".format(self.model_file))
             self.debugPrint("Image_File:          {0}".format(self.image_file))
@@ -507,12 +539,27 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             assert self.preferences_file.__ne__(""), "Preference file path not specified."
             assert self.image_file.__ne__(""), "Image file path not specified."
             assert self.model_file.__ne__(""), "Model file path not specified."
+            if not self.cli_render:
+                assert self.ldraw_path.__ne__(""), "LDraw library path not specified."
+                self.prefs.set('ldrawDirectory',        self.ldraw_path)
+                self.prefs.set('useLook',               self.use_look)
+                self.prefs.set('overwriteImage',        self.overwrite_image)
+                self.prefs.set('transparentBackground', self.transparent_background)
+                self.prefs.set('addEnvironment',        self.add_environment)
+                self.prefs.set('cropImage',             self.crop_image)
+                self.prefs.set('renderWindow',          self.render_window)
+                self.prefs.set('blendfileTrusted',      self.blendfile_trusted)
+                self.prefs.set('blendFile',             self.blend_file)
+                self.prefs.set('searchAdditionalPaths', self.search_additional_paths)
+                self.prefs.set('verbose',               self.verbose)
+                self.prefs.save()
+                self.debugPrintPreferences()
+
             kwargs = {
                 "preferencesFile": self.preferences_file,
-                "modelFile": self.model_file,
-                "searchAdditionalPaths": self.search_additional_paths,
-                "cliRender": self.cli_render
+                "modelFile": self.model_file
             }
+
             load_Result = bpy.ops.import_scene.lpub3dimportldraw('EXEC_DEFAULT', **kwargs)
 
             self.debugPrint("Load Task Result:    {0}".format(load_Result))
@@ -530,15 +577,6 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             now = time.time()
 
             if load_Result == {'FINISHED'}:
-                # If auto crop and local dependent settings not applied, get settings from load parameter file
-                if self.crop_image:
-                    if not self.transparent_background:
-                        self.transparent_background = importldraw.ImportLDrawOps.prefs.get('transparentBackground',
-                                                                                           self.transparent_background)
-                    if self.add_environment:
-                        self.add_environment = importldraw.ImportLDrawOps.prefs.get('addEnvironment',
-                                                                                    self.add_environment)
-
                 self.debugPrint("Imported '{0}' in {1}".format(os.path.basename(self.model_file),
                                                                format_elapsed(now - start_time)))
             else:
@@ -552,7 +590,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
 
             # Register auto crop
             if not self.import_only:
-                bpy.app.handlers.render_complete.append(self.autocrop_image)
+                bpy.app.handlers.render_complete.append(self.autocropImage)
 
             # Get preferences properties from importldraw module
             if self.load_ldraw_model:
@@ -564,7 +602,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
 
             # Cleanup handler
             if not self.import_only:
-                bpy.app.handlers.render_complete.remove(self.autocrop_image)
+                bpy.app.handlers.render_complete.remove(self.autocropImage)
 
             return {'FINISHED'}
 
@@ -585,7 +623,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             bpy.app.handlers.render_post.append(self.post)
             bpy.app.handlers.render_cancel.append(self.cancelled)
             bpy.app.handlers.render_complete.append(self.complete)
-            bpy.app.handlers.render_complete.append(self.autocrop_image)
+            bpy.app.handlers.render_complete.append(self.autocropImage)
 
             # The timer gets created and the modal handler is added to the window manager
             self._timer = context.window_manager.event_timer_add(0.5, window=context.window)
@@ -598,11 +636,12 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
 
         if event.type in {'ESC'}:
 
+            self.report({'WARNING'}, 'Render operation cancelled.')
+
             self.releaseHandlers(context)
 
             self.stop = True
 
-            self.report({'WARNING'}, 'Render operation cancelled.')
             return {'CANCELLED'}
 
         if event.type == 'TIMER':  # This event is signaled every half a second and will start the render if available
@@ -619,14 +658,13 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             elif self.busy is False:  # Not currently busy. Perform task.
 
                 # Perform task
-                if self.tasks[0] == 'RENDER_TASK':
+                if len(self.tasks) and self.tasks[0] == 'RENDER_TASK':
 
                     self.performRenderTask()
 
-                # end if (RENDER_TASK)
-
                 # Remove current task from list. Perform next task
-                self.tasks.pop(0)
+                if len(self.tasks):
+                    self.tasks.pop(0)
 
             # (busy)
             return {'PASS_THROUGH'}

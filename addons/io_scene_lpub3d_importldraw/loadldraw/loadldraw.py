@@ -295,7 +295,7 @@ class Options:
     additionalSearchDirectories = r""   # Full directory paths, comma delimited, to additional LDraw search paths.
     customLDConfigPath = r""            # Full directory path to specified custom LDraw colours (LDConfig) file.
     parameterFile      = r""            # Full file path to file containing slope brick angels, lgeo colours and lighted bricks colours
-    scriptDirectory    = os.path.dirname(os.path.realpath(__file__))
+    environmentFile    = os.path.join(os.path.dirname(os.path.realpath(__file__)), "/background.exr")
 
     # We have the option of including the 'LEGO' logo on each stud
     useLogoStuds       = False          # Use the studs with the 'LEGO' logo on them
@@ -4341,7 +4341,7 @@ def setupRealisticLook():
             env_tex          = nodes.new('ShaderNodeTexEnvironment')
             env_tex.location = (-250, 300)
             env_tex.name     = "LegoEnvMap"
-            env_tex.image    = bpy.data.images.load(Options.scriptDirectory + "/background.exr", check_existing=True)
+            env_tex.image    = bpy.data.images.load(Options.environmentFile, check_existing=True)
 
         if "Background" in worldNodeNames:
             background = nodes["Background"]

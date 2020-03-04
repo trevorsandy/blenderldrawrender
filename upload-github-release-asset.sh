@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Author: Trevor SANDY
-# Last Update February 20, 2020
+# Last Update March 04, 2020
 #
 # Adapted from original script by Stefan Buck
 # License: MIT
@@ -160,11 +160,12 @@ if [[ "$GH_TAG" == 'LATEST' ]]; then
     echo $VER_TAG
 else
     echo && echo -n "Getting specified tag... "
+    VER_TAG=$GH_TAG
     if GIT_DIR=$GH_REPO_PATH/.git git rev-parse $GH_TAG >/dev/null 2>&1; then
         TAG_EXIST=$GH_TAG
         echo $VER_TAG
-    else 
-        echo tag $GH_TAG not found - will be created.
+    else
+        echo tag $VER_TAG not found - will be created.
     fi
 fi
 
@@ -177,19 +178,9 @@ echo    # (optional) move to a new line
 if [[ ! $REPLY =~ ^[Yy]$ ]];then
     [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1 # handle exits from shell or function but don't exit interactive shell
 fi
-
+echo
 # Validate API Token [Place token in git config "git config --global github.token YOUR_TOKEN"]
 [[ -z "$GH_API_TOKEN" ]] && echo && echo "GH_API_TOKEN not specified. Exiting." && exit 1
-
-# Set latest tag or create release if specified tag does not exist
-if [[ -z "$TAG_EXIST" ]]; then
-    echo && echo "Create release '$GH_RELEASE', version '$GH_TAG', for repo '$GH_REPO_NAME' on branch '$GH_REPO_BRANCH'" && echo
-    curl --data "$(generate_release_post_data)" "$GH_REPO/releases?access_token=$GH_API_TOKEN"
-    GIT_DIR=$GH_REPO_PATH/.git git fetch --tags
-    VER_TAG=`GIT_DIR=$GH_REPO_PATH/.git git describe --tags --match v* --abbrev=0`
-fi
-# VER_TAG=$GH_TAG    #ENABLE FOR TEST
-echo "Retrieved tag: '$GH_TAG'" && echo
 
 # Update version information
 VER_TAG=${VER_TAG//./", "} # replace . with ", "
@@ -216,6 +207,26 @@ done
 package_archive
 # exit 1        #ENABLE FOR TEST
 
+# Commit changed files
+# echo && echo "Commit changed files..."
+# git add .
+# GH_RELEASE_NOTE="LPub3D Render LDraw $VER_TAG"
+# cat << pbEOF >$GH_DIR/COMMIT_EDITMSG
+# $GH_RELEASE_NOTE
+
+# pbEOF
+# GIT_DIR=$GH_REPO_PATH/.git git commit -m "$GH_RELEASE_NOTE"
+
+# Set latest tag or create release if specified tag does not exist
+if [[ -z "$TAG_EXIST" ]]; then
+    echo && echo "Create release '$GH_RELEASE', version '$GH_TAG', for repo '$GH_REPO_NAME' on branch '$GH_REPO_BRANCH'" && echo
+    curl --data "$(generate_release_post_data)" "$GH_REPO/releases?access_token=$GH_API_TOKEN"
+    GIT_DIR=$GH_REPO_PATH/.git git fetch --tags
+    VER_TAG=`GIT_DIR=$GH_REPO_PATH/.git git describe --tags --match v* --abbrev=0`
+fi
+# VER_TAG=$GH_TAG    #ENABLE FOR TEST
+echo && echo "Retrieved tag: '$GH_TAG'" && echo
+
 # Validate token.
 echo "Validating user token..." && echo
 curl -o /dev/null -sH "$GH_AUTH" $GH_REPO || { echo "ERROR: Invalid repo, token or network issue!";  exit 1; }
@@ -225,13 +236,22 @@ echo "Retrieving repository data..." && echo
 GH_RESPONSE=$(curl -sH "$GH_AUTH" $GH_TAGS)
 echo "INFO: Response $GH_RESPONSE" && echo
 
+# Release was not found so create it
+GH_RELEASE_NOT_FOUND=$(echo -e "$GH_RESPONSE" | sed -n '2p')
+if [[ "$GH_RELEASE_NOT_FOUND" == *"Not Found"* ]]; then
+    echo && echo "Release not found. Creating release '$GH_RELEASE', version '$GH_TAG', for repo '$GH_REPO_NAME' on branch '$GH_REPO_BRANCH'..." && echo
+    GH_RELEASE_NOTE=$(git log -1 --pretty=%B)
+    curl --data "$(generate_release_post_data)" "$GH_REPO/releases?access_token=$GH_API_TOKEN"
+    GH_RESPONSE=$(curl -sH "$GH_AUTH" $GH_TAGS)
+fi
+
 # Get ID of the release.
-echo -n "Retrieving release id... "
+echo && echo -n "Retrieving release id... "
 GH_RELEASE_ID="$(echo $GH_RESPONSE | jq -r .id)"
-echo "Release id: '$GH_RELEASE_ID'" && echo
+echo "Release id: '$GH_RELEASE_ID'"
 
 # Get ID of the asset based on given file name.
-echo -n "Retrieving asset id... "
+echo && echo -n "Retrieving asset id... "
 GH_ASSET_ID="$(echo $GH_RESPONSE | jq -r '.assets[] | select(.name == '\"$GH_ASSET_NAME\"').id')"
 if [ "$GH_ASSET_ID" = "" ]; then
     echo "Asset id for $GH_ASSET_NAME not found so no need to overwrite"
