@@ -1650,7 +1650,7 @@ class LDrawNode:
 
         loc_scene_obj = scene_obj.matrix_world.to_translation()
 
-        if scene_obj.type == 'CAMERA':
+        if not (scene_obj.type == 'LIGHT' and scene_obj.data.type == 'POINT'):
 
             # print("CamLoc = " + str(loc_scene_obj[0]) + "," + str(loc_scene_obj[1]) + "," + str(loc_scene_obj[2]))
             # print("TarLoc = " + str(target[0]) + "," + str(target[1]) + "," + str(target[2]))
@@ -1853,17 +1853,22 @@ class LDrawLight:
     """Data about a light"""
 
     def __init__(self):
-        self.type            = 'POINT'
-        self.factor          = 0
-        self.exponent        = 1000
-        self.specular        = 1.0
-        self.cutoff_distance = 40
-        self.name            = "LPub3D_Light"
-        self.color           = mathutils.Vector((1.0, 1.0, 1.0))
-        self.use_cutoff      = False
-        self.position        = mathutils.Vector((0.0, 0.0, 0.0))
-        self.target_position = mathutils.Vector((1.0, 0.0, 0.0))
-        self.up_vector       = mathutils.Vector((0.0, 1.0, 0.0))
+        self.type             = 'POINT'
+        self.shape            = 'SQUARE'
+        self.factorA          = 0.0
+        self.factorB          = 0.0
+        self.size             = 0.25
+        self.exponent         = 10
+        self.specular         = 1.0
+        self.spot_size        = 75        # degrees
+        self.spot_blend       = 0.150
+        self.cutoff_distance  = 40
+        self.name             = "LPub3D_Light"
+        self.color            = mathutils.Vector((1.0, 1.0, 1.0))
+        self.use_cutoff       = False
+        self.position         = mathutils.Vector((0.0, 0.0, 0.0))
+        self.target_position  = mathutils.Vector((1.0, 0.0, 0.0))
+        self.up_vector        = mathutils.Vector((0.0, 1.0, 0.0))
 
     def createLightNode(self):
         if isBlender28OrLater:
@@ -1878,10 +1883,19 @@ class LDrawLight:
         light.data.specular_factor      = self.specular
         light.data.use_custom_distance  = self.use_cutoff
         light.data.cutoff_distance      = self.cutoff_distance
-        if self.type == 'POINT':
-            light.data.shadow_soft_size = self.factor
+        if self.type == 'POINT' or self.type == 'SPOT':
+            light.data.shadow_soft_size = self.factorA
         elif self.type == 'SUN':
-            light.data.angle            = math.radians(self.factor)
+            light.data.angle            = math.radians(self.factorA)
+        elif self.type == 'SPOT':
+            light.data.spot_size        = math.radians(self.spot_size)
+            light.data.spot_blend       = self.factorB
+        elif self.type == 'AREA':
+            light.data.shape            = self.shape
+            light.data.size             = self.size
+            if self.shape == 'RECTANGLE' or self.shape == 'ELLIPSE':
+                light.data.size_y       = self.factorB
+
         light.location                  = self.position
 
         linkToScene(light)
@@ -2183,14 +2197,29 @@ class LDrawFile:
                                 elif parameters[0] == "POWER":
                                     light.exponent = float(parameters[1])
                                     parameters = parameters[2:]
-                                elif parameters[0] == "RADIUS":
-                                    light.factor = float(parameters[1])
-                                    parameters = parameters[2:]
                                 elif parameters[0] == "STRENGTH":
                                     light.exponent = float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "ANGLE":
-                                    light.factor = Options.scale * float(parameters[1])
+                                    light.factorA = Options.scale * float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "RADIUS":
+                                    light.factorA = float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "SIZE":
+                                    light.factorA = float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "WIDTH":
+                                    light.factorA = float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "HEIGHT":
+                                    light.factorB = float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "SPOT_BLEND":
+                                    light.factorB = float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "SPOT_SIZE":
+                                    light.spot_size = float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "SPECULAR":
                                     light.specular = float(parameters[1])
@@ -2201,6 +2230,9 @@ class LDrawFile:
                                     parameters = parameters[2:]
                                 elif parameters[0] == "TYPE":
                                     light.type = parameters[1].upper().strip()
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "SHAPE":
+                                    light.shape = parameters[1].upper().strip()
                                     parameters = parameters[2:]
                                 elif parameters[0] == "NAME":
                                     light.name = "Imported {0}".format(line.split(" NAME ", 1)[1].strip())
