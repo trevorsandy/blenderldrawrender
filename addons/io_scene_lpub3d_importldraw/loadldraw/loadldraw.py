@@ -27,7 +27,7 @@ filepath of a file to load.
 
 Accepts .mpd, .ldr, .l3b, and .dat files.
 
-Toby Nelson - tobymnelson@gmail.com
+Adapted from Import LDraw by Toby Nelson - tobymnelson@gmail.com
 """
 
 import os
@@ -292,20 +292,22 @@ class Options:
     flattenGroups      = False          # All LEOCad groups are ignored - no groups
     usePrincipledShaderWhenAvailable = True  # Use the new principled shader
     searchAdditionalPaths = False       # Search additional LDraw paths (automatically set for fade previous steps and highlight step)
-    additionalSearchDirectories = r""   # Full directory paths, comma delimited, to additional LDraw search paths.
-    customLDConfigPath = r""            # Full directory path to specified custom LDraw colours (LDConfig) file.
-    parameterFile      = r""            # Full file path to file containing slope brick angels, lgeo colours and lighted bricks colours
-    environmentFile    = os.path.join(os.path.dirname(os.path.realpath(__file__)), "/background.exr")
-
     # We have the option of including the 'LEGO' logo on each stud
     useLogoStuds       = False          # Use the studs with the 'LEGO' logo on them
     logoStudVersion    = "4"            # Which version of the logo to use ("3" (flat), "4" (rounded) or "5" (subtle rounded))
     instanceStuds      = False          # Each stud is a new Blender object (slow)
-
     # LSynth (http://www.holly-wood.it/lsynth/tutorial-en.html) is a collection of parts used to render string, hoses, cables etc
     useLSynthParts     = True           # LSynth is used to render string, hoses etc.
-    LSynthDirectory    = r""            # Full path to the lsynth parts (Defaults to <ldrawdir>/unofficial/lsynth if left blank)
-    studLogoDirectory  = r""            # Optional full path to the stud logo parts (if not found in unofficial directory)
+
+    additionalSearchDirectories = r""   # Full directory paths, comma delimited, to additional LDraw search paths.
+    customLDConfigFile = r""            # Full directory path to specified custom LDraw colours (LDConfig) file.
+    parameterFile      = r""            # Full file path to file containing slope brick angels, lgeo colours and lighted bricks colours
+    # Full file path to .exr environment texture file - specify if not using default bundled in addon
+    environmentFile    = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'background.exr')
+    # Full path to the lsynth parts (Defaults to <ldrawdir>/unofficial/lsynth if left blank)
+    LSynthDirectory    = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../lsynth'))
+    # Optional full path to the stud logo parts (if not found in unofficial directory)
+    studLogoDirectory  = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../studs'))
 
     # Ambiguous Normals
     # Older LDraw parts (parts not yet BFC certified) have ambiguous normals.
@@ -334,7 +336,7 @@ class Options:
                          str(Options.instructionsLook),
                          str(Options.searchAdditionalPaths),
                          str(Options.parameterFile),
-                         str(Options.customLDConfigPath),
+                         str(Options.customLDConfigFile),
                          str(Options.additionalSearchDirectories),
                          str(Options.resolution),
                          str(Options.defaultColour),
@@ -723,7 +725,8 @@ class Parameters():
                         else:
                             globalSlopeBricks[partid] = {slopeRange1}
 
-                    # Create a regular dictionary of lighted parts
+                    # Dictionary with part number (with extension), as key,
+                    # of lighted bricks, light emission colour and intensity, as values.
                     if item == "lighted_brick":
                         light_brick = ()
                         partid = lineSplit[1]
@@ -961,7 +964,7 @@ class LegoColours:
 
         ldconfig_lines = ""
         if Options.useColourScheme == "custom":
-            configFilepath = os.path.expanduser(Options.customLDConfigPath)
+            configFilepath = os.path.expanduser(Options.customLDConfigFile)
             if os.path.exists(configFilepath):
                 with open(configFilepath, "rt", encoding="utf_8") as ldconfig:
                     ldconfig_lines = ldconfig.readlines()
@@ -1883,12 +1886,13 @@ class LDrawLight:
         light.data.specular_factor      = self.specular
         light.data.use_custom_distance  = self.use_cutoff
         light.data.cutoff_distance      = self.cutoff_distance
-        if self.type == 'POINT' or self.type == 'SPOT':
+        if self.type == 'POINT':
             light.data.shadow_soft_size = self.factorA
         elif self.type == 'SUN':
             light.data.angle            = math.radians(self.factorA)
         elif self.type == 'SPOT':
             light.data.spot_size        = math.radians(self.spot_size)
+            light.data.shadow_soft_size = self.factorA
             light.data.spot_blend       = self.factorB
         elif self.type == 'AREA':
             light.data.shape            = self.shape
@@ -4881,7 +4885,7 @@ def loadFromFile(context, filename, isFullFilepath=True):
 
     if usingArchiveLibraries:
         if not Configure.hasOfficialLibrary:
-            if Options.useColourScheme != "custom" or Options.customLDConfigPath == "":
+            if Options.useColourScheme != "custom" or Options.customLDConfigFile == "":
                 printError("LDConfig (colour) file not found. Official {0} library not specified".format(libraryType))
                 return None
             elif Options.useColourScheme == "custom":

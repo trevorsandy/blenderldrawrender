@@ -24,6 +24,8 @@ This file defines the importer for Blender.
 It stores and recalls preferences for the importer.
 The execute() function kicks off the import process.
 The python module loadldraw does the actual work.
+
+Adapted from Import LDraw by Toby Nelson - tobymnelson@gmail.com
 """
 
 # Import From Files - See PR https://github.com/TobyLobster/ImportLDraw/pull/49/
@@ -142,6 +144,21 @@ class Preferences():
             return False
 
 
+def colourSchemeCallback(customldconfig):
+    """LPub3D Import LDraw - Colour scheme items"""
+
+    items = [
+        ("lgeo", "Realistic colours", "Uses the LGEO colour scheme for realistic colours."),
+        ("ldraw", "Original LDraw colours", "Uses the standard LDraw colour scheme (LDConfig.ldr)."),
+        ("alt", "Alternate LDraw colours", "Uses the alternate LDraw colour scheme (LDCfgalt.ldr)."),
+    ]
+
+    if customldconfig.__ne__(""):
+        items.append(("custom", "Custom LDraw colours", "Uses a user specified LDraw colour file."))
+
+    return items
+
+
 class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     """LPub3D Import LDraw - Import Operator."""
 
@@ -179,12 +196,6 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         )
     )
 
-    smoothParts: BoolProperty(
-        name="Smooth faces and edge-split",
-        description="Smooth faces and add an edge-split modifier",
-        default=prefs.get("smoothShading", True)
-    )
-
     look: EnumProperty(
         name="Overall Look",
         description="Realism or Schematic look",
@@ -199,12 +210,24 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         name="Colour scheme options",
         description="Colour scheme options",
         default=prefs.get("useColourScheme", "lgeo"),
+        items=colourSchemeCallback(prefs.get("customLDConfigFile", ""))
+    )
+
+    logoStudVersion: EnumProperty(
+        name="Stud Logo Version",
+        description="Which version of the stud logo to use",
+        default=prefs.get("logoStudVersion", "4"),
         items=(
-            ("lgeo", "Realistic colours", "Uses the LGEO colour scheme for realistic colours."),
-            ("ldraw", "Original LDraw colours", "Uses the standard LDraw colour scheme (LDConfig.ldr)."),
-            ("alt", "Alternate LDraw colours", "Uses the alternate LDraw colour scheme (LDCfgalt.ldr)."),
-            ("custom", "Custom LDraw colours", "Uses a user specified LDraw colour file."),
+            ("4", "Rounded (4)", "Rounded logo lettering geometry"),
+            ("3", "Flat (3)", "Flat logo lettering geometry"),
+            ("5", "Subtle Rounded (5)", "Subtle rounded logo lettering geometry"),
         )
+    )
+
+    smoothParts: BoolProperty(
+        name="Smooth faces and edge-split",
+        description="Smooth faces and add an edge-split modifier",
+        default=prefs.get("smoothShading", True)
     )
 
     addGaps: BoolProperty(
@@ -330,7 +353,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     customLDConfigPath: StringProperty(
         name="",
         description="Full directory path to specified custom LDraw colours (LDConfig) file",
-        default=prefs.get("customLDConfigFile", "")
+        default=prefs.get("customLDConfigFile", r"")
     )
 
     additionalSearchPaths: StringProperty(
@@ -342,31 +365,25 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     studLogoPath: StringProperty(
         name="",
         description="Full directory path to LDraw stud logo primitives - specify if unofficial parts not used",
-        default=prefs.get("studLogoDirectory", os.path.join(os.path.dirname(__file__), "studs"))
+        default=prefs.get("studLogoDirectory", r"")
     )
 
     lsynthPath: StringProperty(
         name="",
         description="Full directory path to LSynth primitives - specify if not using blender module default",
-        default=prefs.get("lsynthDirectory", os.path.join(os.path.dirname(__file__), "lsynth"))
+        default=prefs.get("lsynthDirectory", r"")
     )
 
     environmentPath: StringProperty(
         name="",
         description="Full file path to .exr environment texture file - specify if not using default bundled in addon",
-        default=prefs.get("environmentFile", os.path.join(os.path.dirname(__file__), "loadldraw/background.exr"))
+        default=prefs.get("environmentFile", r"")
     )
 
-    logoStudVersion: IntProperty(
-        name="Stud Logo Version",
-        description="Which version of the stud logo to use",
-        default=prefs.get("logoStudVersion", 4)
-    )
-
-    defaultColour: IntProperty(
+    defaultColour: StringProperty(
         name="Default Colour",
         description="Sets the default part colour",
-        default=prefs.get("defaultColour", 4)
+        default=prefs.get("defaultColour", "4")
     )
 
     useLSynthParts: BoolProperty(
@@ -412,7 +429,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     )
 
     parameterFile: StringProperty(
-        default=prefs.get("parameterFile", ""),
+        default=prefs.get("parameterFile", r""),
         options={'HIDDEN'}
     )
 
@@ -442,11 +459,18 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         box.prop(self, "ldrawPath")
         box.prop(self, "importScale")
         box.prop(self, "look", expand=True)
+        box.prop(self, "colourScheme", expand=True)
         box.prop(self, "addEnvironment")
         box.prop(self, "positionCamera")
         box.prop(self, "cameraBorderPercentage")
 
-        box.prop(self, "colourScheme", expand=True)
+        box.prop(self, "importCameras")
+        box.prop(self, "importLights")
+
+        box.prop(self, "useLogoStuds")
+        box.prop(self, "logoStudVersion", expand=True)
+        box.prop(self, "instanceStuds")
+
         box.prop(self, "resPrims", expand=True)
         box.prop(self, "smoothParts")
         box.prop(self, "addSubsurface")
@@ -455,13 +479,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         box.prop(self, "addGaps")
         box.prop(self, "gapsSize")
         box.prop(self, "curvedWalls")
-        box.prop(self, "importCameras")
-        box.prop(self, "importLights")
         box.prop(self, "linkParts")
-        box.prop(self, "useUnofficialParts")
-
-        box.prop(self, "useLogoStuds")
-        box.prop(self, "instanceStuds")
 
         box.prop(self, "positionOnGround")
         box.prop(self, "numberNodes")
@@ -470,6 +488,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         box.label(text="Resolve Ambiguous Normals:", icon='ORIENTATION_NORMAL')
         box.prop(self, "resolveNormals", expand=True)
 
+        box.prop(self, "useUnofficialParts")
         box.prop(self, "searchAdditionalPaths")
         box.prop(self, "verbose")
 
@@ -547,6 +566,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             ImportLDrawOps.prefs.set("instanceStuds",          self.instanceStuds)
             ImportLDrawOps.prefs.set("ldrawDirectory",         self.ldrawPath)
             ImportLDrawOps.prefs.set("linkParts",              self.linkParts)
+            ImportLDrawOps.prefs.get("logoStudVersion",        self.logoStudVersion)
             ImportLDrawOps.prefs.set("lsynthDirectory",        self.lsynthPath)
             ImportLDrawOps.prefs.set("numberNodes",            self.numberNodes)
             ImportLDrawOps.prefs.set("positionCamera",         self.positionCamera)
@@ -571,17 +591,14 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         # Set import options and import
         loadldraw.Options.addBevelModifier            = self.bevelEdges and not loadldraw.Options.instructionsLook
         loadldraw.Options.addGroundPlane              = self.addEnvironment
-        loadldraw.Options.additionalSearchDirectories = self.additionalSearchPaths
         loadldraw.Options.addSubsurface               = self.addSubsurface
         loadldraw.Options.addWorldEnvironmentTexture  = self.addEnvironment
         loadldraw.Options.bevelWidth                  = self.bevelWidth
         loadldraw.Options.cameraBorderPercent         = self.cameraBorderPercentage / 100.0
         loadldraw.Options.createInstances             = self.linkParts
         loadldraw.Options.curvedWalls                 = self.curvedWalls
-        loadldraw.Options.customLDConfigPath          = self.customLDConfigPath
         loadldraw.Options.defaultColour               = self.defaultColour
         loadldraw.Options.edgeSplit                   = self.smoothParts  # Edge split is appropriate only if we are smoothing
-        loadldraw.Options.environmentFile             = self.environmentPath
         loadldraw.Options.flattenHierarchy            = self.flatten
         loadldraw.Options.gaps                        = self.addGaps
         loadldraw.Options.gapWidth                    = self.gapsSize
@@ -589,9 +606,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         loadldraw.Options.importLights                = self.importLights
         loadldraw.Options.instanceStuds               = self.instanceStuds
         loadldraw.Options.instructionsLook            = self.look == "instructions"
-        loadldraw.Options.ldrawDirectory              = self.ldrawPath
         loadldraw.Options.logoStudVersion             = self.logoStudVersion
-        loadldraw.Options.LSynthDirectory             = self.lsynthPath
         loadldraw.Options.numberNodes                 = self.numberNodes
         loadldraw.Options.overwriteExistingMaterials  = self.overwriteExistingMaterials
         loadldraw.Options.overwriteExistingMeshes     = self.overwriteExistingMeshes
@@ -604,12 +619,30 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         loadldraw.Options.scale                       = self.importScale
         loadldraw.Options.searchAdditionalPaths       = self.searchAdditionalPaths
         loadldraw.Options.smoothShading               = self.smoothParts
-        loadldraw.Options.studLogoDirectory           = self.studLogoPath
         loadldraw.Options.useColourScheme             = self.colourScheme
         loadldraw.Options.useLogoStuds                = self.useLogoStuds
         loadldraw.Options.useLSynthParts              = self.useLSynthParts
         loadldraw.Options.useUnofficialParts          = self.useUnofficialParts
         loadldraw.Options.verbose                     = self.verbose
+
+        loadldraw.Options.additionalSearchDirectories = self.additionalSearchPaths
+        loadldraw.Options.customLDConfigFile          = self.customLDConfigPath
+
+        assert self.ldrawPath, "LDraw library path not specified."
+        loadldraw.Options.ldrawDirectory              = self.ldrawPath
+
+        if not self.environmentPath:
+            loadldraw.Options.environmentFile = os.path.join(os.path.dirname(__file__), "loadldraw/background.exr")
+        else:
+            loadldraw.Options.environmentFile         = self.environmentPath
+        if not self.lsynthPath:
+            loadldraw.Options.LSynthDirectory = os.path.join(os.path.dirname(__file__), "lsynth")
+        else:
+            loadldraw.Options.LSynthDirectory         = self.lsynthPath
+        if not self.studLogoPath:
+            loadldraw.Options.studLogoDirectory = os.path.join(os.path.dirname(__file__), "studs")
+        else:
+            loadldraw.Options.studLogoDirectory       = self.studLogoPath
 
         if self.filepath:
             self.modelFile                            = self.filepath

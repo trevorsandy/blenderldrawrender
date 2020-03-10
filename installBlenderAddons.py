@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update March 04, 2020
+Last Update March 09, 2020
 Copyright (c) 2020 by Trevor SANDY
 
 LPub3D Blender LDraw Addon GPLv2 license.
@@ -78,7 +78,7 @@ def installPackage(package):
     import importlib
     package_spec = importlib.util.find_spec("pip")
     if package_spec is not None:
-        print("INFO: Installing Pillow...")
+        print("INFO: Installing {0}...".format(package))
         import pip
         pybin = bpy.app.binary_path_python
         subprocess.check_call([pybin, '-m', 'pip', 'install', '--user', '--no-deps', package])
@@ -150,7 +150,7 @@ def install_addons():
         prefs.set('ldrawDirectory', ldraw_path)
         prefs.save()
 
-    # Export paths partName = filename.replace("\\", os.path.sep)
+    # Export paths
     environment_file   = os.path.join(addons_path, "io_scene_lpub3d_importldraw/loadldraw/background.exr")
     lsynth_directory   = os.path.join(addons_path, "io_scene_lpub3d_importldraw/lsynth")
     studlogo_directory = os.path.join(addons_path, "io_scene_lpub3d_importldraw/studs")

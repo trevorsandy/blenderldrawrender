@@ -9,7 +9,7 @@ This addon was designed to provide [LPub3D](https://trevorsandy.github.io/lpub3d
 
 It supports **.mpd**, **.ldr**, and **.dat** file formats.
 
-The LDraw import sub-module is based on [Import LDraw](https://github.com/TobyLobster/ImportLDraw) by Toby Nelson (tobymnelson@gmail.com).
+The LDraw import module is adapted from [Import LDraw](https://github.com/TobyLobster/ImportLDraw) by Toby Nelson (tobymnelson@gmail.com).
 
 ## Render Features ##
 + Available for Blender 2.80 and later (2.79 backport in progress).

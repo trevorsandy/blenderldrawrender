@@ -238,7 +238,8 @@ sloped_brick, 4162628,  17
 sloped_brick, 4195004,  45
 
 # LIGHTED BRICKS
-# Specify the light emission colour and intensity for lighted bricks
+# Dictionary with part number (with extension), as key,
+# of lighted bricks, light emission colour and intensity, as values.
 
 # Item-------  PartID---  Light--------------  Intensity
 lighted_brick, 62930.dat, 1.000, 0.373, 0.059, 1.0

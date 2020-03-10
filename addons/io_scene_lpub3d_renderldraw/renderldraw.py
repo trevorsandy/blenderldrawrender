@@ -51,8 +51,8 @@ def render_print(message):
     timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-4]
 
     message = "{0} [renderldraw] {1}".format(timestamp, message)
-    # print("{0}".format(message))
     sys.stdout.write("{0}\n".format(message))
+    sys.stdout.flush()
 
 
 def format_elapsed(interval, long_form=False, seconds_places=3):
@@ -150,7 +150,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
 
     images_directory: StringProperty(
         name="",
-        description="Full directory path to image files for compositor image node",
+        description="Full directory path to image files for compositor image node. Image node name must be file base name prefixed with 'in_'. E.g. 'in_myimage'",
         default=r"",
     )
 
@@ -348,11 +348,13 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         image_inputs = {}
 
         # specifies an image file to load for a given compositor image node.
+        # image node name must be predefined as file name prefixed with in_,
+        # for example: in_myimage.png
         if self.images_directory.__ne__(""):
             image_list = sorted(os.listdir(self.images_directory))
-            for image in image_list:
-                node_name = "node_" + os.path.splitext(os.path.basename(image))[0]
-                node_file = os.path.join(self.images_directory, node_name)
+            for node_image in image_list:
+                node_name = "in_" + os.path.splitext(os.path.basename(image))[0]
+                node_file = os.path.join(self.images_directory, node_image)
                 image_inputs[node_name] = node_file
             # end for
         # end if
@@ -390,12 +392,12 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             if len(image_inputs) > 0:
                 self.debugPrint("image_inputs = {!r}".format(image_inputs))  # debug
             # end if
-            for input_name in image_inputs:
-                input_node = active_scene.node_tree.nodes[input_name]
+            for node_name in image_inputs:
+                input_node = active_scene.node_tree.nodes[node_name]
                 if input_node.type != "IMAGE":
-                    self.report({'WARNING'}, "node “{}” is not an image node".format(input_name))
+                    self.report({'ERROR'}, "node “{}” is not an image node".format(node_name))
                 # end if
-                input_node.image = bpy.data.images.load(image_inputs[input_name])
+                input_node.image = bpy.data.images.load(image_inputs[node_name])
             # end for
 
             if self.filepath:
@@ -523,7 +525,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
 
         elif self.load_ldraw_model:
             self.debugPrint("-------------------------")
-            self.debugPrint("Performing Import Task...")
+            self.debugPrint("Performing Load Task...")
 
             start_time = time.time()
 
