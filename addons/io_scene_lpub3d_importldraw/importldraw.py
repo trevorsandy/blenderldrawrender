@@ -495,6 +495,11 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     def execute(self, context):
         """Start the import process."""
 
+        # Confirm minimum Blender version
+        if bpy.app.version < (2, 80, 0):
+            self.report({'ERROR'}, 'The ImportLDraw addon requires Blender 2.80 or greater.')
+            return {'FINISHED'}
+
         # Reinitialize the preferences system using specified ini
         if self.preferencesFile.__ne__(""):
 

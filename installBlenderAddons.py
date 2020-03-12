@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update March 09, 2020
+Last Update March 12, 2020
 Copyright (c) 2020 by Trevor SANDY
 
 LPub3D Blender LDraw Addon GPLv2 license.
@@ -87,13 +87,14 @@ def installPackage(package):
 
 def install_addons():
     """Install LDraw Render addons"""
+    
+    # Confirm minimum Blender version
+    is_blender_28_or_later = bpy.app.version >= (2, 80, 0)
+    if not is_blender_28_or_later:
+        print("ERROR: These addons require Blender 2.80 or greater.")
+        return {'FINISHED'}
 
     print("INFO: Installing Addons...")
-
-    tup = 0
-    if hasattr(bpy.app, "version"):
-        tup = bpy.app.version
-    is_blender_28_or_later = tup >= (2, 80)
 
     # Define path to LPub3D Import LDraw script
     path_to_script_dir = os.getcwd()

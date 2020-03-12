@@ -148,12 +148,6 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         default=r""
     )
 
-    images_directory: StringProperty(
-        name="",
-        description="Full directory path to image files for compositor image node. Image node name must be file base name prefixed with 'in_'. E.g. 'in_myimage'",
-        default=r"",
-    )
-
     resolution_width: IntProperty(
         name="Resolution (X)",
         description="Specify the render resolution width (x) in pixels",
@@ -345,20 +339,6 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             bpy.ops.wm.open_mainfile(filepath=self.blend_file, use_scripts=self.blendfile_trusted)
         # end if
 
-        image_inputs = {}
-
-        # specifies an image file to load for a given compositor image node.
-        # image node name must be predefined as file name prefixed with in_,
-        # for example: in_myimage.png
-        if self.images_directory.__ne__(""):
-            image_list = sorted(os.listdir(self.images_directory))
-            for node_image in image_list:
-                node_name = "in_" + os.path.splitext(os.path.basename(image))[0]
-                node_file = os.path.join(self.images_directory, node_image)
-                image_inputs[node_name] = node_file
-            # end for
-        # end if
-
         active_scene = bpy.context.scene
         if self.render_percentage is not None:
             active_scene.render.resolution_percentage = self.render_percentage
@@ -368,9 +348,6 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         # end if
         if self.resolution_height is not None:
             active_scene.render.resolution_y = self.resolution_height
-        # end if
-        if active_scene.node_tree is None and (len(image_inputs) > 0):
-            self.report({'WARNING'}, "blendfile “{0}” does not have compositor nodes".format(self.blend_file))
         # end if
         if self.crop_image and self.add_environment:
             self.report({'WARNING'}, "'Crop Image' specified but 'Add Environment' is set to True")
@@ -388,17 +365,6 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             self.report({'ERROR'}, "ERROR LDraw image “{}” already exists".format(self.image_file))
         else:
             self._start_time = time.time()
-
-            if len(image_inputs) > 0:
-                self.debugPrint("image_inputs = {!r}".format(image_inputs))  # debug
-            # end if
-            for node_name in image_inputs:
-                input_node = active_scene.node_tree.nodes[node_name]
-                if input_node.type != "IMAGE":
-                    self.report({'ERROR'}, "node “{}” is not an image node".format(node_name))
-                # end if
-                input_node.image = bpy.data.images.load(image_inputs[node_name])
-            # end for
 
             if self.filepath:
                 self.image_file = self.filepath
@@ -518,6 +484,11 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
 
     def execute(self, context):
         """LPub3D Render LDraw model."""
+
+        # Confirm minimum Blender version
+        if bpy.app.version < (2, 80, 0):
+            self.report({'ERROR'}, 'The RenderLDraw addon requires Blender 2.80 or greater.')
+            return {'FINISHED'}
 
         if importldraw.loadldraw.ldrawModelLoaded:
             self.debugPrint("Preferences_File:    {0}".format(self.preferences_file))
