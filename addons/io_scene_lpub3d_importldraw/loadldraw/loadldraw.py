@@ -289,7 +289,7 @@ class Options:
     importLights       = True           # LPub3D can specify lights within the ldraw file format. Choose to load them or ignore them
     positionObjectOnGroundAtOrigin = True   # Centre the object at the origin, sitting on the z=0 plane
     flattenHierarchy   = False          # All parts are under the root object - no sub-models
-    flattenGroups      = False          # All LEOCad groups are ignored - no groups
+    flattenGroups      = False          # All LeoCAD groups are ignored - no groups
     usePrincipledShaderWhenAvailable = True  # Use the new principled shader
     searchAdditionalPaths = False       # Search additional LDraw paths (automatically set for fade previous steps and highlight step)
     # We have the option of including the 'LEGO' logo on each stud
@@ -2126,7 +2126,7 @@ class LDrawFile:
                 if parameters[1] == "!LDCAD":
                     if parameters[2] == "GENERATED":
                         processingLSynthParts = True
-                if parameters[1] == "!LEOCAD":
+                if parameters[1] == "!LEOCAD" or parameters[1] == "!LPUB":
                     if parameters[2] == "GROUP":
                         if parameters[3] == "BEGIN":
                             currentGroupNames.append(" ".join(parameters[4:]))
