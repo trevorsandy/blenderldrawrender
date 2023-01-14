@@ -644,7 +644,7 @@ class Parameters():
 
         for l in f:
             line = l.rstrip()
-            if line and line[:1] is not "#":
+            if line and line[:1] != "#":
                 yield line  # .split('#')[0].rstrip()
 
     @staticmethod
