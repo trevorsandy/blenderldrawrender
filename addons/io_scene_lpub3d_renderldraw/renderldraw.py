@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""LPub3D Render LDraw GPLv2 license.
+"""
+Trevor SANDY
+Last Update January 20, 2023
+Copyright (c) 2020 - 2023 by Trevor SANDY
+
+LPub3D Render LDraw GPLv2 license.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -30,7 +35,11 @@ import time
 import datetime
 from bpy_extras.io_utils import ExportHelper
 from io_scene_lpub3d_importldraw import importldraw
-from bpy.props import StringProperty, BoolProperty, IntProperty, EnumProperty
+from bpy.props import (StringProperty,
+                       IntProperty,
+                       EnumProperty,
+                       BoolProperty
+                       )
 
 units = (
     # sequence of quadruples, first element is multiplier to apply to
@@ -320,9 +329,9 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         now = time.time()
 
         if self.task_status is not None:
-            self.report({'ERROR'}, "{0} Time: {1}".format(self.task_status, format_elapsed(now - self._start_time)))
+            self.report({'ERROR'}, "{0}. Elapsed Time: {1}".format(self.task_status, format_elapsed(now - self._start_time)))
         else:
-            render_print("SUCCESS: {0} rendered in".format(os.path.basename(self.image_file)))
+            render_print("SUCCESS: {0} rendered. Elapsed Time: {1}".format(os.path.basename(self.image_file),format_elapsed(now - self._start_time)))
 
     # Render function
     def performRenderTask(self):

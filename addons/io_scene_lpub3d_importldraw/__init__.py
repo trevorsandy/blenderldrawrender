@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""LPub3D Import LDraw GPLv2 license.
+"""
+Trevor SANDY
+Last Update January 17, 2023
+Copyright (c) 2020 - 2023 by Trevor SANDY
+
+LPub3D Import LDraw GPLv2 license.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -30,7 +35,7 @@ bl_info = {
     "name": "LPub3D Import LDraw",
     "description": "Import LDraw models in .mpd .ldr .l3b and .dat formats",
     "author": "Trevor SANDY <trevor.sandy@gmail.com>",
-    "version": (1, 3, 1),
+    "version": (1, 3, 2),
     "blender": (2, 81, 0),
     "location": "File > Import",
     "warning": "",

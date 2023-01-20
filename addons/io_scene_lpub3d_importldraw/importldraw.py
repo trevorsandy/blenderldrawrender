@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""LPub3D Import LDraw GPLv2 license.
+"""
+Trevor SANDY
+Last Update January 17, 2023
+Copyright (c) 2020 - 2023 by Trevor SANDY
+
+LPub3D Import LDraw GPLv2 license.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

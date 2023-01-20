@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update March 12, 2020
-Copyright (c) 2020 by Trevor SANDY
+Last Update January 17, 2023
+Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Blender LDraw Addon GPLv2 license.
 
@@ -34,6 +34,7 @@ To Run:
 
 import os
 import bpy
+import sys
 import addon_utils
 import subprocess
 import configparser
@@ -77,11 +78,36 @@ def installPackage(package):
 
     import importlib
     package_spec = importlib.util.find_spec("pip")
+    is_blender_291_or_later = bpy.app.version >= (2, 91, 0)
     if package_spec is not None:
         print("INFO: Installing {0}...".format(package))
+
         import pip
-        pybin = bpy.app.binary_path_python
-        subprocess.check_call([pybin, '-m', 'pip', 'install', '--user', '--no-deps', package])
+        if is_blender_291_or_later:
+            pybin = sys.executable
+        else:
+            pybin = bpy.app.binary_path_python
+        
+        args = [pybin, "-m", "pip", "list"]
+        pipes = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        std_out, std_err = pipes.communicate()
+        args = [pybin, "-m", "pip", "install", "--user", "--no-deps", "--no-warn-script-location", package]
+        if pipes.returncode != 0:
+            err_msg = "ERROR: %s. Code: %s" % (std_err.strip(), pipes.returncode)
+            raise Exception(err_msg)
+        elif len(std_err):
+            if "A new release of pip available" in std_err.decode(sys.getfilesystemencoding()) or \
+               "You are using pip version" in std_err.decode(sys.getfilesystemencoding()):
+                args = [pybin, "-m", "pip", "install", "--user", "--upgrade", "pip", "--no-deps", "--no-warn-script-location", package]
+        #print("DEBUG INFO: PIP LIST: \n{0}.\n".format(std_out.decode(sys.getfilesystemencoding())))
+        pipes = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        std_out, std_err = pipes.communicate()
+        if pipes.returncode != 0:
+            err_msg = "ERROR: %s. Code: %s" % (std_err.strip(), pipes.returncode)
+            raise Exception(err_msg)
+        elif len(std_err):
+            print("WARNING: {0}".format(std_err.decode(sys.getfilesystemencoding())))
+        #print("DEBUG INFO: Install Package RESULT \n{0}\n.".format(std_out.decode(sys.getfilesystemencoding())))
     else:
         print("WARNING: Could not install {0} - pip module is not installed.".format(package))
 
@@ -143,7 +169,7 @@ def install_addons():
             break
 
     # Set LDraw directory in default preference file
-    addons_path = bpy.utils.user_resource('SCRIPTS', "addons")
+    addons_path = bpy.utils.user_resource('SCRIPTS', path="addons")
     pref_file = os.path.join(addons_path, "io_scene_lpub3d_importldraw/ImportLDrawPreferences.ini")
     prefs = Preferences(pref_file.replace("/", os.path.sep))
     ldraw_path = os.environ.get('LDRAW_DIRECTORY')

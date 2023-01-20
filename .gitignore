@@ -131,3 +131,9 @@ LDrawBlenderRenderAddons.zip
 
 # PyCharm workspace
 .idea/
+
+# Visual Studio Code
+.vscode/
+
+# Notepad++ Session File
+BlenderRenderAddons.xml

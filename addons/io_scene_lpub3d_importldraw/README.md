@@ -11,7 +11,7 @@ This plug-in was adapted from [Import LDraw](https://github.com/TobyLobster/Impo
 It supports **.mpd**, **.ldr**, **.l3b**, and **.dat** file formats.
 
 ## Import Features ##
-+ Available for Blender 2.80 and later (2.79 backport in progress).
++ Available for Blender 2.80 and later.
 + **Mac**, **Windows** and **Linux** supported.
 + **MPD** file compatible.
 + **Import settings configurable** from LPub3D user interface.

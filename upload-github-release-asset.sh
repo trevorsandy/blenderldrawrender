@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Author: Trevor SANDY
-# Last Update March 08, 2020
+# Last Update January 15, 2023
 #
 # Adapted from original script by Stefan Buck
 # License: MIT
@@ -155,7 +155,7 @@ exec > >(tee -a ${LOG} )
 exec 2> >(tee -a ${LOG} >&2)
 
 # Get tag
-GIT_DIR=$GH_REPO_PATH/.git git fetch --tags
+#GIT_DIR=$GH_REPO_PATH/.git git fetch --tags
 VER_TAG=`GIT_DIR=$GH_REPO_PATH/.git git describe --tags --match v* --abbrev=0`
 if [[ "$GH_TAG" == 'LATEST' ]]; then
 	echo && echo -n "Setting latest tag... "
@@ -216,7 +216,7 @@ fi
 # Package the archive
 package_archive
 
-# exit 1        #ENABLE FOR TEST
+exit 1        #ENABLE FOR TEST
 
 # Commit changed files
 # echo && echo "Commit changed files..."

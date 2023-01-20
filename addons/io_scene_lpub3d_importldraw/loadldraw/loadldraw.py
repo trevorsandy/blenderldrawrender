@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Load LDraw GPLv2 license.
+"""
+Trevor SANDY
+Last Update January 17, 2023
+Copyright (c) 2020 - 2023 by Trevor SANDY
+
+Load LDraw GPLv2 license.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -19,7 +24,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 from typing import Dict, Any
 
 """
-LPub3D Import LDraw
+LPub3D Load LDraw
 
 This module loads LDraw compatible files into Blender. Set the 
 Options first, then call loadFromFile() function with the full 
@@ -2389,8 +2394,9 @@ class BlenderMaterials:
         material.use_nodes = True
 
         if col is not None:
-            colour = col["colour"] + (1.0,)
-            material.diffuse_color = getDiffuseColor(col["colour"])
+            if len(col["colour"]) == 3:
+                colour = col["colour"] + (1.0,)
+            material.diffuse_color = getDiffuseColor(col["colour"][0:3])
 
         if Options.instructionsLook:
             if not isBlender28OrLater:
@@ -4198,8 +4204,9 @@ def createBlenderObjectsFromNode(node,
             # (e.g. we use bmesh.* operations instead).
             # See discussion: http://blender.stackexchange.com/questions/7358/python-performance-with-blender-operators
 
-            # Use bevel weights (added to sharp edges)
-            ob.data.use_customdata_edge_bevel = True
+            # Use bevel weights (added to sharp edges) - Blender version < 3.4
+            if hasattr(ob.data, "use_customdata_edge_bevel"):
+                ob.data.use_customdata_edge_bevel = True
 
             # Calculate what we need to do next
             recalculateNormals = node.file.isDoubleSided and (Options.resolveAmbiguousNormals == "guess")
@@ -4226,6 +4233,23 @@ def createBlenderObjectsFromNode(node,
             bm.to_mesh(ob.data)
             bm.clear()
             bm.free()
+
+            # Blender 3.4 removed 'ob.data.use_customdata_edge_bevel', so this seems to be the alternative:
+            if not hasattr(ob.data, "use_customdata_edge_bevel"):
+                # See https://blender.stackexchange.com/a/270716
+                area_type = 'VIEW_3D'
+                areas  = [area for area in bpy.context.window.screen.areas if area.type == area_type]
+
+                if len(areas) <= 0:
+                    raise Exception(f"Make sure an Area of type {area_type} is open or visible on your screen!")
+                if bpy.ops.object.mode_set.poll():
+                    bpy.ops.object.mode_set(mode='EDIT')
+                    with bpy.context.temp_override(
+                        window=bpy.context.window,
+                        area=areas[0],
+                        regions=[region for region in areas[0].regions if region.type == 'WINDOW'][0],
+                        screen=bpy.context.window.screen):
+                        bpy.ops.mesh.customdata_bevel_weight_edge_add()
 
             # Show the sharp edges in Edit Mode
             if isBlender28OrLater:

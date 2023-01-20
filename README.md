@@ -12,7 +12,7 @@ It supports **.mpd**, **.ldr**, and **.dat** file formats.
 The LDraw import module is adapted from [Import LDraw](https://github.com/TobyLobster/ImportLDraw) by Toby Nelson (tobymnelson@gmail.com).
 
 ## Render Features ##
-+ Available for Blender 2.80 and later (2.79 backport in progress).
++ Available for Blender 2.80 and later.
 + **Mac**, **Windows** and **Linux** supported.
 + **MPD** file compatible.
 + **Render settings configurable** from LPub3D user interface.
@@ -24,7 +24,7 @@ The LDraw import module is adapted from [Import LDraw](https://github.com/TobyLo
 + **Specify exr 'environment' file** to load custom backdrop and ground plane
 
 ## Import Features ##
-+ Available for Blender 2.80 and later (2.79 backport in progress).
++ Available for Blender 2.80 and later.
 + **Mac**, **Windows** and **Linux** supported.
 + **MPD** file compatible.
 + **Import settings configurable** from LPub3D user interface.
@@ -59,4 +59,4 @@ The LDraw import module is adapted from [Import LDraw](https://github.com/TobyLo
 
 **LEGO**® is a registered trademark of the Lego Group<br clear=left>
 
-Copyright (c) 2020 by Trevor SANDY
+Copyright (c) 2020 - 2023 by Trevor SANDY
