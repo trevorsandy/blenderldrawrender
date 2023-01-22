@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update January 17, 2023
+Last Update January 21, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 Load LDraw GPLv2 license.
@@ -26,8 +26,8 @@ from typing import Dict, Any
 """
 LPub3D Load LDraw
 
-This module loads LDraw compatible files into Blender. Set the 
-Options first, then call loadFromFile() function with the full 
+This module loads LDraw compatible files into Blender. Set the
+Options first, then call loadFromFile() function with the full
 filepath of a file to load.
 
 Accepts .mpd, .ldr, .l3b, and .dat files.
@@ -296,23 +296,23 @@ class Options:
     flattenHierarchy   = False          # All parts are under the root object - no sub-models
     flattenGroups      = False          # All LeoCAD groups are ignored - no groups
     usePrincipledShaderWhenAvailable = True  # Use the new principled shader
-    searchAdditionalPaths = False       # Search additional LDraw paths (automatically set for fade previous steps and highlight step)
+    # Full file path to .exr environment texture file - specify if not using default bundled in addon
+    environmentFile    = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'background.exr')
     # We have the option of including the 'LEGO' logo on each stud
     useLogoStuds       = False          # Use the studs with the 'LEGO' logo on them
     logoStudVersion    = "4"            # Which version of the logo to use ("3" (flat), "4" (rounded) or "5" (subtle rounded))
     instanceStuds      = False          # Each stud is a new Blender object (slow)
+
     # LSynth (http://www.holly-wood.it/lsynth/tutorial-en.html) is a collection of parts used to render string, hoses, cables etc
     useLSynthParts     = True           # LSynth is used to render string, hoses etc.
-
-    additionalSearchDirectories = r""   # Full directory paths, comma delimited, to additional LDraw search paths.
-    customLDConfigFile = r""            # Full directory path to specified custom LDraw colours (LDConfig) file.
-    parameterFile      = r""            # Full file path to file containing slope brick angels, lgeo colours and lighted bricks colours
-    # Full file path to .exr environment texture file - specify if not using default bundled in addon
-    environmentFile    = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'background.exr')
     # Full path to the lsynth parts (Defaults to <ldrawdir>/unofficial/lsynth if left blank)
     LSynthDirectory    = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../lsynth'))
     # Optional full path to the stud logo parts (if not found in unofficial directory)
     studLogoDirectory  = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../studs'))
+    searchAdditionalPaths = False       # Search additional LDraw paths (automatically set for fade previous steps and highlight step)
+    parameterFile      = r""            # Full file path to file containing slope brick angels, lgeo colours and lighted bricks colours
+    customLDConfigFile = r""            # Full directory path to specified custom LDraw colours (LDConfig) file.
+    additionalSearchDirectories = r""   # Full directory paths, comma delimited, to additional LDraw search paths.
 
     # Ambiguous Normals
     # Older LDraw parts (parts not yet BFC certified) have ambiguous normals.
@@ -382,9 +382,9 @@ globalSlopeAngles = {}
 isBlender28OrLater = None
 hasCollections = None
 
-usingArchiveLibraries = False
-ldrawModelLoaded      = False
-ldrawModelFile        = ""
+haveArchiveLibraries = False
+ldrawModelLoaded     = False
+ldrawModelFile       = r""
 
 # **************************************************************************************
 # **************************************************************************************
@@ -426,75 +426,113 @@ class Configure:
     """
 
     searchPaths = []
+    archiveSearchPaths = []
     loadedLibraries = []
     warningSuppression = {}
     hasOfficialLibrary = False
     hasUnofficialLibrary = False
 
     def __appendPath(path):
-        if os.path.exists(path) or usingArchiveLibraries:
+        if os.path.exists(path):
             Configure.searchPaths.append(path)
+
+    def __appendArchivePath(path):
+        Configure.archiveSearchPaths.append(path)
 
     def __setSearchPaths():
         Configure.searchPaths = []
 
         # Search official parts
-        parts = "ldraw/parts" if usingArchiveLibraries else \
-            os.path.join(Configure.ldrawInstallDirectory, "parts")
-        primitives = "ldraw/p" if usingArchiveLibraries else \
-            os.path.join(Configure.ldrawInstallDirectory, "p")
-        primitivesHigh = "ldraw/p/48" if usingArchiveLibraries else \
-            os.path.join(Configure.ldrawInstallDirectory, "p", "48")
-        primitivesLow = "ldraw/p/8" if usingArchiveLibraries else \
-            os.path.join(Configure.ldrawInstallDirectory, "p", "8")
-
+        parts = os.path.join(Configure.ldrawInstallDirectory, "parts")
         Configure.__appendPath(parts)
+        if haveArchiveLibraries is True:
+            parts = "ldraw/parts"
+            Configure.__appendArchivePath(parts)
+
+        primitives = os.path.join(Configure.ldrawInstallDirectory, "p")
+        Configure.__appendPath(primitives)
+        if haveArchiveLibraries is True:
+            primitives = "ldraw/p"
+            Configure.__appendArchivePath(primitives)
+
         if Options.resolution == "High":
+            primitivesHigh = os.path.join(Configure.ldrawInstallDirectory, "p", "48")
             Configure.__appendPath(primitivesHigh)
+            if haveArchiveLibraries is True:
+                primitivesHigh = "ldraw/p/48"
+                Configure.__appendArchivePath(primitivesHigh)
             debugPrint("High-res primitives selected")
         elif Options.resolution == "Low":
+            primitivesLow = os.path.join(Configure.ldrawInstallDirectory, "p", "8")
             Configure.__appendPath(primitivesLow)
+            if haveArchiveLibraries is True:
+                primitivesLow = "ldraw/p/8"
+                Configure.__appendArchivePath(primitivesLow)
             debugPrint("Low-res primitives selected")
-        else:
-            debugPrint("Standard-res primitives selected")
-        Configure.__appendPath(primitives)
 
         # Search unofficial parts
         if Options.useUnofficialParts:
-            parts = "parts" if usingArchiveLibraries else \
-                os.path.join(Configure.ldrawInstallDirectory, "unofficial", "parts")
-            primitives = "p" if usingArchiveLibraries else \
-                os.path.join(Configure.ldrawInstallDirectory, "unofficial", "p")
-            primitivesHigh = "p/48" if usingArchiveLibraries else \
-                os.path.join(Configure.ldrawInstallDirectory, "unofficial", "p", "48")
-            primitivesLow = "p/8" if usingArchiveLibraries else \
-                os.path.join(Configure.ldrawInstallDirectory, "unofficial", "p", "8")
+            parts = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "parts")
             Configure.__appendPath(parts)
-            if Options.resolution == "High":
-                Configure.__appendPath(primitivesHigh)
-            elif Options.resolution == "Low":
-                Configure.__appendPath(primitivesLow)
-            Configure.__appendPath(primitives)
+            if haveArchiveLibraries is True:
+                parts = "parts"
+                Configure.__appendArchivePath(parts)
 
-        # Search for parts in the 'models' folder when archive library not specified
-        if not usingArchiveLibraries:
-            Configure.__appendPath(os.path.join(Configure.ldrawInstallDirectory, "models"))
+            primitives = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "p")
+            Configure.__appendPath(primitives)
+            if haveArchiveLibraries is True:
+                primitives = "p"
+                Configure.__appendArchivePath(primitives)
+
+            if Options.resolution == "High":
+                primitivesHigh = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "p", "48")
+                Configure.__appendPath(primitivesHigh)
+                if haveArchiveLibraries is True:
+                    primitivesHigh = "p/48"
+                    Configure.__appendArchivePath(primitivesHigh)
+            elif Options.resolution == "Low":
+                primitivesLow = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "p", "8")
+                Configure.__appendPath(primitivesLow)
+                if haveArchiveLibraries is True:
+                    primitivesLow = "p/8"
+                    Configure.__appendArchivePath(primitivesLow)
+
+        # Search for parts in the 'models'
+        Configure.__appendPath(os.path.join(Configure.ldrawInstallDirectory, "models"))
 
         # Search LSynth parts
         if Options.useLSynthParts:
             if Options.LSynthDirectory != "":
                 Configure.__appendPath(Options.LSynthDirectory)
             else:
-                parts = "parts" if usingArchiveLibraries else \
-                    os.path.join(Configure.ldrawInstallDirectory, "unofficial", "lsynth")
-                Configure.__appendPath(parts)
+                lsynth = os.path.join(Configure.ldrawInstallDirectory, "lsynth")
+                Configure.__appendPath(lsynth)                
+                if Options.useUnofficialParts:
+                    lsynth = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "lsynth")
+                    Configure.__appendPath(lsynth)
+                if haveArchiveLibraries is True:
+                    lsynth = "parts"
+                    Configure.__appendArchivePath(lsynth)
             debugPrint("Use LSynth Parts requested")
 
         # Search for stud logo parts
-        if Options.useLogoStuds and Options.studLogoDirectory != "":
-            if Options.resolution == "Low":
-                Configure.__appendPath(os.path.join(Options.studLogoDirectory, "8"))
-            Configure.__appendPath(Options.studLogoDirectory)
+        if Options.useLogoStuds:
+            if Options.studLogoDirectory != "":
+                if Options.resolution == "Low":
+                    Configure.__appendPath(os.path.join(Options.studLogoDirectory, "8"))
+                Configure.__appendPath(Options.studLogoDirectory)
+            else:
+                parts = os.path.join(Configure.ldrawInstallDirectory, "parts")
+                Configure.__appendPath(parts)
+                if haveArchiveLibraries is True:
+                    parts = "ldraw/parts"
+                    Configure.__appendArchivePath(parts)            
+                if Options.useUnofficialParts:
+                    parts = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "parts")
+                    Configure.__appendPath(parts)
+                    if haveArchiveLibraries is True:
+                        parts = "parts"
+                        Configure.__appendArchivePath(parts)
 
         # Search additional search paths
         if Options.additionalSearchDirectories != "" and Options.searchAdditionalPaths:
@@ -505,7 +543,7 @@ class Configure:
                     Configure.__appendPath(dir)
                     debugPrint("Additional LDraw path to be used is: {0}".format(dir))
 
-    def hasArchiveLibraries(path):
+    def archiveLibraryFound(path):
         import fnmatch
         Configure.ldrawInstallDirectory = path.replace("\\\\", "\\")
         for libraryName in os.listdir(path):
@@ -556,11 +594,18 @@ class Configure:
         result = ""
         # Get list of possible ldraw installation directories for the platform
         if Configure.isWindows():
+            home = os.path.join(os.environ['USERPROFILE'])
             ldrawPossibleDirectories = [
-                r"C:\LDraw",
-                r"C:\Program Files\LDraw",
-                r"C:\Program Files (x86)\LDraw",
+            	os.path.join(home, "LDraw"),
+            	os.path.join(home, os.path.join("Desktop", "LDraw")),
+            	os.path.join(home, os.path.join("Documents", "LDraw")),
+                "C:\\LDraw",
+                "C:\\Program Files\\LDraw",
+                "C:\\Program Files (x86)\\LDraw",
+                "C:\\Program Files\\Studio 2.0\\ldraw",
             ]
+            for ldrawDir in ldrawPossibleDirectories:
+                debugPrint("Possible LDraw library path: {0}.".format(ldrawDir))
         elif Configure.isMac():
             ldrawPossibleDirectories = [
                 "~/ldraw/",
@@ -604,14 +649,15 @@ class Configure:
             Configure.parameterFile = ""
 
     def setLDrawDirectory():
+        global haveArchiveLibraries
         if Options.ldrawDirectory == "":
             Configure.ldrawInstallDirectory = Configure.findDefaultLDrawDirectory()
         else:
-            global usingArchiveLibraries
-            usingArchiveLibraries = Configure.hasArchiveLibraries(Options.ldrawDirectory.replace("\\\\", "\\"))
-            if not usingArchiveLibraries:
-                Configure.ldrawInstallDirectory = os.path.expanduser(Options.ldrawDirectory.replace("\\\\", "\\"))
-        if not usingArchiveLibraries:
+            Configure.ldrawInstallDirectory = os.path.expanduser(Options.ldrawDirectory)
+        assert Configure.ldrawInstallDirectory, "LDraw library path not specified."
+        if Configure.ldrawInstallDirectory != "":
+            Options.ldrawDirectory = Configure.ldrawInstallDirectory;
+            haveArchiveLibraries = Configure.archiveLibraryFound(Options.ldrawDirectory.replace("\\\\", "\\"))
             debugPrint("The LDraw parts library path to be used is: {0}".format(Configure.ldrawInstallDirectory))
         Configure.__setLDrawParameterFile()
         Configure.__setSearchPaths()
@@ -975,26 +1021,27 @@ class LegoColours:
                     ldconfig_lines = ldconfig.readlines()
         else:
             if Options.useColourScheme == "alt":
-                configFilename = "ldraw/LDCfgalt.ldr" if usingArchiveLibraries and Configure.hasOfficialLibrary \
-                    else "LDCfgalt.ldr"
+                configFilename = "LDCfgalt.ldr"
+                if haveArchiveLibraries and Configure.hasOfficialLibrary:
+                    configFilename = "ldraw/LDCfgalt.ldr"
             else:
-                configFilename = "ldraw/LDConfig.ldr" if usingArchiveLibraries and Configure.hasOfficialLibrary \
-                    else "LDConfig.ldr"
+                configFilename = "LDConfig.ldr"
+                if haveArchiveLibraries and Configure.hasOfficialLibrary:
+                    configFilename = "ldraw/LDConfig.ldr"
 
-            if usingArchiveLibraries and Configure.hasOfficialLibrary:
+            configFilepath = os.path.join(Configure.ldrawInstallDirectory, configFilename)
+            if os.path.exists(configFilepath):
+                with open(configFilepath, "rt", encoding="utf_8") as ldconfig:
+                    ldconfig_lines = ldconfig.readlines()    
+            elif haveArchiveLibraries and Configure.hasOfficialLibrary:
                 sio = CachedLibraries.getCached(configFilename, library=CachedLibraries.officialLibrary)
                 if sio is not None:
                     ldconfig_lines = sio.splitlines()
                 else:
-                    printError("LDraw colour file {0} was not found".format(configFilename))
-            else:
-                configFilepath = os.path.join(Configure.ldrawInstallDirectory, configFilename)
-                if os.path.exists(configFilepath):
-                    with open(configFilepath, "rt", encoding="utf_8") as ldconfig:
-                        ldconfig_lines = ldconfig.readlines()
+                    printError("LDraw (LDConfig) colour file {0} was not found".format(configFilename))
 
         if not len(ldconfig_lines):
-            printError("LDraw colours (LDConfig) for scheme {0} was not found.".format(Options.useColourScheme))
+            printError("LDraw {0} colours (LDConfig) file was not found.".format(Options.useColourScheme))
             return None
 
         for line in ldconfig_lines:
@@ -1215,7 +1262,8 @@ class FileSystem:
     """
     Reads text files in different encodings. Locates full filepath for a part.
     """
-        # Takes a case-insensitive filepath and constructs a case sensitive version (based on an actual existing file)
+
+    # Takes a case-insensitive filepath and constructs a case sensitive version (based on an actual existing file)
     # See https://stackoverflow.com/questions/8462449/python-case-insensitive-file-name/8462613#8462613
     def pathInsensitive(path):
         """
@@ -1326,31 +1374,35 @@ class FileSystem:
 
         return lines
 
-    def locate(filename, rootPath=None):
+    def locate(filename, rootPath = None):
         """Given a file name of an ldraw file, find the full path"""
 
-        partName = filename.replace("\\", os.path.sep)
+        partName = filename.lower()
+        partName = partName.replace("\\", os.path.sep)
         partName = os.path.expanduser(partName)
 
         if rootPath is None:
-            rootPath = os.path.dirname(filename)
+            rootPath = os.path.dirname(filename.lower())
 
         allSearchPaths = Configure.searchPaths[:]
         if rootPath not in allSearchPaths:
             allSearchPaths.append(rootPath)
 
         for path in allSearchPaths:
-            if usingArchiveLibraries:
-                fullPathName = os.path.join(path, filename).replace("\\", "/")
-                library = CachedLibraries.cachedFileExists(fullPathName)
-                if library != CachedLibraries.notFound:
-                    return library, fullPathName
-
             fullPathName = os.path.join(path, partName)
             fullPathName = FileSystem.pathInsensitive(fullPathName)
 
             if os.path.exists(fullPathName):
                 return fullPathName
+
+        if haveArchiveLibraries is True:
+            allSearchPaths = Configure.archiveSearchPaths[:]
+            for path in allSearchPaths:
+                fullPathName = os.path.join(path, partName).replace("\\", "/")
+                library = CachedLibraries.cachedFileExists(fullPathName)
+                
+                if library != CachedLibraries.notFound:
+                    return library, fullPathName
 
         return None
 
@@ -1496,7 +1548,6 @@ class CachedGeometry:
     def clearCache():
         CachedGeometry.__cache = {}
 
-
 # **************************************************************************************
 # **************************************************************************************
 class FaceInfo:
@@ -1536,9 +1587,11 @@ class LDrawGeometry:
         if num_points == 4:
             nA = (newPoints[1] - newPoints[0]).cross(newPoints[2] - newPoints[0])
             nB = (newPoints[2] - newPoints[1]).cross(newPoints[3] - newPoints[1])
+            nC = (newPoints[3] - newPoints[2]).cross(newPoints[0] - newPoints[2])
             if (nA.dot(nB) < 0):
                 newPoints[2], newPoints[3] = newPoints[3], newPoints[2]
-
+            elif (nB.dot(nC) < 0):
+                newPoints[2], newPoints[1] = newPoints[1], newPoints[2]
         pointCount = len(self.points)
         newFace = list(range(pointCount, pointCount + num_points))
         self.points.extend(newPoints)
@@ -1923,6 +1976,7 @@ class LDrawFile:
         # Resolve full filepath if necessary
         result = ()
 
+        useArchiveLibrary = False
         if isFullFilepath is False:
             if parentFilepath == "":
                 parentDir = os.path.dirname(filepath)
@@ -1930,13 +1984,17 @@ class LDrawFile:
                 parentDir = os.path.dirname(parentFilepath)
             result = FileSystem.locate(filepath, parentDir)
             if result is None:
-                printWarningOnce("Missing file {0}".format(filepath))
+                printWarningOnce("Missing file {0} in path {1}".format(filepath, parentDir))
                 return False
-            filepath = result[1] if usingArchiveLibraries else result
+            useArchiveLibrary = isinstance(result, (list, tuple, set)) and len(result) > 1 and haveArchiveLibraries
+            if useArchiveLibrary is True:
+                filepath = result[1]
+            else:
+                filepath = result
         self.fullFilepath = filepath
 
         # Load text into local lines variable
-        if usingArchiveLibraries and len(result) > 1:
+        if useArchiveLibrary is True:
             sio = CachedLibraries.getCached(filepath, library=result[0])
             lines = sio.splitlines()
         else:
@@ -2039,7 +2097,7 @@ class LDrawFile:
 
         return name in ("logo3.dat", "logo4.dat", "logo5.dat")
 
-    def __init__(self, filename, isFullFilepath, parentFilepath, lines=None, isSubPart=False):
+    def __init__(self, filename, isFullFilepath, parentFilepath, lines = None, isSubPart=False):
         """Loads an LDraw file (LDR, L3B, DAT or MPD)"""
 
         global globalCamerasToAdd
@@ -3826,6 +3884,8 @@ def addSharpEdges(bm, geometry, filename):
         # Find layer for bevel weights
         if 'BevelWeight' in bm.edges.layers.bevel_weight:
             bwLayer = bm.edges.layers.bevel_weight['BevelWeight']
+        elif '' in bm.edges.layers.bevel_weight:
+            bwLayer = bm.edges.layers.bevel_weight['']
         else:
             bwLayer = None
 
@@ -3840,6 +3900,8 @@ def addSharpEdges(bm, geometry, filename):
                 # Add bevel weight
                 if bwLayer is not None:
                     meshEdge[bwLayer] = 1.0
+
+        # Alternative: ob.data.edges[0].bevel_weight = 1.0
 
         # Commented this next section out as it fails for certain pieces.
 
@@ -4160,6 +4222,38 @@ def createBlenderObjectsFromNode(node,
         ob = bpy.data.objects.new(blenderName, mesh)
         ob.matrix_local = matmul(blenderParentTransform, localMatrix)
 
+        if newMeshCreated:
+            # For performance reasons we try to avoid using bpy.ops.* methods
+            # (e.g. we use bmesh.* operations instead).
+            # See discussion: http://blender.stackexchange.com/questions/7358/python-performance-with-blender-operators
+
+            # Use bevel weights (added to sharp edges) - Only available for Blender version < 3.4
+            if hasattr(ob.data, "use_customdata_edge_bevel"):
+                ob.data.use_customdata_edge_bevel = True
+            else:
+                # create object and add to scene
+                linkToScene(ob)
+
+                # Blender 3.4 removed 'ob.data.use_customdata_edge_bevel', so this seems to be the alternative:
+                # See https://blender.stackexchange.com/a/270716
+                area_type = 'VIEW_3D' # change this to use the correct Area Type context you want to process in
+                areas  = [area for area in bpy.context.window.screen.areas if area.type == area_type]
+
+                if len(areas) <= 0:
+                    raise Exception(f"Make sure an Area of type {area_type} is open or visible on your screen!")
+                selectObject(ob)
+                bpy.ops.object.mode_set(mode='EDIT')
+
+                with bpy.context.temp_override(
+                    window=bpy.context.window,
+                    area=areas[0],
+                    regions=[region for region in areas[0].regions if region.type == 'WINDOW'][0],
+                    screen=bpy.context.window.screen):
+                    bpy.ops.mesh.customdata_bevel_weight_edge_add()
+                bpy.ops.object.mode_set(mode='OBJECT')
+
+                unlinkFromScene(ob)
+
         # Mark object as transparent if any polygon is transparent
         ob["Lego.isTransparent"] = False
         if mesh is not None:
@@ -4200,14 +4294,6 @@ def createBlenderObjectsFromNode(node,
             addNodeToParentWithGroups(blenderNodeParent, [], lamp_object)
 
         if newMeshCreated:
-            # For performance reasons we try to avoid using bpy.ops.* methods
-            # (e.g. we use bmesh.* operations instead).
-            # See discussion: http://blender.stackexchange.com/questions/7358/python-performance-with-blender-operators
-
-            # Use bevel weights (added to sharp edges) - Blender version < 3.4
-            if hasattr(ob.data, "use_customdata_edge_bevel"):
-                ob.data.use_customdata_edge_bevel = True
-
             # Calculate what we need to do next
             recalculateNormals = node.file.isDoubleSided and (Options.resolveAmbiguousNormals == "guess")
             keepDoubleSided    = node.file.isDoubleSided and (Options.resolveAmbiguousNormals == "double")
@@ -4233,23 +4319,6 @@ def createBlenderObjectsFromNode(node,
             bm.to_mesh(ob.data)
             bm.clear()
             bm.free()
-
-            # Blender 3.4 removed 'ob.data.use_customdata_edge_bevel', so this seems to be the alternative:
-            if not hasattr(ob.data, "use_customdata_edge_bevel"):
-                # See https://blender.stackexchange.com/a/270716
-                area_type = 'VIEW_3D'
-                areas  = [area for area in bpy.context.window.screen.areas if area.type == area_type]
-
-                if len(areas) <= 0:
-                    raise Exception(f"Make sure an Area of type {area_type} is open or visible on your screen!")
-                if bpy.ops.object.mode_set.poll():
-                    bpy.ops.object.mode_set(mode='EDIT')
-                    with bpy.context.temp_override(
-                        window=bpy.context.window,
-                        area=areas[0],
-                        regions=[region for region in areas[0].regions if region.type == 'WINDOW'][0],
-                        screen=bpy.context.window.screen):
-                        bpy.ops.mesh.customdata_bevel_weight_edge_add()
 
             # Show the sharp edges in Edit Mode
             if isBlender28OrLater:
@@ -4901,19 +4970,10 @@ def loadFromFile(context, filename, isFullFilepath=True):
     # and the colours derived from that.
     Configure()
     Parameters()
-
-    libraryType = "LDraw Archive" if usingArchiveLibraries else "LDraw"
+    
     if Configure.ldrawInstallDirectory == "":
-        printError("Could not find {0} part library".format(libraryType))
+        printError("Could not find LDraw install directory".format(libraryType))
         return None
-
-    if usingArchiveLibraries:
-        if not Configure.hasOfficialLibrary:
-            if Options.useColourScheme != "custom" or Options.customLDConfigFile == "":
-                printError("LDConfig (colour) file not found. Official {0} library not specified".format(libraryType))
-                return None
-            elif Options.useColourScheme == "custom":
-                printWarningOnce("Official {0} part library not found.".format(libraryType))
 
     LegoColours()
     Math()
