@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update January 17, 2023
+Last Update January 22, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Import LDraw GPLv2 license.
@@ -96,6 +96,7 @@ useLogoStuds                  = False
 useLook                       = normal
 useLSynthParts                = True
 useUnofficialParts            = True
+useArchiveLibrary             = False
 verbose                       = 0
 """
 
@@ -415,6 +416,12 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         default=prefs.get("removeDoubles", True)
     )
 
+    useArchiveLibrary: BoolProperty(
+        name="Use Archive Libraries",
+        description="Add any archive (zip) libraries in the LDraw file path to the library search list",
+        default=False
+    )
+    
     searchAdditionalPaths: BoolProperty(
         name="Search Additional Paths",
         description="Search additional LDraw paths (automatically set for fade previous steps and highlight step)",
@@ -494,6 +501,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         box.prop(self, "resolveNormals", expand=True)
 
         box.prop(self, "useUnofficialParts")
+        box.prop(self, "useArchiveLibrary")
         box.prop(self, "searchAdditionalPaths")
         box.prop(self, "verbose")
 
@@ -547,6 +555,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             self.removeDoubles           = ImportLDrawOps.prefs.get("removeDoubles",        self.removeDoubles)
             self.resolveNormals          = ImportLDrawOps.prefs.get("resolveNormals",       self.resolveNormals)
             self.resPrims                = ImportLDrawOps.prefs.get("resolution",           self.resPrims)
+            self.useArchiveLibrary       = ImportLDrawOps.prefs.get("useArchiveLibrary",    self.useArchiveLibrary)
             self.searchAdditionalPaths   = ImportLDrawOps.prefs.get("searchAdditionalPaths", self.searchAdditionalPaths)
             self.smoothParts             = ImportLDrawOps.prefs.get("smoothShading",        self.smoothParts)
             self.studLogoPath            = ImportLDrawOps.prefs.get("studLogoDirectory",    self.studLogoPath)
@@ -584,6 +593,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             ImportLDrawOps.prefs.set("resolution",             self.resPrims)
             ImportLDrawOps.prefs.set("resolveNormals",         self.resolveNormals)
             ImportLDrawOps.prefs.set("scale",                  self.importScale)
+            ImportLDrawOps.prefs.set("useArchiveLibrary",      self.useArchiveLibrary)
             ImportLDrawOps.prefs.set("searchAdditionalPaths",  self.searchAdditionalPaths)
             ImportLDrawOps.prefs.set("smoothShading",          self.smoothParts)
             ImportLDrawOps.prefs.set("studLogoDirectory",      self.studLogoPath)
@@ -627,6 +637,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         loadldraw.Options.resolution                  = self.resPrims
         loadldraw.Options.resolveAmbiguousNormals     = self.resolveNormals
         loadldraw.Options.scale                       = self.importScale
+        loadldraw.Options.useArchiveLibrary           = self.useArchiveLibrary
         loadldraw.Options.searchAdditionalPaths       = self.searchAdditionalPaths
         loadldraw.Options.smoothShading               = self.smoothParts
         loadldraw.Options.useColourScheme             = self.colourScheme
@@ -638,7 +649,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         loadldraw.Options.additionalSearchDirectories = self.additionalSearchPaths
         loadldraw.Options.customLDConfigFile          = self.customLDConfigPath
 
-        assert self.ldrawPath, "LDraw library path not specified."
+        #assert self.ldrawPath, "LDraw library path not specified."
         loadldraw.Options.ldrawDirectory              = self.ldrawPath
 
         if not self.environmentPath:
@@ -660,4 +671,3 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         loadldraw.loadFromFile(self, self.modelFile)
 
         return {"FINISHED"}
-

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update January 21, 2023
+Last Update January 22, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 Load LDraw GPLv2 license.
@@ -309,6 +309,7 @@ class Options:
     LSynthDirectory    = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../lsynth'))
     # Optional full path to the stud logo parts (if not found in unofficial directory)
     studLogoDirectory  = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../studs'))
+    useArchiveLibrary  = False          # Add any archive (zip) libraries in the LDraw file path to the library search list 
     searchAdditionalPaths = False       # Search additional LDraw paths (automatically set for fade previous steps and highlight step)
     parameterFile      = r""            # Full file path to file containing slope brick angels, lgeo colours and lighted bricks colours
     customLDConfigFile = r""            # Full directory path to specified custom LDraw colours (LDConfig) file.
@@ -339,6 +340,7 @@ class Options:
         return "_".join([str(Options.scale),
                          str(Options.useUnofficialParts),
                          str(Options.instructionsLook),
+                         str(Options.useArchiveLibrary),
                          str(Options.searchAdditionalPaths),
                          str(Options.parameterFile),
                          str(Options.customLDConfigFile),
@@ -657,7 +659,8 @@ class Configure:
         assert Configure.ldrawInstallDirectory, "LDraw library path not specified."
         if Configure.ldrawInstallDirectory != "":
             Options.ldrawDirectory = Configure.ldrawInstallDirectory;
-            haveArchiveLibraries = Configure.archiveLibraryFound(Options.ldrawDirectory.replace("\\\\", "\\"))
+            if Options.useArchiveLibrary is True:
+                haveArchiveLibraries = Configure.archiveLibraryFound(Options.ldrawDirectory.replace("\\\\", "\\"))
             debugPrint("The LDraw parts library path to be used is: {0}".format(Configure.ldrawInstallDirectory))
         Configure.__setLDrawParameterFile()
         Configure.__setSearchPaths()
