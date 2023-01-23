@@ -309,7 +309,7 @@ class Options:
     LSynthDirectory    = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../lsynth'))
     # Optional full path to the stud logo parts (if not found in unofficial directory)
     studLogoDirectory  = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../studs'))
-    useArchiveLibrary  = False          # Add any archive (zip) libraries in the LDraw file path to the library search list 
+    useArchiveLibrary  = False          # Add any archive (zip) libraries in the LDraw file path to the library search list
     searchAdditionalPaths = False       # Search additional LDraw paths (automatically set for fade previous steps and highlight step)
     parameterFile      = r""            # Full file path to file containing slope brick angels, lgeo colours and lighted bricks colours
     customLDConfigFile = r""            # Full directory path to specified custom LDraw colours (LDConfig) file.
@@ -606,8 +606,6 @@ class Configure:
                 "C:\\Program Files (x86)\\LDraw",
                 "C:\\Program Files\\Studio 2.0\\ldraw",
             ]
-            for ldrawDir in ldrawPossibleDirectories:
-                debugPrint("Possible LDraw library path: {0}.".format(ldrawDir))
         elif Configure.isMac():
             ldrawPossibleDirectories = [
                 "~/ldraw/",
@@ -1405,7 +1403,8 @@ class FileSystem:
                 library = CachedLibraries.cachedFileExists(fullPathName)
                 
                 if library != CachedLibraries.notFound:
-                    return library, fullPathName
+                    resultSet = set([library, fullPathName])
+                    return resultSet
 
         return None
 
@@ -1979,7 +1978,7 @@ class LDrawFile:
         # Resolve full filepath if necessary
         result = ()
 
-        useArchiveLibrary = False
+        fromArchive = False
         if isFullFilepath is False:
             if parentFilepath == "":
                 parentDir = os.path.dirname(filepath)
@@ -1989,15 +1988,15 @@ class LDrawFile:
             if result is None:
                 printWarningOnce("Missing file {0} in path {1}".format(filepath, parentDir))
                 return False
-            useArchiveLibrary = isinstance(result, (list, tuple, set)) and len(result) > 1 and haveArchiveLibraries
-            if useArchiveLibrary is True:
+            fromArchive = isinstance(result, (set)) and len(result) > 1 and haveArchiveLibraries
+            if fromArchive is True:
                 filepath = result[1]
             else:
                 filepath = result
         self.fullFilepath = filepath
 
         # Load text into local lines variable
-        if useArchiveLibrary is True:
+        if fromArchive is True:
             sio = CachedLibraries.getCached(filepath, library=result[0])
             lines = sio.splitlines()
         else:
