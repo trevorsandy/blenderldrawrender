@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update January 22, 2023
+Last Update January 23, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 Load LDraw GPLv2 license.
@@ -20,10 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software Foundation,
 Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-"""
-from typing import Dict, Any
 
-"""
 LPub3D Load LDraw
 
 This module loads LDraw compatible files into Blender. Set the
@@ -51,6 +48,7 @@ import time
 import platform
 import itertools
 import operator
+from typing import Dict, Any
 from zipfile import ZipFile
 from pprint import pprint
 
@@ -2134,6 +2132,7 @@ class LDrawFile:
         bfcWindingCCW         = True
         bfcInvertNext         = False
         processingLSynthParts = False
+        processingLPubMeta    = True
         camera = LDrawCamera()
         light  = LDrawLight()
 
@@ -2191,7 +2190,9 @@ class LDrawFile:
                 if parameters[1] == "!LDCAD":
                     if parameters[2] == "GENERATED":
                         processingLSynthParts = True
-                if parameters[1] == "!LEOCAD" or parameters[1] == "!LPUB":
+                if parameters[1] == "!LPUB":
+                    processingLPubMeta = True
+                if parameters[1] == "!LEOCAD" or processingLPubMeta:
                     if parameters[2] == "GROUP":
                         if parameters[3] == "BEGIN":
                             currentGroupNames.append(" ".join(parameters[4:]))
@@ -2220,16 +2221,31 @@ class LDrawFile:
                                     camera.far = Options.scale * float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "POSITION":
-                                    camera.position = matvecmul(Math.scaleMatrix, mathutils.Vector(
-                                        (float(parameters[1]), float(parameters[2]), float(parameters[3]))))
+                                    if processingLPubMeta:
+                                        # Convert transform from LDraw to Blender, switch Z and Y axis with -Z in the up direction
+                                        camera.position = matvecmul(Math.scaleMatrix, mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[3]), -float(parameters[2]))))
+                                    else:
+                                        camera.position = matvecmul(Math.scaleMatrix, mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[2]), float(parameters[3]))))
                                     parameters = parameters[4:]
                                 elif parameters[0] == "TARGET_POSITION":
-                                    camera.target_position = matvecmul(Math.scaleMatrix, mathutils.Vector(
-                                        (float(parameters[1]), float(parameters[2]), float(parameters[3]))))
+                                    if processingLPubMeta:
+                                        # Convert transform from LDraw to Blender, switch Z and Y axis with -Z in the up direction
+                                        camera.target_position = matvecmul(Math.scaleMatrix, mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[3]), -float(parameters[2]))))
+                                    else:
+                                        camera.target_position = matvecmul(Math.scaleMatrix, mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[2]), float(parameters[3]))))
                                     parameters = parameters[4:]
                                 elif parameters[0] == "UP_VECTOR":
-                                    camera.up_vector = mathutils.Vector(
-                                        (float(parameters[1]), float(parameters[2]), float(parameters[3])))
+                                    if processingLPubMeta:
+                                        # Convert transform from LDraw to Blender, switch Z and Y axis with -Z in the up direction
+                                        camera.up_vector = matvecmul(Math.scaleMatrix, mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[3]), -float(parameters[2]))))
+                                    else:
+                                        camera.up_vector = mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[2]), float(parameters[3])))
                                     parameters = parameters[4:]
                                 elif parameters[0] == "ORTHOGRAPHIC":
                                     camera.orthographic = True
@@ -2252,12 +2268,22 @@ class LDrawFile:
                             parameters = parameters[3:]
                             while len(parameters) > 0:
                                 if parameters[0] == "POSITION":
-                                    light.position = matvecmul(Math.scaleMatrix, mathutils.Vector(
-                                        (float(parameters[1]), float(parameters[2]), float(parameters[3]))))
+                                    if processingLPubMeta:
+                                        # Convert transform from LDraw to Blender, switch Z and Y axis with -Z in the up direction
+                                        light.position = matvecmul(Math.scaleMatrix, mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[3]), -float(parameters[2]))))
+                                    else:
+                                        light.position = matvecmul(Math.scaleMatrix, mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[2]), float(parameters[3]))))
                                     parameters = parameters[4:]
                                 elif parameters[0] == "TARGET_POSITION":
-                                    light.target_position = matvecmul(Math.scaleMatrix, mathutils.Vector(
-                                        (float(parameters[1]), float(parameters[2]), float(parameters[3]))))
+                                    if processingLPubMeta:
+                                        # Convert transform from LDraw to Blender, switch Z and Y axis with -Z in the up direction
+                                        light.target_position = matvecmul(Math.scaleMatrix, mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[3]), -float(parameters[2]))))
+                                    else:                                    
+                                        light.target_position = matvecmul(Math.scaleMatrix, mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[2]), float(parameters[3]))))
                                     parameters = parameters[4:]
                                 elif parameters[0] == "COLOR_RGB":
                                     light.color = mathutils.Vector(
@@ -2313,7 +2339,6 @@ class LDrawFile:
                                     parameters = []
                                 else:
                                     parameters = parameters[1:]
-
             else:
                 if self.bfcCertified is None:
                     self.bfcCertified = False
