@@ -122,7 +122,8 @@ function package_archive
 	"io_scene_lpub3d_importldraw/__pycache__/*" \
 	"io_scene_lpub3d_importldraw/images/*" \
 	"io_scene_lpub3d_importldraw/loadldraw/__pycache__/*" \
-	"io_scene_lpub3d_importldraw/LICENSE" \
+	"io_scene_lpub3d_importldraw/.gitignore" \
+    "io_scene_lpub3d_importldraw/.gitattributes" \
 	"io_scene_lpub3d_importldraw/README.md" \
 	"io_scene_lpub3d_renderldraw/__pycache__/*"
 	cd ../
