@@ -773,8 +773,12 @@ class LDrawNode:
 
     @staticmethod
     def __meta_leocad_camera(ldraw_node, child_node, matrix):
+        meta = "!LEOCAD"
         clean_line = child_node.line
-        _params = helpers.get_params(clean_line, "0 !LEOCAD CAMERA ", lowercase=True)
+        processing_lpub_meta = clean_line.startswith("0 !LPUB ")
+        if processing_lpub_meta:
+            meta = "!LPUB"
+        _params = helpers.get_params(clean_line, f"0 {meta} CAMERA ", lowercase=True)
 
         if ldraw_node.camera is None:
             ldraw_node.camera = LDrawCamera()
@@ -794,17 +798,29 @@ class LDrawNode:
                 _params = _params[2:]
             elif _params[0] == "position":
                 (x, y, z) = map(float, _params[1:4])
-                vector = matrix @ mathutils.Vector((x, y, z))
+                # Convert LPu3D transform, switch Z and Y with -Z in the up direction
+                if processing_lpub_meta:
+                    vector = matrix @ mathutils.Vector((x, z, -y))
+                else:
+                    vector = matrix @ mathutils.Vector((x, y, z))
                 ldraw_node.camera.position = vector
                 _params = _params[4:]
             elif _params[0] == "target_position":
                 (x, y, z) = map(float, _params[1:4])
-                vector = matrix @ mathutils.Vector((x, y, z))
+                # Convert LPu3D transform, switch Z and Y with -Z in the up direction
+                if processing_lpub_meta:
+                    vector = matrix @ mathutils.Vector((x, z, -y))
+                else:
+                    vector = matrix @ mathutils.Vector((x, y, z))
                 ldraw_node.camera.target_position = vector
                 _params = _params[4:]
             elif _params[0] == "up_vector":
                 (x, y, z) = map(float, _params[1:4])
-                vector = matrix @ mathutils.Vector((x, y, z))
+                # Convert LPu3D transform, switch Z and Y with -Z in the up direction
+                if processing_lpub_meta:
+                    vector = matrix @ mathutils.Vector((x, z, -y))
+                else:
+                    vector = matrix @ mathutils.Vector((x, y, z))
                 ldraw_node.camera.up_vector = vector
                 _params = _params[4:]
             elif _params[0] == "orthographic":

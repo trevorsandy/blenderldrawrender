@@ -421,7 +421,11 @@ class LDrawFile:
 
     # https://www.leocad.org/docs/meta.html
     def __line_leocad(self, clean_line):
-        if clean_line.startswith("0 !LEOCAD GROUP BEGIN "):
+        meta = "!LEOCAD"
+        if clean_line.startswith("0 !LPUB "):
+            meta = "!LPUB"
+
+        if clean_line.startswith(f"0 {meta} GROUP BEGIN "):
             name_args = clean_line.split(maxsplit=4)
             ldraw_node = LDrawNode()
             ldraw_node.line = clean_line
@@ -430,14 +434,14 @@ class LDrawFile:
             self.child_nodes.append(ldraw_node)
             return True
 
-        if clean_line.startswith("0 !LEOCAD GROUP END"):
+        if clean_line.startswith(f"0 {meta} GROUP END"):
             ldraw_node = LDrawNode()
             ldraw_node.line = clean_line
             ldraw_node.meta_command = "group_end"
             self.child_nodes.append(ldraw_node)
             return True
 
-        if clean_line.startswith("0 !LEOCAD CAMERA "):
+        if clean_line.startswith(f"0 {meta} CAMERA "):
             ldraw_node = LDrawNode()
             ldraw_node.line = clean_line
             ldraw_node.meta_command = "leocad_camera"
