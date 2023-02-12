@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update January 17, 2023
+Last Update February 12, 2023
+Copyright (c) 2020 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Import LDraw GPLv2 license.
@@ -20,6 +21,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software Foundation,
 Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
+Adapted from Import LDraw by Toby Nelson - tobymnelson@gmail.com
 """
 
 # Import From Files - See PR https://github.com/TobyLobster/ImportLDraw/pull/49/
@@ -36,7 +38,7 @@ bl_info = {
     "description": "Import LDraw models in .mpd .ldr .l3b and .dat formats",
     "author": "Trevor SANDY <trevor.sandy@gmail.com>",
     "version": (1, 3, 4),
-    "blender": (2, 81, 0),
+    "blender": (2, 82, 0),
     "location": "File > Import",
     "warning": "",
     "wiki_url": "https://github.com/trevorsandy/blenderldrawrender",
@@ -54,23 +56,13 @@ def menuImport(self, context):
 def register():
     """Register Menu Listing."""
     bpy.utils.register_class(importldraw.ImportLDrawOps)
-    if hasattr(bpy.types, 'TOPBAR_MT_file_import'):
-        # Blender 2.80
-        bpy.types.TOPBAR_MT_file_import.prepend(menuImport)
-    else:
-        # Blender 2.79
-        bpy.types.INFO_MT_file_import.prepend(menuImport)
+    bpy.types.TOPBAR_MT_file_import.prepend(menuImport)
 
 
 def unregister():
     """Unregister Menu Listing."""
     bpy.utils.unregister_class(importldraw.ImportLDrawOps)
-    if hasattr(bpy.types, 'TOPBAR_MT_file_import'):
-        # Blender 2.80
-        bpy.types.TOPBAR_MT_file_import.remove(menuImport)
-    else:
-        # Blender 2.79
-        bpy.types.INFO_MT_file_import.remove(menuImport)
+    bpy.types.TOPBAR_MT_file_import.remove(menuImport)
 
 if __name__ == "__main__":
     register()

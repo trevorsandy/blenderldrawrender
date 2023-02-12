@@ -11,8 +11,8 @@
 # Example:
 #
 # cd /home/trevorsandy/projects/blenderldrawrender
-# 
-# env TAG=v1.3.0 SET_VERSION=True ./upload-github-release-asset.sh 
+#
+# env TAG=v1.3.0 SET_VERSION=True ./upload-github-release-asset.sh
 #
 # env TAG=v1.3.0 RELEASE_NOTE="Render LDraw v1.3.0" ./upload-github-release-asset.sh
 #
@@ -118,9 +118,10 @@ function package_archive
 		rm $GH_ASSET_NAME
 	fi
 	cd $GH_REPO_PATH/addons
-	zip -r ldraw_render_addons.zip io_scene_lpub3d_importldraw io_scene_lpub3d_renderldraw -x \
+	zip -r ldraw_render_addons.zip io_scene_lpub3d_importldraw io_scene_lpub3d_importldraw_mm io_scene_lpub3d_renderldraw -x \
 	"io_scene_lpub3d_importldraw/__pycache__/*" \
 	"io_scene_lpub3d_importldraw/images/*" \
+	"io_scene_lpub3d_importldraw_mm/__pycache__/*" \
 	"io_scene_lpub3d_importldraw/loadldraw/__pycache__/*" \
 	"io_scene_lpub3d_importldraw/.gitignore" \
     "io_scene_lpub3d_importldraw/.gitattributes" \
@@ -191,7 +192,7 @@ echo
 # Update version information
 VER_TAG=${VER_TAG//./", "} # replace . with ", "
 VER_TAG=${VER_TAG/v/}      # replace v with ""
-for GH_FILE in addons/io_scene_lpub3d_importldraw/__*.py addons/io_scene_lpub3d_renderldraw/__*.py;
+for GH_FILE in addons/io_scene_lpub3d_importldraw/__*.py addons/io_scene_lpub3d_importldraw_mm/__*.py addons/io_scene_lpub3d_renderldraw/__*.py;
 do
 	echo "Set version to '$VER_TAG' in file '$GH_FILE'"
 	if [ -f ${GH_FILE} -a -r ${GH_FILE} ]

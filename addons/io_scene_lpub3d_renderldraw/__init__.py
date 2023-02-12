@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update January 17, 2023
+Last Update February 12, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Render LDraw GPLv2 license.
@@ -36,7 +36,7 @@ bl_info = {
     "description": "Render LDraw model as .png file",
     "author": "Trevor SANDY <trevor.sandy@gmail.com>",
     "version": (1, 3, 4),
-    "blender": (2, 81, 0),
+    "blender": (2, 82, 0),
     "location": "Render",
     "warning": "",
     "wiki_url": "https://github.com/trevorsandy/blenderldrawrender",

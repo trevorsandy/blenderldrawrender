@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update January 23, 2023
+Last Update January 26, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Blender LDraw Addon GPLv2 license.
@@ -28,7 +28,7 @@ To Run:
 - Navigate to script directory:
 <LPub3D User Directory>/3rdParty/Blender
 - Execute command
-<blender path>/blender --background --python installBlenderAddons.py
+<blender path>/blender --background --python installBlenderAddons.py -- -xi
 
 """
 
@@ -127,16 +127,17 @@ def install_package(package):
 
 def install_ldraw_addon(argv):
     """Install LDraw Render addons"""
-    
+
     arg_parser = BlenderArgumentParser(description='Install LPub3D Blender addon.')
-    arg_parser.add_argument("-r", "--disable_ldraw_render", action="store_true", help="Disable the LPub3D render addon menu action in Blender")
-    arg_parser.add_argument("-i", "--disable_ldraw_import", action="store_true", help="Disable the LPub3D import addon menu action in Blender")
-    arg_parser.add_argument("-a", "--disable_ldraw_addons", action="store_true", help="Disable the LPub3D import and render addon menu actions in Blender")
+    arg_parser.add_argument("-xr", "--disable_ldraw_render", action="store_true", help="Disable the LPub3D render addon menu action in Blender")
+    arg_parser.add_argument("-xi", "--disable_ldraw_import", action="store_true", help="Disable the LPub3D import addon menu action in Blender")
+    arg_parser.add_argument("-xm", "--disable_ldraw_import_mm", action="store_true", help="Disable the LPub3D import addon menu action in Blender")    
+    arg_parser.add_argument("-xa", "--disable_ldraw_addons", action="store_true", help="Disable the LPub3D import and render addon menu actions in Blender")
 
     args = arg_parser.parse_args()
 
     # Confirm minimum Blender version
-    is_blender_28_or_later = bpy.app.version >= (2, 80, 0)
+    is_blender_28_or_later = bpy.app.version >= (2, 82, 0)
     if not is_blender_28_or_later:
         print("ERROR: This addon requires Blender 2.80 or greater.")
         return {'FINISHED'}
@@ -162,7 +163,9 @@ def install_ldraw_addon(argv):
                                      filepath=path_to_addon, filter_python=True, filter_glob='*.py;*.zip')    
 
     # Set the list of addon modules in the LPub3D 'addons' folder.
-    addon_module_list: Set[str] = {'io_scene_lpub3d_importldraw', 'io_scene_lpub3d_renderldraw'}
+    addon_module_list: Set[str] = {'io_scene_lpub3d_importldraw',
+                                   'io_scene_lpub3d_importldraw_mm',
+                                   'io_scene_lpub3d_renderldraw'}
 
     # Enable addon modules. addon_module
     for addon_module in addon_module_list:
@@ -173,6 +176,13 @@ def install_ldraw_addon(argv):
                     break
             print("INFO: LPub3D Import LDraw disabled")
             continue
+        if addon_module == "io_scene_lpub3d_importldraw_mm" and (args.disable_ldraw_import_mm or args.disable_ldraw_addons):
+            for mod in addon_utils.modules():
+                if mod.bl_info.get("name", "") == "LPub3D Import LDraw MM":
+                    bpy.ops.preferences.addon_disable(module=addon_module)
+                    break
+            print("INFO: LPub3D Import LDraw MM disabled")
+            continue
         if addon_module == "io_scene_lpub3d_renderldraw" and (args.disable_ldraw_render or args.disable_ldraw_addons):
             for mod in addon_utils.modules():
                 if mod.bl_info.get("name", "") == "LPub3D Render LDraw":
@@ -181,10 +191,7 @@ def install_ldraw_addon(argv):
             print("INFO: LPub3D Render LDraw disabled")
             continue
         print("ADDON MODULE ENABLED:   {0}".format(addon_module))
-        if is_blender_28_or_later:
-            bpy.ops.preferences.addon_enable(module=addon_module)
-        else:
-            bpy.ops.wm.addon_enable(module=addon_module)
+        bpy.ops.preferences.addon_enable(module=addon_module)
 
     # Save user preferences
     bpy.ops.wm.save_userpref()

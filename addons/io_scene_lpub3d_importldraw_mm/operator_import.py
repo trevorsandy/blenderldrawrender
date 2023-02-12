@@ -435,7 +435,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator):
 
 
 def build_import_menu(self, context):
-    self.layout.operator(IMPORT_OT_do_ldraw_import.bl_idname, text="LDraw (.mpd/.ldr/.l3b/.dat)")
+    self.layout.operator(IMPORT_OT_do_ldraw_import.bl_idname, text="LPub3D LDraw MM (.mpd/.ldr/.l3b/.dat)")
 
 
 classesToRegister = [
@@ -448,7 +448,7 @@ registerClasses, unregisterClasses = bpy.utils.register_classes_factory(classesT
 
 def register():
     bpy.utils.register_class(IMPORT_OT_do_ldraw_import)
-    bpy.types.TOPBAR_MT_file_import.append(build_import_menu)
+    bpy.types.TOPBAR_MT_file_import.prepend(build_import_menu)
 
 
 def unregister():

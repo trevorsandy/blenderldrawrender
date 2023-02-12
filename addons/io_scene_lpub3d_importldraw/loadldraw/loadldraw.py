@@ -35,22 +35,23 @@ Adapted from Import LDraw by Toby Nelson - tobymnelson@gmail.com
 import os
 import sys
 import math
+import string
 import mathutils
-import traceback
-import glob
 import bpy
 import datetime
 import struct
 import re
 import bmesh
-import copy
 import time
 import platform
-import itertools
 import operator
+import traceback
+import glob
+import copy
+import itertools
+from pprint import pprint
 from typing import Dict, Any
 from zipfile import ZipFile
-from pprint import pprint
 
 
 # **************************************************************************************
@@ -623,9 +624,19 @@ class Configure:
         # Search possible directories
         for dir in ldrawPossibleDirectories:
             dir = os.path.expanduser(dir)
-            if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
-                result = dir
-                break
+            if Configure.isWindows():
+                for drive_letter in string.ascii_lowercase:
+                    drive, dir_tail = os.path.splitdrive(dir)
+                    dir = os.path.join(os.path.join(f"{drive_letter}:\\", dir_tail))
+                    if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
+                        result = dir
+                        break
+                if result != "":
+                    break
+            else:
+                if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
+                    result = dir
+                    break
 
         # Search LDRAW_DIRECTORY environment variable
         if result == "":
