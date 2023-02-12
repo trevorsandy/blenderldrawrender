@@ -43,6 +43,21 @@ def do_import(filepath):
             bpy.context.scene.frame_end = LDrawNode.current_frame + ImportOptions.frames_per_step
             bpy.context.scene.frame_set(bpy.context.scene.frame_end)
 
+    # Get existing scene names
+    scene_object_names = [x.name for x in bpy.context.scene.objects]
+
+    # Remove default objects
+    if "Cube" in scene_object_names:
+        cube = bpy.context.scene.objects['Cube']
+        if cube.location.length < 0.001:
+            __unlink_from_scene(cube)
+
+    # Remove default camera
+    if LDrawNode.cameras:
+        camera = bpy.context.scene.camera
+        if camera is not None:
+            __unlink_from_scene(camera)
+
     max_clip_end = 0
     for camera in LDrawNode.cameras:
         camera = blender_camera.create_camera(camera, empty=LDrawNode.top_empty, collection=LDrawNode.top_collection)
@@ -94,6 +109,9 @@ def __scene_setup():
         lineset.select_external_contour = False
         lineset.select_material_boundary = False
 
+def __unlink_from_scene(obj):
+    if bpy.context.collection.objects.find(obj.name) >= 0:
+        bpy.context.collection.objects.unlink(obj)
 
 def __load_materials(file):
     ImportOptions.meta_group = False
