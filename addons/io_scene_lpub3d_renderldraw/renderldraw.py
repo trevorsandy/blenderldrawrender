@@ -60,16 +60,20 @@ units = (
     (7, "wk", "week", "weeks"))
 
 
-def render_print(message):
-    """Print standard output with identification timestamp."""
+def render_print(message, is_error=False):
+    """Print output with identification timestamp."""
 
     # Current timestamp (with milliseconds trimmed to two places)
     timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-4]
 
     message = f"{timestamp} [renderldraw] {message}"
-    sys.stdout.write(f"{message}\n")
-    sys.stdout.flush()
 
+    if is_error:
+        sys.stderr.write(f"{message}\n")
+        sys.stderr.flush()
+    else:
+        sys.stdout.write(f"{message}\n")
+        sys.stdout.flush()
 
 def format_elapsed(interval, long_form=False, seconds_places=3):
     """

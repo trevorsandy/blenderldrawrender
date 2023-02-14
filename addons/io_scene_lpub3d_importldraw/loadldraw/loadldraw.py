@@ -56,23 +56,29 @@ from zipfile import ZipFile
 
 
 # **************************************************************************************
-def internalPrint(message):
-    """Debug print with identification timestamp."""
+def internalPrint(message, is_error=False):
+    """Print output with identification timestamp."""
 
     # Current timestamp (with milliseconds trimmed to two places)
     timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-4]
 
-    message = "{0} [renderldraw] {1}".format(timestamp, message)
-    print("{0}".format(message))
+    message = f"{timestamp} [loadldraw] {message}"
 
-    global globalContext
-    if globalContext is not None:
-        globalContext.report({'INFO'}, message)
+    if is_error:
+        sys.stderr.write(f"{message}\n")
+        sys.stderr.flush()
+    else:
+        sys.stdout.write(f"{message}\n")
+        sys.stdout.flush()
+
+    # global globalContext
+    # if globalContext is not None:
+    #     globalContext.report({'INFO'}, message)
 
 
 # **************************************************************************************
 def debugPrint(message):
-    """Debug print with identification timestamp."""
+    """Debug print"""
 
     if Options.verbose:
         internalPrint(message)
@@ -94,7 +100,7 @@ def printWarningOnce(key, message=None):
 
 # **************************************************************************************
 def printError(message):
-    internalPrint("ERROR: {0}".format(message))
+    internalPrint("ERROR: {0}".format(message), True)
 
     global globalContext
     if globalContext is not None:

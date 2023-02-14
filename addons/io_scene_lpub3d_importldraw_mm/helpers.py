@@ -130,15 +130,20 @@ def is_int(x):
     else:
         return f == i
 
-def render_print(message):
-    """Print standard output with identification timestamp."""
+def render_print(message,is_error=False):
+    """Print output with identification timestamp."""
 
     # Current timestamp (with milliseconds trimmed to two places)
     timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-4]
 
-    message = "{0} [renderldraw] {1}".format(timestamp, message)
-    sys.stdout.write("{0}\n".format(message))
-    sys.stdout.flush()
+    message = f"{timestamp} [loadldrawMM] {message}"
+
+    if is_error:
+        sys.stderr.write(f"{message}\n")
+        sys.stderr.flush()
+    else:
+        sys.stdout.write(f"{message}\n")
+        sys.stdout.flush()
 
 def clamp(num, min_value, max_value):
     return max(min(num, max_value), min_value)
