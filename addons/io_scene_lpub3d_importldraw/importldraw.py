@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update February 12, 2023
+Last Update February 19, 2023
 Copyright (c) 2020 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
@@ -62,7 +62,7 @@ Default preferences file:
 [importldraw]
 blendFile                     =
 customLDConfigFile            =
-additionalSearchDirectories   =
+additionalSearchPaths   =
 ldrawDirectory                =
 lsynthDirectory               =
 studLogoDirectory             =
@@ -144,11 +144,11 @@ class Preferences():
             with open(self.__prefsFilepath, 'w') as configfile:
                 self.__config.write(configfile)
             return True
+        except OSError as e:
+            loadldraw.debugPrint(f"WARNING: Could not save preferences. I/O error({e.errno}): {e.strerror}")
         except Exception:
-            # Fail gracefully
-            e = sys.exc_info()[0]
-            loadldraw.debugPrint(f"WARNING: Could not save preferences. {e}")
-            return False
+            loadldraw.debugPrint(f"WARNING: Could not save preferences. Unexpected error: {sys.exc_info()[0]}")
+        return False
 
 def colourSchemeCallback(customldconfig):
     """LPub3D Import LDraw - Colour scheme items"""
@@ -173,6 +173,9 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+    # Declarations
+    ldraw_model_file_loaded = False
 
     # Initialize the preferences system
     prefs = Preferences("")
@@ -364,7 +367,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     additionalSearchPaths: StringProperty(
         name="",
         description="Full directory paths, comma delimited, to additional LDraw search paths",
-        default=prefs.get("additionalSearchDirectories", "")
+        default=prefs.get("additionalSearchPaths", "")
     )
 
     studLogoPath: StringProperty(
@@ -466,7 +469,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
 
         box = layout.box()
         box.label(text="LDraw Import Options", icon='PREFERENCES')
-        box.label(text="LDraw filepath:", icon='FILEBROWSER')
+        box.label(text="Import filepaths:", icon='FILEBROWSER')
         box.prop(self, "ldrawPath")
         box.prop(self, "customLDConfigFile")
         box.prop(self, "searchAdditionalPaths")
@@ -539,7 +542,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         # Update properties with the reinitialized preferences
         self.addEnvironment          = ImportLDrawOps.prefs.get("addEnvironment",       self.addEnvironment)
         self.addGaps                 = ImportLDrawOps.prefs.get("gaps",                 self.addGaps)
-        self.additionalSearchPaths   = ImportLDrawOps.prefs.get("additionalSearchDirectories", self.additionalSearchPaths)
+        self.additionalSearchPaths   = ImportLDrawOps.prefs.get("additionalSearchPaths", self.additionalSearchPaths)
         self.addSubsurface           = ImportLDrawOps.prefs.get("addSubsurface",        self.addSubsurface)
         self.bevelEdges              = ImportLDrawOps.prefs.get("bevelEdges",           self.bevelEdges)
         self.bevelWidth              = ImportLDrawOps.prefs.get("bevelWidth",           self.bevelWidth)
@@ -663,7 +666,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         loadldraw.Options.useUnofficialParts          = self.useUnofficialParts
         loadldraw.Options.verbose                     = self.verbose
 
-        loadldraw.Options.additionalSearchDirectories = self.additionalSearchPaths
+        loadldraw.Options.additionalSearchPaths = self.additionalSearchPaths
         loadldraw.Options.customLDConfigFile          = self.customLDConfigPath
 
         #assert self.ldrawPath, "LDraw library path not specified."
@@ -673,16 +676,16 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             loadldraw.Options.environmentFile         = ImportLDrawOps.prefs.getEnvironmentFile()
         else:
             loadldraw.Options.environmentFile         = self.environmentFile
-        if not self.lsynthPath:
-            loadldraw.Options.LSynthDirectory = os.path.join(os.path.dirname(__file__), "lsynth")
+        if self.lsynthPath == "":
+            loadldraw.Options.LSynthDirectory         = ImportLDrawOps.prefs.getLSynthPath()
         else:
             loadldraw.Options.LSynthDirectory         = self.lsynthPath
-        if not self.studLogoPath:
-            loadldraw.Options.studLogoDirectory = os.path.join(os.path.dirname(__file__), "studs")
+        if self.studLogoPath == "":
+            loadldraw.Options.studLogoDirectory       = ImportLDrawOps.prefs.getLStudsPath()
         else:
             loadldraw.Options.studLogoDirectory       = self.studLogoPath
 
-        if self.filepath:
+        if self.filepath != "":
             self.modelFile                            = self.filepath
 
         model_globals.LDRAW_MODEL_FILE = self.modelFile
@@ -695,7 +698,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         if load_result is None:
             loadldraw.debugPrint("Import result: None")
         loadldraw.debugPrint(f"Model file: {model_globals.LDRAW_MODEL_FILE}")
-        loadldraw.debugPrint(f"Object count: {loadldraw.globalObjectsToAdd}")        
+        loadldraw.debugPrint(f"Part count: {loadldraw.globalBrickCount}")
         loadldraw.debugPrint(f"Elapsed time: {loadldraw.formatElapsed(loadldraw.ldrawLoadElapsed)}")
         loadldraw.debugPrint("-------------------------")
         loadldraw.debugPrint("")

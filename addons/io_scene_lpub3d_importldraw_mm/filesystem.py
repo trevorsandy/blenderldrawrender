@@ -11,17 +11,29 @@ class FileSystem:
     defaults['ldraw_path'] = ''
     ldraw_path = defaults['ldraw_path']
 
-    defaults['studio_ldraw_path'] = ''
-    studio_ldraw_path = defaults['studio_ldraw_path']
-
     defaults['environment_file'] = ''
     environment_file = defaults['environment_file']
 
+    defaults['custom_ldconfig_file'] = ''
+    custom_ldconfig_file = defaults['custom_ldconfig_file']
+
+    defaults['additional_search_paths'] = ''
+    additional_search_paths = defaults['additional_search_paths']
+
+    defaults['studio_ldraw_path'] = ''
+    studio_ldraw_path = defaults['studio_ldraw_path']
+    
     defaults['prefer_studio'] = False
     prefer_studio = defaults['prefer_studio']
 
     defaults['prefer_unofficial'] = False
     prefer_unofficial = defaults['prefer_unofficial']
+
+    defaults['search_additional_paths'] = False
+    search_additional_paths = defaults['search_additional_paths']
+
+    defaults['use_archive_library'] = False
+    use_archive_library = defaults['use_archive_library']
 
     defaults['resolution'] = 'Standard'
     resolution = defaults['resolution']
@@ -199,6 +211,14 @@ class FileSystem:
         for path in cls.__search_paths:
             for file in glob.glob(os.path.join(path[0], path[1])):
                 cls.__lowercase_paths[file.lower()] = file
+
+        if cls.additional_search_paths != "" and cls.search_additional_paths:
+            dirs = cls.additional_search_paths.replace("\\\\", "\\").strip().split(",")
+            for dir in dirs:
+                dir = os.path.expanduser(dir.strip("\"").strip("'"))
+                if dir.lower() not in {path.lower() for path in cls.__search_paths} and os.path.exists(dir):
+                    cls.__append_search_path(dir)
+
 
     @classmethod
     def __append_search_path(cls, path):

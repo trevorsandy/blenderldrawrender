@@ -346,16 +346,22 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         default=ImportSettings.get_setting('search_additional_paths'),
     )
 
+    use_archive_library: bpy.props.BoolProperty(
+        name="Use Archive Libraries",
+        description="Add any archive (zip) libraries in the LDraw file path to the library search list",
+        default=ImportSettings.get_setting('use_archive_library'),
+    )    
+
     profile: bpy.props.BoolProperty(
         name="Profile",
         description="Profile import performance",
-        default=False
+        default=ImportSettings.get_setting('profile'),
     )
 
     verbose: bpy.props.BoolProperty(
         name="Verbose Output",
         description="Output all messages while working, else only show warnings and errors",
-        default=True
+        default=ImportSettings.get_setting('verbose'),
     )
 
     preferences_file: bpy.props.StringProperty(

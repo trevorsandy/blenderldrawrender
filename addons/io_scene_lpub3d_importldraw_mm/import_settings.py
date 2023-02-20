@@ -11,7 +11,11 @@ class ImportSettings:
         'ldraw_path': FileSystem.locate_ldraw(),
         'studio_ldraw_path': FileSystem.locate_studio_ldraw(),
         'envoronment_file': FileSystem.locate_environment_file(),
-        'prefer_unofficial': FileSystem.defaults['prefer_unofficial'],
+        'custom_ldconfig_file': FileSystem.defaults['custom_ldconfig_file'],
+        'additional_search_paths': FileSystem.defaults['additional_search_paths'],
+        'search_additional_paths': FileSystem.defaults['search_additional_paths'],
+        'prefer_studio': FileSystem.defaults['prefer_studio'],
+        'use_archive_library': FileSystem.defaults['use_archive_library'],
         'prefer_studio': FileSystem.defaults['prefer_studio'],
         'resolution': FileSystem.defaults['resolution'],
     }
@@ -64,15 +68,12 @@ class ImportSettings:
         'crop_image': False,
         'render_window': True,
         'blendfile_trusted': False,
-        'search_additional_paths': False,
         'verbose': True,
         'profile': False,
         'resolution_width': 800,
         'resolution_height': 600,
         'render_percentage': 100,
-        'blend_file': '',
-        'custom_ldconfig_file': '',
-        'additional_search_paths': ''
+        'blend_file': ''
     }
 
     default_settings = {**filesystem_defaults,

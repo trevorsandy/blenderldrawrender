@@ -319,7 +319,7 @@ class Options:
     searchAdditionalPaths = False       # Search additional LDraw paths (automatically set for fade previous steps and highlight step)
     parameterFile      = r""            # Full file path to file containing slope brick angels, lgeo colours and lighted bricks colours
     customLDConfigFile = r""            # Full directory path to specified custom LDraw colours (LDConfig) file.
-    additionalSearchDirectories = r""   # Full directory paths, comma delimited, to additional LDraw search paths.
+    additionalSearchPaths = r""         # Full directory paths, comma delimited, to additional LDraw search paths.
 
     # Ambiguous Normals
     # Older LDraw parts (parts not yet BFC certified) have ambiguous normals.
@@ -350,7 +350,7 @@ class Options:
                          str(Options.searchAdditionalPaths),
                          str(Options.parameterFile),
                          str(Options.customLDConfigFile),
-                         str(Options.additionalSearchDirectories),
+                         str(Options.additionalSearchPaths),
                          str(Options.resolution),
                          str(Options.defaultColour),
                          str(Options.createInstances),
@@ -544,8 +544,8 @@ class Configure:
                         Configure.__appendArchivePath(parts)
 
         # Search additional search paths
-        if Options.additionalSearchDirectories != "" and Options.searchAdditionalPaths:
-            dirs = Options.additionalSearchDirectories.replace("\\\\", "\\").strip().split(",")
+        if Options.additionalSearchPaths != "" and Options.searchAdditionalPaths:
+            dirs = Options.additionalSearchPaths.replace("\\\\", "\\").strip().split(",")
             for dir in dirs:
                 dir = os.path.expanduser(dir.strip("\"").strip("'"))
                 if dir.lower() not in {path.lower() for path in Configure.searchPaths} and os.path.exists(dir):
