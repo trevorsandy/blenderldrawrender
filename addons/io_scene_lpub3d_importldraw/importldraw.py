@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update January 22, 2023
+Last Update February 12, 2023
+Copyright (c) 2020 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Import LDraw GPLv2 license.
@@ -20,9 +21,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software Foundation,
 Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-"""
 
-"""
 LPub3D Import LDraw
 
 This file defines the importer for Blender.
@@ -37,11 +36,14 @@ Adapted from Import LDraw by Toby Nelson - tobymnelson@gmail.com
 if "bpy" in locals():
     import importlib
     importlib.reload(loadldraw)
+    importlib.reload(model_globals)
 else:
     from .loadldraw import loadldraw
+    from io_scene_lpub3d_renderldraw.modelglobals import model_globals
 
 import configparser
 import sys
+import time
 import os
 import bpy
 from bpy.props import (StringProperty,
@@ -100,17 +102,16 @@ useArchiveLibrary             = False
 verbose                       = 0
 """
 
-
 class Preferences():
     """LPub3D Import LDraw - Preferences"""
 
-    __sectionName = 'importldraw'
+    __sectionName = 'importLDraw'
 
     def __init__(self, preferencesfile):
         if preferencesfile.__ne__(""):
             self.__prefsFilepath = preferencesfile
             loadldraw.debugPrint("-----Import Settings-----")
-            loadldraw.debugPrint("Preferences file:    {0}".format(self.__prefsFilepath))
+            loadldraw.debugPrint(f"Preferences file:    {self.__prefsFilepath}")
         else:
             self.__prefsPath = os.path.dirname(__file__)
             self.__prefsFilepath = os.path.join(self.__prefsPath, "ImportLDrawPreferences.ini")
@@ -146,9 +147,8 @@ class Preferences():
         except Exception:
             # Fail gracefully
             e = sys.exc_info()[0]
-            loadldraw.debugPrint("WARNING: Could not save preferences. {0}".format(e))
+            loadldraw.debugPrint(f"WARNING: Could not save preferences. {e}")
             return False
-
 
 def colourSchemeCallback(customldconfig):
     """LPub3D Import LDraw - Colour scheme items"""
@@ -159,11 +159,10 @@ def colourSchemeCallback(customldconfig):
         ("alt", "Alternate LDraw colours", "Uses the alternate LDraw colour scheme (LDCfgalt.ldr)."),
     ]
 
-    if customldconfig.__ne__(""):
+    if customldconfig != "":
         items.append(("custom", "Custom LDraw colours", "Uses a user specified LDraw colour file."))
 
     return items
-
 
 class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     """LPub3D Import LDraw - Import Operator."""
@@ -421,7 +420,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         description="Add any archive (zip) libraries in the LDraw file path to the library search list",
         default=False
     )
-    
+
     searchAdditionalPaths: BoolProperty(
         name="Search Additional Paths",
         description="Search additional LDraw paths (automatically set for fade previous steps and highlight step)",
@@ -435,13 +434,13 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     )
 
     # Hidden properties
-    preferencesFile: StringProperty(
-        default=r"",
+    parameterFile: StringProperty(
+        default=prefs.get("parameterFile", r""),
         options={'HIDDEN'}
     )
 
-    parameterFile: StringProperty(
-        default=prefs.get("parameterFile", r""),
+    preferencesFile: StringProperty(
+        default=r"",
         options={'HIDDEN'}
     )
 
@@ -456,7 +455,6 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         default="*.mpd;*.ldr;*.l3b;*.dat",
         options={'HIDDEN'}
     )
-
     # End Hidden properties
 
     def draw(self, context):
@@ -509,68 +507,77 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         """Start the import process."""
 
         # Confirm minimum Blender version
-        if bpy.app.version < (2, 80, 0):
-            self.report({'ERROR'}, 'The ImportLDraw addon requires Blender 2.80 or greater.')
+        if bpy.app.version < (2, 82, 0):
+            self.report({'ERROR'}, 'The ImportLDraw addon requires Blender 2.82 or greater.')
             return {'FINISHED'}
 
-        # Reinitialize the preferences system using specified ini
-        if self.preferencesFile.__ne__(""):
-
-            ImportLDrawOps.prefs = Preferences(self.preferencesFile)
+        use_lpub_settings = False
+        if self.preferencesFile != "":
             loadldraw.debugPrint("-----Import Settings-----")
-            loadldraw.debugPrint("Preferences file:    {0}".format(self.preferencesFile))
-            loadldraw.debugPrint("Model file:          {0}".format(self.modelFile))
-            loadldraw.debugPrint("-------------------------")
-
-            # Update properties with the reinitialized preferences
-            self.addEnvironment          = ImportLDrawOps.prefs.get("addEnvironment",       self.addEnvironment)
-            self.addGaps                 = ImportLDrawOps.prefs.get("gaps",                 self.addGaps)
-            self.additionalSearchPaths   = ImportLDrawOps.prefs.get("additionalSearchDirectories", self.additionalSearchPaths)
-            self.addSubsurface           = ImportLDrawOps.prefs.get("addSubsurface",        self.addSubsurface)
-            self.bevelEdges              = ImportLDrawOps.prefs.get("bevelEdges",           self.bevelEdges)
-            self.bevelWidth              = ImportLDrawOps.prefs.get("bevelWidth",           self.bevelWidth)
-            self.cameraBorderPercentage  = ImportLDrawOps.prefs.get("cameraBorderPercentage", self.cameraBorderPercentage)
-            self.colourScheme            = ImportLDrawOps.prefs.get("useColourScheme",      self.colourScheme)
-            self.curvedWalls             = ImportLDrawOps.prefs.get("curvedWalls",          self.curvedWalls)
-            self.customLDConfigPath      = ImportLDrawOps.prefs.get("customLDConfigFile",   self.customLDConfigPath)
-            self.defaultColour           = ImportLDrawOps.prefs.get("defaultColour",        self.defaultColour)
-            self.environmentPath         = ImportLDrawOps.prefs.get("environmentFile",      self.environmentPath)
-            self.flatten                 = ImportLDrawOps.prefs.get("flattenHierarchy",     self.flatten)
-            self.gapsSize                = ImportLDrawOps.prefs.get("gapWidth",             self.gapsSize)
-            self.importCameras           = ImportLDrawOps.prefs.get("importCameras",        self.importCameras)
-            self.importLights            = ImportLDrawOps.prefs.get("importLights",         self.importLights)
-            self.importScale             = ImportLDrawOps.prefs.get("scale",                self.importScale)
-            self.instanceStuds           = ImportLDrawOps.prefs.get("instanceStuds",        self.instanceStuds)
-            self.ldrawPath               = ImportLDrawOps.prefs.get("ldrawDirectory",       self.ldrawPath)
-            self.linkParts               = ImportLDrawOps.prefs.get("linkParts",            self.linkParts)
-            self.logoStudVersion         = ImportLDrawOps.prefs.get("logoStudVersion",      self.logoStudVersion)
-            self.look                    = ImportLDrawOps.prefs.get("useLook",              self.look)
-            self.lsynthPath              = ImportLDrawOps.prefs.get("lsynthDirectory",      self.lsynthPath)
-            self.numberNodes             = ImportLDrawOps.prefs.get("numberNodes",          self.numberNodes)
-            self.overwriteExistingMaterials = ImportLDrawOps.prefs.get("overwriteExistingMaterials", self.overwriteExistingMaterials)
-            self.overwriteExistingMeshes = ImportLDrawOps.prefs.get("overwriteExistingMeshes", self.overwriteExistingMeshes)
-            self.parameterFile           = ImportLDrawOps.prefs.get("parameterFile",        self.parameterFile)
-            self.positionCamera          = ImportLDrawOps.prefs.get("positionCamera",       self.positionCamera)
-            self.positionOnGround        = ImportLDrawOps.prefs.get("positionObjectOnGroundAtOrigin", self.positionOnGround)
-            self.removeDoubles           = ImportLDrawOps.prefs.get("removeDoubles",        self.removeDoubles)
-            self.resolveNormals          = ImportLDrawOps.prefs.get("resolveNormals",       self.resolveNormals)
-            self.resPrims                = ImportLDrawOps.prefs.get("resolution",           self.resPrims)
-            self.useArchiveLibrary       = ImportLDrawOps.prefs.get("useArchiveLibrary",    self.useArchiveLibrary)
-            self.searchAdditionalPaths   = ImportLDrawOps.prefs.get("searchAdditionalPaths", self.searchAdditionalPaths)
-            self.smoothParts             = ImportLDrawOps.prefs.get("smoothShading",        self.smoothParts)
-            self.studLogoPath            = ImportLDrawOps.prefs.get("studLogoDirectory",    self.studLogoPath)
-            self.useLogoStuds            = ImportLDrawOps.prefs.get("useLogoStuds",         self.useLogoStuds)
-            self.useLSynthParts          = ImportLDrawOps.prefs.get("useLSynthParts",       self.useLSynthParts)
-            self.useUnofficialParts      = ImportLDrawOps.prefs.get("useUnofficialParts",   self.useUnofficialParts)
-            self.verbose                 = ImportLDrawOps.prefs.get("verbose",              self.verbose)
-
-            if self.colourScheme == "custom":
-                assert self.customLDConfigPath.__ne__(""), "Custom LDraw colour (LDConfig) file path not specified."
-
-                # Read current preferences from the UI and save them
+            loadldraw.debugPrint(f"Preferences file:    {self.preferencesFile}")
+            use_lpub_settings = os.path.basename(self.preferencesFile) != "ImportLDrawPreferences.ini"
         else:
-            ImportLDrawOps.prefs.get("customLDConfigFile",     self.customLDConfigPath)
-            ImportLDrawOps.prefs.get("environmentFile",        self.environmentPath)
+            loadldraw.debugPrint("------Import LDraw-------")
+
+        if use_lpub_settings:
+            ImportLDrawOps.prefs = Preferences(self.preferencesFile)
+        else:
+            ImportLDrawOps.prefs = Preferences("")
+
+        # Initialize model globals
+        model_globals.init()
+
+        # Update properties with the reinitialized preferences
+        self.addEnvironment          = ImportLDrawOps.prefs.get("addEnvironment",       self.addEnvironment)
+        self.addGaps                 = ImportLDrawOps.prefs.get("gaps",                 self.addGaps)
+        self.additionalSearchPaths   = ImportLDrawOps.prefs.get("additionalSearchDirectories", self.additionalSearchPaths)
+        self.addSubsurface           = ImportLDrawOps.prefs.get("addSubsurface",        self.addSubsurface)
+        self.bevelEdges              = ImportLDrawOps.prefs.get("bevelEdges",           self.bevelEdges)
+        self.bevelWidth              = ImportLDrawOps.prefs.get("bevelWidth",           self.bevelWidth)
+        self.cameraBorderPercentage  = ImportLDrawOps.prefs.get("cameraBorderPercentage", self.cameraBorderPercentage)
+        self.colourScheme            = ImportLDrawOps.prefs.get("useColourScheme",      self.colourScheme)
+        self.curvedWalls             = ImportLDrawOps.prefs.get("curvedWalls",          self.curvedWalls)
+        self.customLDConfigPath      = ImportLDrawOps.prefs.get("customLDConfigFile",   self.customLDConfigPath)
+        self.defaultColour           = ImportLDrawOps.prefs.get("defaultColour",        self.defaultColour)
+        self.environmentPath         = ImportLDrawOps.prefs.get("environmentFile",      self.environmentPath)
+        self.flatten                 = ImportLDrawOps.prefs.get("flattenHierarchy",     self.flatten)
+        self.gapsSize                = ImportLDrawOps.prefs.get("gapWidth",             self.gapsSize)
+        self.importCameras           = ImportLDrawOps.prefs.get("importCameras",        self.importCameras)
+        self.importLights            = ImportLDrawOps.prefs.get("importLights",         self.importLights)
+        self.importScale             = ImportLDrawOps.prefs.get("scale",                self.importScale)
+        self.instanceStuds           = ImportLDrawOps.prefs.get("instanceStuds",        self.instanceStuds)
+        self.ldrawPath               = ImportLDrawOps.prefs.get("ldrawDirectory",       self.ldrawPath)
+        self.linkParts               = ImportLDrawOps.prefs.get("linkParts",            self.linkParts)
+        self.logoStudVersion         = ImportLDrawOps.prefs.get("logoStudVersion",      self.logoStudVersion)
+        self.look                    = ImportLDrawOps.prefs.get("useLook",              self.look)
+        self.lsynthPath              = ImportLDrawOps.prefs.get("lsynthDirectory",      self.lsynthPath)
+        self.numberNodes             = ImportLDrawOps.prefs.get("numberNodes",          self.numberNodes)
+        self.overwriteExistingMaterials = ImportLDrawOps.prefs.get("overwriteExistingMaterials", self.overwriteExistingMaterials)
+        self.overwriteExistingMeshes = ImportLDrawOps.prefs.get("overwriteExistingMeshes", self.overwriteExistingMeshes)
+        self.parameterFile           = ImportLDrawOps.prefs.get("parameterFile",        self.parameterFile)
+        self.positionCamera          = ImportLDrawOps.prefs.get("positionCamera",       self.positionCamera)
+        self.positionOnGround        = ImportLDrawOps.prefs.get("positionObjectOnGroundAtOrigin", self.positionOnGround)
+        self.removeDoubles           = ImportLDrawOps.prefs.get("removeDoubles",        self.removeDoubles)
+        self.resolveNormals          = ImportLDrawOps.prefs.get("resolveNormals",       self.resolveNormals)
+        self.resPrims                = ImportLDrawOps.prefs.get("resolution",           self.resPrims)
+        self.useArchiveLibrary       = ImportLDrawOps.prefs.get("useArchiveLibrary",    self.useArchiveLibrary)
+        self.searchAdditionalPaths   = ImportLDrawOps.prefs.get("searchAdditionalPaths", self.searchAdditionalPaths)
+        self.smoothParts             = ImportLDrawOps.prefs.get("smoothShading",        self.smoothParts)
+        self.studLogoPath            = ImportLDrawOps.prefs.get("studLogoDirectory",    self.studLogoPath)
+        self.useLogoStuds            = ImportLDrawOps.prefs.get("useLogoStuds",         self.useLogoStuds)
+        self.useLSynthParts          = ImportLDrawOps.prefs.get("useLSynthParts",       self.useLSynthParts)
+        self.useUnofficialParts      = ImportLDrawOps.prefs.get("useUnofficialParts",   self.useUnofficialParts)
+        self.verbose                 = ImportLDrawOps.prefs.get("verbose",              self.verbose)
+
+        if self.colourScheme == "custom":
+            assert self.customLDConfigPath != "", "Custom LDraw colour (LDConfig) file path not specified."
+
+        if self.preferencesFile == "":
+            
+            # Read current preferences from the UI and save them
+
+            ImportLDrawOps.prefs.set("customLDConfigFile",     self.customLDConfigPath)
+            ImportLDrawOps.prefs.set("environmentFile",        self.environmentPath)
             ImportLDrawOps.prefs.set("addEnvironment",         self.addEnvironment)
             ImportLDrawOps.prefs.set("addSubsurface",          self.addSubsurface)
             ImportLDrawOps.prefs.set("bevelEdges",             self.bevelEdges)
@@ -585,7 +592,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             ImportLDrawOps.prefs.set("instanceStuds",          self.instanceStuds)
             ImportLDrawOps.prefs.set("ldrawDirectory",         self.ldrawPath)
             ImportLDrawOps.prefs.set("linkParts",              self.linkParts)
-            ImportLDrawOps.prefs.get("logoStudVersion",        self.logoStudVersion)
+            ImportLDrawOps.prefs.set("logoStudVersion",        self.logoStudVersion)
             ImportLDrawOps.prefs.set("lsynthDirectory",        self.lsynthPath)
             ImportLDrawOps.prefs.set("numberNodes",            self.numberNodes)
             ImportLDrawOps.prefs.set("positionCamera",         self.positionCamera)
@@ -602,10 +609,11 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             ImportLDrawOps.prefs.set("useLook",                self.look)
             ImportLDrawOps.prefs.set("useUnofficialParts",     self.useUnofficialParts)
             ImportLDrawOps.prefs.set("verbose",                self.verbose)
-            ImportLDrawOps.prefs.save()
+        
+        ImportLDrawOps.prefs.save()
 
         # Set bpy related variables here since it isn't available immediately on Blender startup
-        loadldraw.isBlender28OrLater = hasattr(bpy.app, "version") and bpy.app.version >= (2, 80)
+        loadldraw.isBlender28OrLater = hasattr(bpy.app, "version") and bpy.app.version >= (2, 82)
         loadldraw.hasCollections = hasattr(bpy.data, "collections")
 
         # Set import options and import
@@ -668,6 +676,18 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         if self.filepath:
             self.modelFile                            = self.filepath
 
-        loadldraw.loadFromFile(self, self.modelFile)
+        model_globals.LDRAW_MODEL_FILE = self.modelFile
+
+        load_result = loadldraw.loadFromFile(self, self.modelFile)
+
+        model_globals.LDRAW_MODEL_LOADED = True
+
+        loadldraw.debugPrint("-----Import Complete-----")
+        if load_result is None:
+            loadldraw.debugPrint("Import result: None")
+        loadldraw.debugPrint(f"Model file: {model_globals.LDRAW_MODEL_FILE}")
+        loadldraw.debugPrint(f"Elapsed time: {loadldraw.formatElapsed(loadldraw.ldrawLoadElapsed)}")
+        loadldraw.debugPrint("-------------------------")
+        loadldraw.debugPrint("")
 
         return {"FINISHED"}

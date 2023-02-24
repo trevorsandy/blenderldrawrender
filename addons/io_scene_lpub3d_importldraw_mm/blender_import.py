@@ -13,9 +13,8 @@ from . import strings
 
 from . import group
 
-
 def do_import(filepath):
-    print(filepath)  # TODO: multiple filepaths?
+    #print(filepath)  # TODO: multiple filepaths?
 
     __scene_setup()
     LDrawFile.reset_caches()
@@ -52,13 +51,14 @@ def do_import(filepath):
                 max_clip_end = camera.data.clip_end
             bpy.context.scene.camera = camera
 
-    for area in bpy.context.screen.areas:
-        if area.type == "VIEW_3D":
-            for space in area.spaces:
-                # space.shading.show_backface_culling = False
-                if space.type == "VIEW_3D":
-                    if space.clip_end < max_clip_end:
-                        space.clip_end = max_clip_end
+    if bpy.context.screen is not None:
+        for area in bpy.context.screen.areas:
+            if area.type == "VIEW_3D":
+                for space in area.spaces:
+                    # space.shading.show_backface_culling = False
+                    if space.type == "VIEW_3D":
+                        if space.clip_end < max_clip_end:
+                            space.clip_end = max_clip_end
 
     return obj
 

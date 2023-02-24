@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update January 20, 2023
+Last Update February 12, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Render LDraw GPLv2 license.
@@ -20,21 +20,28 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software Foundation,
 Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-"""
 
-"""
 LPub3D Render LDraw
 
 This file defines the LDraw render routines.
 """
+
+# Import From Files - See PR https://github.com/TobyLobster/ImportLDraw/pull/49/
+if "bpy" in locals():
+    import importlib
+    importlib.reload(model_globals)
+else:
+    from .modelglobals import model_globals
 
 import os
 import sys
 import bpy
 import time
 import datetime
-from bpy_extras.io_utils import ExportHelper
+from bpy_extras.io_utils import ImportHelper
 from io_scene_lpub3d_importldraw import importldraw
+from io_scene_lpub3d_importldraw_mm import operator_import
+from io_scene_lpub3d_importldraw_mm.filesystem import FileSystem
 from bpy.props import (StringProperty,
                        IntProperty,
                        EnumProperty,
@@ -54,13 +61,13 @@ units = (
 
 
 def render_print(message):
-    """Debug print with identification timestamp."""
+    """Print standard output with identification timestamp."""
 
     # Current timestamp (with milliseconds trimmed to two places)
     timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-4]
 
-    message = "{0} [renderldraw] {1}".format(timestamp, message)
-    sys.stdout.write("{0}\n".format(message))
+    message = f"{timestamp} [renderldraw] {message}"
+    sys.stdout.write(f"{message}\n")
     sys.stdout.flush()
 
 
@@ -108,7 +115,7 @@ def format_elapsed(interval, long_form=False, seconds_places=3):
 # end format_elapsed
 
 
-class RenderLDrawOps(bpy.types.Operator, ExportHelper):
+class RenderLDrawOps(bpy.types.Operator, ImportHelper):
     """LPub3D Render LDraw - Render Operator."""
 
     bl_idname = "render_scene.lpub3drenderldraw"
@@ -118,11 +125,19 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
     bl_region_type = "WINDOW"
     bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
+    prefs = type('', (), {})()
+    use_ldraw_import = False
+    use_ldraw_import_mm = False
+    for addon in bpy.context.preferences.addons:
+        if addon.module == 'io_scene_lpub3d_importldraw_mm':
+            use_ldraw_import_mm = True
+        elif addon.module == 'io_scene_lpub3d_importldraw':
+            use_ldraw_import = True
     image_file_name = 'rendered_ldraw_image.png'
-    prefs_directory = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../io_scene_lpub3d_importldraw'))
-    prefs_file_path = os.path.join(prefs_directory, 'ImportLDrawPreferences.ini')
-    image_directory = os.path.abspath(os.path.expanduser("~"))
+    image_directory = os.path.abspath(os.path.expanduser('~'))
     image_file_path = os.path.join(image_directory, image_file_name)
+
+    ldraw_model_loaded = False
 
     temp_image_file = None
     task_status     = None
@@ -135,10 +150,12 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
     busy        = None
     tasks       = None
 
-    # Preferences (used to confirm LDraw path and crop settings)
-    prefs       = type('', (), {})()
-
     # Properties
+    if use_ldraw_import_mm:
+        prefs = operator_import.ImportSettings.get_settings()
+    elif use_ldraw_import:
+        prefs = importldraw.Preferences("")
+
     model_file: StringProperty(
         name="",
         description="Specify LDraw model file absolute file path - required",
@@ -256,7 +273,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
     )
 
     preferences_file: StringProperty(
-        default=prefs_file_path,
+        default=r"",
         options={'HIDDEN'}
     )
 
@@ -277,7 +294,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         self.busy = False
 
     # Complete is triggered after the entire render job
-    def complete(self, dummyfoo, dummyboo):
+    def completed(self, dummyfoo, dummyboo):
         self.complete = True
 
     def cancelled(self, dummyfoo, dummyboo):
@@ -287,13 +304,13 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         bpy.app.handlers.render_pre.remove(self.pre)
         bpy.app.handlers.render_post.remove(self.post)
         bpy.app.handlers.render_cancel.remove(self.cancelled)
-        bpy.app.handlers.render_complete.remove(self.complete)
+        bpy.app.handlers.render_complete.remove(self.completed)
         bpy.app.handlers.render_complete.remove(self.autocropImage)
         context.window_manager.event_timer_remove(self._timer)
 
     # Print function
     def debugPrint(self, message):
-        """Debug print with identification timestamp."""
+        """Debug print"""
 
         if self.verbose:
             render_print(message)
@@ -312,26 +329,26 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
                     # Get the opaque bounding box
                     pil_image = Image.open(self.image_file)
                     cropped_box = pil_image.convert("RGBa").getbbox()
-                    self.debugPrint("Rendered Image Size: w{0} x h{1}".format(pil_image.width, pil_image.height))
+                    self.debugPrint(f"Rendered Image Size: w{pil_image.width} x h{pil_image.height}")
 
                     # Crop the image
                     pil_image = pil_image.crop(cropped_box)
-                    self.debugPrint("Cropped Image Size:  w{0} x h{1}".format(pil_image.width, pil_image.height))
+                    self.debugPrint(f"Cropped Image Size:  w{pil_image.width} x h{pil_image.height}")
 
                     if pil_image:
                         with open(self.image_file, 'wb') as image_file:
                             pil_image.save(image_file, format='PNG')
                 else:
-                    self.task_status = "{0} 'Crop failed. Pillow package not installed.".format(os.path.basename(self.image_file))
+                    self.task_status = f"{os.path.basename(self.image_file)} 'Crop failed. Pillow package not installed."
             else:
                 self.task_status = "Crop failed. Transparent Background and/or Add Environment settings not satisfied."
 
         now = time.time()
 
         if self.task_status is not None:
-            self.report({'ERROR'}, "{0}. Elapsed Time: {1}".format(self.task_status, format_elapsed(now - self._start_time)))
+            self.report({'ERROR'}, f"{self.task_status}. Elapsed Time: {format_elapsed(now - self._start_time)}")
         else:
-            render_print("SUCCESS: {0} rendered. Elapsed Time: {1}".format(os.path.basename(self.image_file),format_elapsed(now - self._start_time)))
+            render_print(f"SUCCESS: {os.path.basename(self.image_file)} rendered. Elapsed Time: {format_elapsed(now - self._start_time)}")
 
     # Render function
     def performRenderTask(self):
@@ -344,7 +361,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
                 self.debugPrint("Performing Render Task With Preview Window...")
 
         if self.blend_file:
-            self.debugPrint("Apply blend file {0} - Trusted: {1}".format(self.blend_file, self.blendfile_trusted))
+            self.debugPrint(f"Apply blend file {self.blend_file} - Trusted: {self.blendfile_trusted}")
             bpy.ops.wm.open_mainfile(filepath=self.blend_file, use_scripts=self.blendfile_trusted)
         # end if
 
@@ -371,7 +388,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         # end if
 
         if not self.overwrite_image and os.path.exists(self.image_file):
-            self.report({'ERROR'}, "ERROR LDraw image “{}” already exists".format(self.image_file))
+            self.report({'ERROR'}, f"ERROR LDraw image '{self.image_file}' already exists")
         else:
             self._start_time = time.time()
 
@@ -395,32 +412,53 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
 
     def debugPrintPreferences(self):
         self.debugPrint("-------------------------")
-        self.debugPrint("Look:                {0}".format(self.use_look))
-        self.debugPrint("Overwrite_Image:     {0}".format(self.overwrite_image))
-        self.debugPrint("Trans_Background:    {0}".format(self.transparent_background))
-        self.debugPrint("Add_Environment:     {0}".format(self.add_environment))
-        self.debugPrint("Crop_Image:          {0}".format(self.crop_image))
-        self.debugPrint("Search_Addl_Paths:   {0}".format(self.search_additional_paths))
+        if not self.use_ldraw_import_mm:
+            self.debugPrint(f"Look:                {self.use_look}")
+            self.debugPrint(f"Add_Environment:     {self.add_environment}")
+        if self.load_ldraw_model:
+            self.debugPrint(f"Resolution_Width:    {self.resolution_width}")
+            self.debugPrint(f"Resolution_Height:   {self.resolution_height}")
+            self.debugPrint(f"Render_Percentage:   {self.render_percentage}")
+        self.debugPrint(f"Overwrite_Image:     {self.overwrite_image}")
+        self.debugPrint(f"Trans_Background:    {self.transparent_background}")
+        self.debugPrint(f"Crop_Image:          {self.crop_image}")
         if not self.cli_render:
-            self.debugPrint("Render_Window:       {0}".format(self.render_window))
+            self.debugPrint(f"Render_Window:       {self.render_window}")
         if not self.blend_file == "":
-            self.debugPrint("Blendfile_Trusted:   {0}".format(self.blendfile_trusted))
-            self.debugPrint("Blend_File:          {0}".format(self.blend_file))
-        self.debugPrint("Verbose:             {0}".format(self.verbose))
+            self.debugPrint(f"Blendfile_Trusted:   {self.blendfile_trusted}")
+            self.debugPrint(f"Blend_File:          {self.blend_file}")
 
     def setImportLDrawPreferences(self):
         """Import parameter settings when running from command line or LDraw file already loaded."""
 
-        self.use_look                = importldraw.ImportLDrawOps.prefs.get('useLook',          self.use_look)
-        self.overwrite_image         = importldraw.ImportLDrawOps.prefs.get('overwriteImage',   self.overwrite_image)
-        self.transparent_background  = importldraw.ImportLDrawOps.prefs.get('transparentBackground', self.transparent_background)
-        self.add_environment         = importldraw.ImportLDrawOps.prefs.get('addEnvironment',   self.add_environment)
-        self.crop_image              = importldraw.ImportLDrawOps.prefs.get('cropImage',        self.crop_image)
-        self.render_window           = importldraw.ImportLDrawOps.prefs.get('renderWindow',     self.render_window)
-        self.blendfile_trusted       = importldraw.ImportLDrawOps.prefs.get('blendfileTrusted', self.blendfile_trusted)
-        self.blend_file              = importldraw.ImportLDrawOps.prefs.get('blendFile',        self.blend_file)
-        self.search_additional_paths = importldraw.ImportLDrawOps.prefs.get('searchAdditionalPaths', self.search_additional_paths)
-        self.verbose                 = importldraw.ImportLDrawOps.prefs.get('verbose',          self.verbose)
+        if self.use_ldraw_import_mm:
+            if self.ldraw_model_loaded or (self.cli_render and not self.import_only):
+                self.resolution_width        = operator_import.ImportSettings.get_setting("resolution_width")
+                self.resolution_height       = operator_import.ImportSettings.get_setting("resolution_height")
+                self.render_percentage       = operator_import.ImportSettings.get_setting("render_percentage")
+                self.search_additional_paths = operator_import.ImportSettings.get_setting("search_additional_paths")
+            self.overwrite_image         = operator_import.ImportSettings.get_setting("overwrite_image")
+            self.transparent_background  = operator_import.ImportSettings.get_setting("transparent_background")
+            self.crop_image              = operator_import.ImportSettings.get_setting("crop_image")
+            self.render_window           = operator_import.ImportSettings.get_setting("render_window")
+            self.blendfile_trusted       = operator_import.ImportSettings.get_setting("blendfile_trusted")
+            self.blend_file              = operator_import.ImportSettings.get_setting("blend_file")
+            self.verbose                 = operator_import.ImportSettings.get_setting("verbose")
+        elif self.use_ldraw_import:
+            if self.ldraw_model_loaded or (self.cli_render and not self.import_only):
+                self.resolution_width        = importldraw.ImportLDrawOps.prefs.get('resolutionwidth',  self.resolution_width)
+                self.resolution_height       = importldraw.ImportLDrawOps.prefs.get('resolutionheight', self.resolution_height)
+                self.render_percentage       = importldraw.ImportLDrawOps.prefs.get('renderpercentage', self.render_percentage)
+                self.search_additional_paths = importldraw.ImportLDrawOps.prefs.get('searchAdditionalPaths', self.search_additional_paths)            
+            self.use_look                = importldraw.ImportLDrawOps.prefs.get('useLook',          self.use_look)
+            self.add_environment         = importldraw.ImportLDrawOps.prefs.get('addEnvironment',   self.add_environment)
+            self.overwrite_image         = importldraw.ImportLDrawOps.prefs.get('overwriteImage',   self.overwrite_image)
+            self.transparent_background  = importldraw.ImportLDrawOps.prefs.get('transparentBackground', self.transparent_background)
+            self.crop_image              = importldraw.ImportLDrawOps.prefs.get('cropImage',        self.crop_image)
+            self.render_window           = importldraw.ImportLDrawOps.prefs.get('renderWindow',     self.render_window)
+            self.blendfile_trusted       = importldraw.ImportLDrawOps.prefs.get('blendfileTrusted', self.blendfile_trusted)
+            self.blend_file              = importldraw.ImportLDrawOps.prefs.get('blendFile',        self.blend_file)
+            self.verbose                 = importldraw.ImportLDrawOps.prefs.get('verbose',          self.verbose)
 
         self.debugPrintPreferences()
 
@@ -432,7 +470,7 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
 
         box = layout.box()
         box.label(text="LDraw Render Options", icon='PREFERENCES')
-        if not importldraw.loadldraw.ldrawModelLoaded and self.ldraw_path.__eq__(""):
+        if not self.ldraw_model_loaded and self.ldraw_path == "":
             box.label(text="LDraw filepath:", icon='FILEBROWSER')
             box.prop(self, "ldraw_path")
         box.label(text="Model filepath:", icon='FILEBROWSER')
@@ -448,36 +486,76 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         box.prop(self, "overwrite_image")
         box.prop(self, "blendfile_trusted")
 
-        if not importldraw.loadldraw.ldrawModelLoaded:
+        if not self.ldraw_model_loaded:
+            box.prop(self, "use_ldraw_import_mm")
             box.prop(self, "load_ldraw_model")
+
+        if not self.use_ldraw_import_mm:
             box.prop(self, "use_look", expand=True)
-            box.prop(self, "transparent_background")
             box.prop(self, "add_environment")
-            box.prop(self, "crop_image")
-            box.prop(self, "search_additional_paths")
-            box.prop(self, "verbose")
+
+        box.prop(self, "transparent_background")
+        box.prop(self, "crop_image")
+        box.prop(self, "verbose")
 
     def invoke(self, context, event):
         """Setup render options."""
 
-        if importldraw.loadldraw.ldrawModelLoaded:
-            self.setImportLDrawPreferences()
-            self.model_file = importldraw.loadldraw.ldrawModelFile
-            self.image_file = self.model_file + ".png"
-        else:
-            self.prefs = importldraw.Preferences(self.preferences_file)
+        self.debugPrint("-------------------------")
+        self.debugPrint("Performing GUI Render Task...")
+        self.debugPrint("-------------------------")
 
-            self.ldraw_path              = self.prefs.get('ldrawDirectory',        importldraw.loadldraw.Configure.findDefaultLDrawDirectory())
-            self.use_look                = self.prefs.get('useLook',               self.use_look)
-            self.overwrite_image         = self.prefs.get('overwriteImage',        self.overwrite_image)
-            self.transparent_background  = self.prefs.get('transparentBackground', self.transparent_background)
-            self.add_environment         = self.prefs.get('addEnvironment',        self.add_environment)
-            self.crop_image              = self.prefs.get('cropImage',             self.crop_image)
-            self.render_window           = self.prefs.get('renderWindow',          self.render_window)
-            self.blendfile_trusted       = self.prefs.get('blendfileTrusted',      self.blendfile_trusted)
-            self.blend_file              = self.prefs.get('blendFile',             self.blend_file)
-            self.search_additional_paths = self.prefs.get('searchAdditionalPaths', self.search_additional_paths)
-            self.verbose                 = self.prefs.get('verbose',               self.verbose)
+        if self.use_ldraw_import_mm:
+            RenderLDrawOps.prefs      = operator_import.ImportSettings.get_settings()
+            self.ldraw_path           = RenderLDrawOps.prefs.get('ldraw_path', FileSystem.locate_ldraw())
+            if model_globals.LDRAW_MODEL_LOADED:
+                self.ldraw_model_loaded = True
+                self.load_ldraw_model = False
+        elif self.use_ldraw_import:
+            RenderLDrawOps.prefs      = importldraw.Preferences("")
+            self.ldraw_path           = RenderLDrawOps.prefs.get('ldrawdirectory', importldraw.loadldraw.Configure.findDefaultLDrawDirectory())
+            if model_globals.LDRAW_MODEL_LOADED:
+                self.ldraw_model_loaded = True
+                self.load_ldraw_model = False
+
+        if self.use_ldraw_import_mm:
+            self.debugPrint("Use_LDraw_Import_MM: True")
+        elif self.use_ldraw_import:
+            self.debugPrint("Use_LDraw_Import:    True")
+        self.debugPrint(f"Import_Only:         {self.import_only}")
+        self.debugPrint(f"CLI_Render:          {self.cli_render}")
+        self.debugPrint(f"Load_LDraw_Model:    {self.load_ldraw_model}")
+        self.debugPrint(f"Search_Addl_Paths:   {self.search_additional_paths}")
+
+        if self.ldraw_model_loaded:
+            self.model_file  = model_globals.LDRAW_MODEL_FILE
+            self.image_file  = model_globals.LDRAW_IMAGE_FILE
+            if self.image_file == "":
+                self.image_file = self.model_file + '.png'
+            self.debugPrint(f"Loaded Model File:   {self.model_file}")
+            self.setImportLDrawPreferences()
+            self.debugPrint(f"Image_File:          {self.image_file}")
+        else:
+            if self.use_ldraw_import_mm:
+                self.overwrite_image         = RenderLDrawOps.prefs.get('overwrite_image',         self.overwrite_image)
+                self.transparent_background  = RenderLDrawOps.prefs.get('transparent_background',  self.transparent_background)
+                self.crop_image              = RenderLDrawOps.prefs.get('crop_image',              self.crop_image)
+                self.render_window           = RenderLDrawOps.prefs.get('render_window',           self.render_window)
+                self.blendfile_trusted       = RenderLDrawOps.prefs.get('blendfile_trusted',       self.blendfile_trusted)
+                self.blend_file              = RenderLDrawOps.prefs.get('blend_file',              self.blend_file)
+                self.search_additional_paths = RenderLDrawOps.prefs.get('search_additional_paths', self.search_additional_paths)
+                self.verbose                 = RenderLDrawOps.prefs.get('verbose',                 self.verbose)
+            elif self.use_ldraw_import:
+                self.use_look                = RenderLDrawOps.prefs.get('uselook',               self.use_look)
+                self.add_environment         = RenderLDrawOps.prefs.get('addenvironment',        self.add_environment)
+                self.overwrite_image         = RenderLDrawOps.prefs.get('overwriteimage',        self.overwrite_image)
+                self.transparent_background  = RenderLDrawOps.prefs.get('transparentbackground', self.transparent_background)
+                self.crop_image              = RenderLDrawOps.prefs.get('cropimage',             self.crop_image)
+                self.render_window           = RenderLDrawOps.prefs.get('renderwindow',          self.render_window)
+                self.blendfile_trusted       = RenderLDrawOps.prefs.get('blendfiletrusted',      self.blendfile_trusted)
+                self.blend_file              = RenderLDrawOps.prefs.get('blendfile',             self.blend_file)
+                self.search_additional_paths = RenderLDrawOps.prefs.get('searchadditionalpaths', self.search_additional_paths)
+                self.verbose                 = RenderLDrawOps.prefs.get('verbose',               self.verbose)
 
         if not self.filepath:
             blend_filepath = context.blend_data.filepath
@@ -495,123 +573,169 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
         """LPub3D Render LDraw model."""
 
         # Confirm minimum Blender version
-        if bpy.app.version < (2, 80, 0):
-            self.report({'ERROR'}, 'The RenderLDraw addon requires Blender 2.80 or greater.')
+        if bpy.app.version < (2, 82, 0):
+            self.report({'ERROR'}, 'The RenderLDraw addon requires Blender 2.82 or greater.')
             return {'FINISHED'}
 
-        if importldraw.loadldraw.ldrawModelLoaded:
-            self.debugPrint("Preferences_File:    {0}".format(self.preferences_file))
-            self.debugPrint("Model_File:          {0}".format(self.model_file))
-
-        elif self.load_ldraw_model:
+        self.debugPrint("-------------------------")
+        if self.cli_render:
+            self.debugPrint("Performing Headless Render Task...")
             self.debugPrint("-------------------------")
-            self.debugPrint("Performing Load Task...")
+
+        preferences_file = ""
+        if self.use_ldraw_import_mm:
+            preferences_folder = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                                 '../io_scene_lpub3d_importldraw_mm/config'))
+            preferences_file = os.path.join(preferences_folder, 'ImportOptions.json')
+            if model_globals.LDRAW_MODEL_LOADED:
+                self.load_ldraw_model = False
+                RenderLDrawOps.prefs  = operator_import.ImportSettings.get_settings()
+        elif self.use_ldraw_import:
+            preferences_folder = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                                 '../io_scene_lpub3d_importldraw'))
+            preferences_file = os.path.join(preferences_folder, 'ImportLDrawPreferences.ini')
+            if model_globals.LDRAW_MODEL_LOADED:
+                self.load_ldraw_model = False
+                RenderLDrawOps.prefs  = importldraw.Preferences("")
+
+        if not self.load_ldraw_model:
+            self.model_file       = model_globals.LDRAW_MODEL_FILE
+            self.image_file       = model_globals.LDRAW_IMAGE_FILE
+            self.preferences_file = preferences_file
+
+        self.debugPrint(f"Preferences_File:    {self.preferences_file}")
+        self.debugPrint(f"Model_File:          {self.model_file}")
+        self.debugPrint(f"Image_File:          {self.image_file}")
+        self.debugPrint(f"Verbose:             {self.verbose}")
+
+        if self.load_ldraw_model:
+            assert self.preferences_file != "", "Preference file path not specified."
 
             start_time = time.time()
 
-            self.debugPrint("CLI_Render:          {0}".format(self.cli_render))
-            self.debugPrint("Load_Ldraw_Model:    {0}".format(self.load_ldraw_model))
-            self.debugPrint("Resolution_Width:    {0}".format(self.resolution_width))
-            self.debugPrint("Resolution_Height:   {0}".format(self.resolution_height))
-            self.debugPrint("Render_Percentage:   {0}".format(self.render_percentage))
-            self.debugPrint("Preferences_File:    {0}".format(self.preferences_file))
-            self.debugPrint("Model_File:          {0}".format(self.model_file))
-            self.debugPrint("Image_File:          {0}".format(self.image_file))
+            self.debugPrint("-------------------------")
+            self.debugPrint("Performing Load Task...")
+            self.debugPrint("-------------------------")
+            if self.use_ldraw_import_mm:
+                self.debugPrint("Use_LDraw_Import_MM: True")
+            elif self.use_ldraw_import:
+                self.debugPrint("Use_LDraw_Import: True")
+            self.debugPrint(f"Import_Only:         {self.import_only}")                
+            self.debugPrint(f"CLI_Render:          {self.cli_render}")
+            self.debugPrint(f"Load_LDraw_Model:    {self.load_ldraw_model}")
+            self.debugPrint(f"Search_Addl_Paths:   {self.search_additional_paths}")
+            self.debugPrint(f"Image_File:          {self.image_file}")
 
-            assert self.preferences_file.__ne__(""), "Preference file path not specified."
-            assert self.image_file.__ne__(""), "Image file path not specified."
-            assert self.model_file.__ne__(""), "Model file path not specified."
-            if not self.cli_render:
-                assert self.ldraw_path.__ne__(""), "LDraw library path not specified."
-                self.prefs.set('ldrawDirectory',        self.ldraw_path)
-                self.prefs.set('useLook',               self.use_look)
-                self.prefs.set('overwriteImage',        self.overwrite_image)
-                self.prefs.set('transparentBackground', self.transparent_background)
-                self.prefs.set('addEnvironment',        self.add_environment)
-                self.prefs.set('cropImage',             self.crop_image)
-                self.prefs.set('renderWindow',          self.render_window)
-                self.prefs.set('blendfileTrusted',      self.blendfile_trusted)
-                self.prefs.set('blendFile',             self.blend_file)
-                self.prefs.set('searchAdditionalPaths', self.search_additional_paths)
-                self.prefs.set('verbose',               self.verbose)
-                self.prefs.save()
+            if self.use_ldraw_import_mm:
+                RenderLDrawOps.prefs = operator_import.ImportSettings.get_ini_settings(self.preferences_file)
+                self.ldraw_path = RenderLDrawOps.prefs.get('ldraw_path', FileSystem.locate_ldraw())
+            elif self.use_ldraw_import:
+                RenderLDrawOps.prefs = importldraw.Preferences(self.preferences_file)
+                self.ldraw_path = RenderLDrawOps.prefs.get('ldrawdirectory', importldraw.loadldraw.Configure.findDefaultLDrawDirectory())
+
+            # Set preference file path to import addon preference file
+            self.preferences_file = preferences_file
+
+            assert self.ldraw_path != "", "LDraw library path not specified."
+            assert self.image_file != "", "Image file path not specified."
+            assert self.model_file != "", "Model file path not specified."
+
+            if not self.cli_render or self.import_only:
+                if self.use_ldraw_import_mm:
+                    RenderLDrawOps.prefs['ldraw_path']              = self.ldraw_path
+                    RenderLDrawOps.prefs['resolution_width']        = self.resolution_width
+                    RenderLDrawOps.prefs['resolution_height']       = self.resolution_height
+                    RenderLDrawOps.prefs['render_percentage']       = self.render_percentage
+                    RenderLDrawOps.prefs['overwrite_image']         = self.overwrite_image
+                    RenderLDrawOps.prefs['transparent_background']  = self.transparent_background
+                    RenderLDrawOps.prefs['crop_image']              = self.crop_image
+                    RenderLDrawOps.prefs['render_window']           = self.render_window
+                    RenderLDrawOps.prefs['blendfile_trusted']       = self.blendfile_trusted
+                    RenderLDrawOps.prefs['blend_file']              = self.blend_file
+                    RenderLDrawOps.prefs['search_additional_paths'] = self.search_additional_paths
+                    RenderLDrawOps.prefs['verbose']                 = self.verbose
+                    operator_import.ImportSettings.save_settings(RenderLDrawOps.prefs)
+                elif self.use_ldraw_import:
+                    RenderLDrawOps.prefs.set('uselook',               self.use_look)
+                    RenderLDrawOps.prefs.set('addenvironment',        self.add_environment)
+                    RenderLDrawOps.prefs.set('ldrawdirectory',        self.ldraw_path)
+                    RenderLDrawOps.prefs.set('resolutionwidth',       self.resolution_width)
+                    RenderLDrawOps.prefs.set('resolutionheight',      self.resolution_height)
+                    RenderLDrawOps.prefs.set('renderPercentage',      self.render_percentage)
+                    RenderLDrawOps.prefs.set('overwriteimage',        self.overwrite_image)
+                    RenderLDrawOps.prefs.set('transparentbackground', self.transparent_background)
+                    RenderLDrawOps.prefs.set('cropimage',             self.crop_image)
+                    RenderLDrawOps.prefs.set('renderwindow',          self.render_window)
+                    RenderLDrawOps.prefs.set('blendfiletrusted',      self.blendfile_trusted)
+                    RenderLDrawOps.prefs.set('blendfile',             self.blend_file)
+                    RenderLDrawOps.prefs.set('searchadditionalpaths', self.search_additional_paths)
+                    RenderLDrawOps.prefs.set('verbose',               self.verbose)
+                    RenderLDrawOps.prefs.save()
                 self.debugPrintPreferences()
 
-            kwargs = {
-                "preferencesFile": self.preferences_file,
-                "modelFile": self.model_file
-            }
+            if self.use_ldraw_import_mm:
+                kwargs = {'preferences_file': self.preferences_file, 'filepath': self.model_file}
+                load_result = bpy.ops.import_scene.lpub3d_import_ldraw_mm('EXEC_DEFAULT', **kwargs)
+            elif self.use_ldraw_import:
+                kwargs = {'preferencesFile': self.preferences_file, 'modelFile': self.model_file}
+                load_result = bpy.ops.import_scene.lpub3dimportldraw('EXEC_DEFAULT', **kwargs)
 
-            load_Result = bpy.ops.import_scene.lpub3dimportldraw('EXEC_DEFAULT', **kwargs)
-
-            self.debugPrint("Load Task Result:    {0}".format(load_Result))
+            if self.cli_render:
+                model_globals.LDRAW_IMAGE_FILE = self.image_file
 
             # Check blend file and create if not exist
-            """
-            if self.cli_render and self.preferences_file:
-                default_blend_file_directory = os.path.dirname(self.preferences_file)
-                default_blend_file = os.path.abspath(os.path.join(default_blend_file_directory, 'lpub3d.blend'))
-                if not os.path.exists(default_blend_file):
-                    bpy.ops.wm.save_mainfile(filepath=default_blend_file)
-                    self.debugPrint("Save default blend file to {0}".format(default_blend_file))
-            """
+            #if self.cli_render and self.preferences_file:
+            #    default_blend_file_directory = os.path.dirname(self.preferences_file)
+            #    default_blend_file = os.path.abspath(os.path.join(default_blend_file_directory, 'lpub3d.blend'))
+            #    if not os.path.exists(default_blend_file):
+            #        bpy.ops.wm.save_mainfile(filepath=default_blend_file)
+            #        self.debugPrint("Save default blend file to {0}".format(default_blend_file))
 
             now = time.time()
 
-            if load_Result == {'FINISHED'}:
-                self.debugPrint("Imported '{0}' in {1}".format(os.path.basename(self.model_file),
-                                                               format_elapsed(now - start_time)))
-            else:
-                self.report({'ERROR'}, "ERROR {0} import failed. Elapsed time {1}".
-                            format(os.path.basename(self.model_file),
-                                   format_elapsed(now - start_time)))
+            if load_result != {'FINISHED'}:
+                self.report({'ERROR'}, f"ERROR - import '{os.path.basename(self.model_file)}' failed with result {load_result}. Elapsed time {format_elapsed(now - start_time)}")
 
         if self.cli_render:
-            self.debugPrint("-------------------------")
-            self.debugPrint("Performing Headless Render Task...")
-
-            # Register auto crop
             if not self.import_only:
+                # Get preferences properties from import module
+                if self.load_ldraw_model:
+                    self.setImportLDrawPreferences()
+
+                # Register auto crop
                 bpy.app.handlers.render_complete.append(self.autocropImage)
 
-            # Get preferences properties from importldraw module
-            if self.load_ldraw_model:
-                self.setImportLDrawPreferences()
-
-            # Render image
-            if not self.import_only:
+                # Render image
                 self.performRenderTask()
 
-            # Cleanup handler
-            if not self.import_only:
+                # Cleanup handler
                 bpy.app.handlers.render_complete.remove(self.autocropImage)
 
             return {'FINISHED'}
 
-        else:
-            self.debugPrint("Performing GUI Render Task...")
+        self.setImportLDrawPreferences()
 
-            # Define the variables during execution. This allows us to define when called from a button
-            self.complete = False
-            self.stop     = False
-            self.busy     = False
+        # Define the variables during execution. This allows us to define when called from a button
+        self.complete = False
+        self.stop     = False
+        self.busy     = False
 
-            # Set task(s)
-            self.tasks = ['RENDER_TASK']
-            # self.tasks = ['LOAD_TASK', 'RENDER_TASK']
+        # Set task(s)
+        self.tasks = ['RENDER_TASK']
+        # self.tasks = ['LOAD_TASK', 'RENDER_TASK']
 
-            # Add the handlers
-            bpy.app.handlers.render_pre.append(self.pre)
-            bpy.app.handlers.render_post.append(self.post)
-            bpy.app.handlers.render_cancel.append(self.cancelled)
-            bpy.app.handlers.render_complete.append(self.complete)
-            bpy.app.handlers.render_complete.append(self.autocropImage)
+        # Add the handlers
+        bpy.app.handlers.render_pre.append(self.pre)
+        bpy.app.handlers.render_post.append(self.post)
+        bpy.app.handlers.render_cancel.append(self.cancelled)
+        bpy.app.handlers.render_complete.append(self.completed)
+        bpy.app.handlers.render_complete.append(self.autocropImage)
 
-            # The timer gets created and the modal handler is added to the window manager
-            self._timer = context.window_manager.event_timer_add(0.5, window=context.window)
-            context.window_manager.modal_handler_add(self)
+        # The timer gets created and the modal handler is added to the window manager
+        self._timer = context.window_manager.event_timer_add(0.5, window=context.window)
+        context.window_manager.modal_handler_add(self)
 
-            return {"RUNNING_MODAL"}
+        return {"RUNNING_MODAL"}
 
     def modal(self, context, event):
         """Render Modal."""
@@ -640,12 +764,12 @@ class RenderLDrawOps(bpy.types.Operator, ExportHelper):
             elif self.busy is False:  # Not currently busy. Perform task.
 
                 # Perform task
-                if len(self.tasks) and self.tasks[0] == 'RENDER_TASK':
+                if self.tasks and self.tasks[0] == 'RENDER_TASK':
 
                     self.performRenderTask()
 
                 # Remove current task from list. Perform next task
-                if len(self.tasks):
+                if self.tasks:
                     self.tasks.pop(0)
 
             # (busy)

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update January 23, 2023
+Last Update February 12, 2023
+Copyright (c) 2020 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 Load LDraw GPLv2 license.
@@ -330,7 +331,7 @@ class Options:
     addGroundPlane     = True           # Add a ground plane
     setRenderSettings  = True           # Set render percentage, denoising
     removeDefaultObjects = True         # Remove cube and lamp
-    positionCamera     = True           # Position the camera where so we get the whole object in shot
+    positionCamera     = True           # Position the camera so we get the whole object in shot
     cameraBorderPercent = 0.05          # Add a border gap around the positioned object (0.05 = 5%) for the rendered image
 
     def meshOptionsString():
@@ -385,6 +386,7 @@ hasCollections = None
 
 haveArchiveLibraries = False
 ldrawModelLoaded     = False
+ldrawLoadElapsed     = 0.0
 ldrawModelFile       = r""
 
 # **************************************************************************************
@@ -4278,7 +4280,7 @@ def createBlenderObjectsFromNode(node,
                 areas  = [area for area in bpy.context.window.screen.areas if area.type == area_type]
 
                 if len(areas) <= 0:
-                    raise Exception(f"Make sure an Area of type {area_type} is open or visible on your screen!")
+                    raise ValueError(f"Make sure an Area of type {area_type} is open or visible on your screen!")
                 selectObject(ob)
                 bpy.ops.object.mode_set(mode='EDIT')
 
@@ -4995,6 +4997,7 @@ def loadFromFile(context, filename, isFullFilepath=True):
 
     global ldrawModelFile
     global ldrawModelLoaded
+    global ldrawLoadElapsed
     global globalCamerasToAdd
     global globalLightsToAdd
     global globalContext
@@ -5255,7 +5258,7 @@ def loadFromFile(context, filename, isFullFilepath=True):
     else:
         setupRealisticLook()
 
-    elapsed = time.time() - startTime
-    debugPrint("Load Done - Elapsed Time: {0}".format(formatElapsed(elapsed)))
+    ldrawLoadElapsed = time.time() - startTime
     ldrawModelLoaded = True
+
     return rootOb

@@ -3,9 +3,11 @@ import io
 import re
 import codecs
 import json
+import configparser
 from pathlib import Path
+import sys
 import os
-
+import datetime
 import functools
 
 try:
@@ -63,7 +65,7 @@ def write_json(folder, filename, dictionary):
         Path(folder).mkdir(parents=True, exist_ok=True)
         filepath = os.path.join(folder, filename)
         with open(filepath, 'w', encoding='utf-8', newline="\n") as file:
-            file.write(json.dumps(dictionary))
+            file.write(json.dumps(dictionary,indent=2))
     except Exception as e:
         print(e)
 
@@ -78,6 +80,65 @@ def read_json(folder, filename, default=None):
         print(e)
         return default
 
+
+def read_ini(ini_file, default=None):
+    assert ini_file != "", "LDrawRendererPreferences.ini file was not specified."
+    try:
+        section_name = 'importLDrawMM'
+        config = configparser.RawConfigParser()
+        read = config.read(ini_file)
+        if read and config[section_name]:
+            for section in config.sections():
+                if section != section_name:
+                    config.remove_section(section)
+            return config
+        else:
+            return default
+    except Exception as e:
+        print(e)
+        return default
+
+
+def evaluate_value(x):
+    if x == 'True':
+        return True
+    elif x == 'False':
+        return False
+    elif is_int(x):
+        return int(x)
+    elif is_float(x):
+        return float(x)
+    else:
+        return x
+
+
+def is_float(x):
+    try:
+        f = float(x)
+    except (TypeError, ValueError):
+        return False
+    else:
+        return True
+
+
+def is_int(x):
+    try:
+        f = float(x)
+        i = int(f)
+    except (TypeError, ValueError):
+        return False
+    else:
+        return f == i
+
+def render_print(message):
+    """Print standard output with identification timestamp."""
+
+    # Current timestamp (with milliseconds trimmed to two places)
+    timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-4]
+
+    message = "{0} [renderldraw] {1}".format(timestamp, message)
+    sys.stdout.write("{0}\n".format(message))
+    sys.stdout.flush()
 
 def clamp(num, min_value, max_value):
     return max(min(num, max_value), min_value)

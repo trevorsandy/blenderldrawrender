@@ -1,20 +1,27 @@
+import os
 import time
 import bpy
-import os
 
+from io_scene_lpub3d_renderldraw.modelglobals import model_globals
+from bpy_extras.io_utils import ImportHelper
 from .import_settings import ImportSettings
 from .ldraw_node import LDrawNode
 from . import blender_import
 from . import ldraw_part_types
 
-
-class IMPORT_OT_do_ldraw_import(bpy.types.Operator):
+class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
     """Import an LDraw model File"""
 
-    bl_idname = "ldraw_exporter.import_operator"
+    bl_idname = "import_scene.lpub3d_import_ldraw_mm"
+    bl_description = "Import LDraw model (.mpd/.ldr/.l3b/.dat)"
     bl_label = "Import LDraw"
-    bl_options = {'PRESET', 'UNDO'}
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_options = {'REGISTER', 'UNDO', 'PRESET'}
     filename_ext = ""
+
+    # Preferences declaration
+    prefs = ImportSettings.get_settings()
 
     filter_glob: bpy.props.StringProperty(
         name="Extensions",
@@ -300,10 +307,21 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator):
         default=False
     )
 
-    def invoke(self, context, _event):
-        context.window_manager.fileselect_add(self)
-        ImportSettings.load_settings()
-        return {'RUNNING_MODAL'}
+    verbose: bpy.props.BoolProperty(
+        name="Verbose Output",
+        description="Output all messages while working, else only show warnings and errors",
+        default=True
+    )
+
+    preferences_file: bpy.props.StringProperty(
+        default=r"",
+        options={'HIDDEN'}
+    )
+
+    #def invoke(self, context, _event):
+    #    context.window_manager.fileselect_add(self)
+    #    ImportSettings.load_settings()
+    #    return {'RUNNING_MODAL'}
 
     # _timer = None
     # __i = 0
@@ -327,10 +345,127 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator):
     #     wm.event_timer_remove(self._timer)
 
     def execute(self, context):
+
         start = time.perf_counter()
 
-        ImportSettings.save_settings(self)
+        use_lpub_settings = False
+        if self.preferences_file != "":
+            ImportSettings.debugPrint("=====Import MM Settings====")
+            ImportSettings.debugPrint(f"Preferences file:    {self.preferences_file}")
+            use_lpub_settings = os.path.basename(self.preferences_file) != "ImportOptions.json"
+        else:
+            ImportSettings.debugPrint("=====Import LDraw MM=======")
+
+        if use_lpub_settings:
+            IMPORT_OT_do_ldraw_import.prefs = ImportSettings.get_ini_settings(self.preferences_file)
+        else:
+            IMPORT_OT_do_ldraw_import.prefs = ImportSettings.get_settings()
+
+        # Initialize model globals
+        model_globals.init()
+
+        self.ldraw_path              = IMPORT_OT_do_ldraw_import.prefs.get("ldraw_path", self.ldraw_path)
+        self.studio_ldraw_path       = IMPORT_OT_do_ldraw_import.prefs.get("studio_ldraw_path", self.studio_ldraw_path)
+
+        self.prefer_studio           = IMPORT_OT_do_ldraw_import.prefs.get("prefer_studio", self.prefer_studio)
+        self.prefer_unofficial       = IMPORT_OT_do_ldraw_import.prefs.get("prefer_unofficial", self.prefer_unofficial)
+        self.use_alt_colors          = IMPORT_OT_do_ldraw_import.prefs.get("use_alt_colors", self.use_alt_colors)
+        self.resolution              = IMPORT_OT_do_ldraw_import.prefs.get("resolution", self.resolution)
+        self.display_logo            = IMPORT_OT_do_ldraw_import.prefs.get("display_logo", self.display_logo)
+        self.chosen_logo             = IMPORT_OT_do_ldraw_import.prefs.get("chosen_logo", self.chosen_logo)
+        self.profile                 = IMPORT_OT_do_ldraw_import.prefs.get("profile", self.profile)
+
+        self.import_scale            = IMPORT_OT_do_ldraw_import.prefs.get("import_scale", self.import_scale)
+        self.parent_to_empty         = IMPORT_OT_do_ldraw_import.prefs.get("parent_to_empty", self.parent_to_empty)
+        self.make_gaps               = IMPORT_OT_do_ldraw_import.prefs.get("make_gaps", self.make_gaps)
+        self.gap_scale               = IMPORT_OT_do_ldraw_import.prefs.get("gap_scale", self.gap_scale)
+        self.gap_target              = IMPORT_OT_do_ldraw_import.prefs.get("gap_target", self.gap_target)
+        self.gap_scale_strategy      = IMPORT_OT_do_ldraw_import.prefs.get("gap_scale_strategy", self.gap_scale_strategy)
+
+        self.remove_doubles          = IMPORT_OT_do_ldraw_import.prefs.get("remove_doubles", self.remove_doubles)
+        self.merge_distance          = IMPORT_OT_do_ldraw_import.prefs.get("merge_distance", self.merge_distance)
+        self.smooth_type             = IMPORT_OT_do_ldraw_import.prefs.get("smooth_type", self.smooth_type)
+        self.shade_smooth            = IMPORT_OT_do_ldraw_import.prefs.get("shade_smooth", self.shade_smooth)
+        self.recalculate_normals     = IMPORT_OT_do_ldraw_import.prefs.get("recalculate_normals", self.recalculate_normals)
+        self.triangulate             = IMPORT_OT_do_ldraw_import.prefs.get("triangulate", self.triangulate)
+
+        self.meta_bfc                = IMPORT_OT_do_ldraw_import.prefs.get("meta_bfc", self.meta_bfc)
+        self.meta_group              = IMPORT_OT_do_ldraw_import.prefs.get("meta_group", self.meta_group)
+        self.meta_print_write        = IMPORT_OT_do_ldraw_import.prefs.get("meta_print_write", self.meta_print_write)
+        self.meta_step               = IMPORT_OT_do_ldraw_import.prefs.get("meta_step", self.meta_step)
+        self.meta_step_groups        = IMPORT_OT_do_ldraw_import.prefs.get("meta_step_groups", self.meta_step_groups)
+        self.starting_step_frame     = IMPORT_OT_do_ldraw_import.prefs.get("starting_step_frame", self.starting_step_frame)
+        self.frames_per_step         = IMPORT_OT_do_ldraw_import.prefs.get("frames_per_step", self.frames_per_step)
+        self.set_end_frame           = IMPORT_OT_do_ldraw_import.prefs.get("set_end_frame", self.set_end_frame)
+        self.meta_clear              = IMPORT_OT_do_ldraw_import.prefs.get("meta_clear", self.meta_clear)
+        #self.meta_pause              = IMPORT_OT_do_ldraw_import.prefs.get("meta_pause", self.meta_pause)
+        self.meta_save               = IMPORT_OT_do_ldraw_import.prefs.get("meta_save", self.meta_save )
+        self.set_timeline_markers    = IMPORT_OT_do_ldraw_import.prefs.get("set_timeline_markers", self.set_timeline_markers)
+
+        self.use_freestyle_edges     = IMPORT_OT_do_ldraw_import.prefs.get("use_freestyle_edges", self.use_freestyle_edges)
+        self.import_edges            = IMPORT_OT_do_ldraw_import.prefs.get("import_edges", self.import_edges)
+        self.treat_shortcut_as_model = IMPORT_OT_do_ldraw_import.prefs.get("treat_shortcut_as_model", self.treat_shortcut_as_model)
+        self.treat_models_with_subparts_as_parts = IMPORT_OT_do_ldraw_import.prefs.get("treat_models_with_subparts_as_parts", self.treat_models_with_subparts_as_parts)
+        self.no_studs                = IMPORT_OT_do_ldraw_import.prefs.get("no_studs", self.no_studs)
+        self.preserve_hierarchy      = IMPORT_OT_do_ldraw_import.prefs.get("preserve_hierarchy", self.preserve_hierarchy)
+
+        self.verbose                 = IMPORT_OT_do_ldraw_import.prefs.get("verbose", self.verbose)
+
+        if self.preferences_file == "":
+
+            IMPORT_OT_do_ldraw_import.prefs["ldraw_path"]              = self.ldraw_path
+            IMPORT_OT_do_ldraw_import.prefs["studio_ldraw_path"]       = self.studio_ldraw_path
+
+            IMPORT_OT_do_ldraw_import.prefs["prefer_studio"]           = self.prefer_studio
+            IMPORT_OT_do_ldraw_import.prefs["prefer_unofficial"]       = self.prefer_unofficial
+            IMPORT_OT_do_ldraw_import.prefs["use_alt_colors"]          = self.use_alt_colors
+            IMPORT_OT_do_ldraw_import.prefs["resolution"]              = self.resolution
+            IMPORT_OT_do_ldraw_import.prefs["display_logo"]            = self.display_logo
+            IMPORT_OT_do_ldraw_import.prefs["chosen_logo"]             = self.chosen_logo
+            IMPORT_OT_do_ldraw_import.prefs["profile"]                 = self.profile
+
+            IMPORT_OT_do_ldraw_import.prefs["import_scale"]            = self.import_scale
+            IMPORT_OT_do_ldraw_import.prefs["parent_to_empty"]         = self.parent_to_empty
+            IMPORT_OT_do_ldraw_import.prefs["make_gaps"]               = self.make_gaps
+            IMPORT_OT_do_ldraw_import.prefs["gap_scale"]               = self.gap_scale
+            IMPORT_OT_do_ldraw_import.prefs["gap_target"]              = self.gap_target
+            IMPORT_OT_do_ldraw_import.prefs["gap_scale_strategy"]      = self.gap_scale_strategy
+
+            IMPORT_OT_do_ldraw_import.prefs["remove_doubles"]          = self.remove_doubles
+            IMPORT_OT_do_ldraw_import.prefs["merge_distance"]          = self.merge_distance
+            IMPORT_OT_do_ldraw_import.prefs["smooth_type"]             = self.smooth_type
+            IMPORT_OT_do_ldraw_import.prefs["shade_smooth"]            = self.shade_smooth
+            IMPORT_OT_do_ldraw_import.prefs["recalculate_normals"]     = self.recalculate_normals
+            IMPORT_OT_do_ldraw_import.prefs["triangulate"]             = self.triangulate
+
+            IMPORT_OT_do_ldraw_import.prefs["meta_bfc"]                = self.meta_bfc
+            IMPORT_OT_do_ldraw_import.prefs["meta_group"]              = self.meta_group
+            IMPORT_OT_do_ldraw_import.prefs["meta_print_write"]        = self.meta_print_write
+            IMPORT_OT_do_ldraw_import.prefs["meta_step"]               = self.meta_step
+            IMPORT_OT_do_ldraw_import.prefs["meta_step_groups"]        = self.meta_step_groups
+            IMPORT_OT_do_ldraw_import.prefs["starting_step_frame"]     = self.starting_step_frame
+            IMPORT_OT_do_ldraw_import.prefs["frames_per_step"]         = self.frames_per_step
+            IMPORT_OT_do_ldraw_import.prefs["set_end_frame"]           = self.set_end_frame
+            IMPORT_OT_do_ldraw_import.prefs["meta_clear"]              = self.meta_clear
+           #IMPORT_OT_do_ldraw_import.prefs["meta_pause"]             = self.meta_pause
+            IMPORT_OT_do_ldraw_import.prefs["meta_save"]               = self.meta_save
+            IMPORT_OT_do_ldraw_import.prefs["set_timeline_markers"]    = self.set_timeline_markers
+
+            IMPORT_OT_do_ldraw_import.prefs["use_freestyle_edges"]     = self.use_freestyle_edges
+            IMPORT_OT_do_ldraw_import.prefs["import_edges"]            = self.import_edges
+            IMPORT_OT_do_ldraw_import.prefs["treat_shortcut_as_model"] = self.treat_shortcut_as_model
+            IMPORT_OT_do_ldraw_import.prefs["treat_models_with_subparts_as_parts"] = self.treat_models_with_subparts_as_parts
+            IMPORT_OT_do_ldraw_import.prefs["no_studs"]                = self.no_studs
+            IMPORT_OT_do_ldraw_import.prefs["preserve_hierarchy"]      = self.preserve_hierarchy
+
+            IMPORT_OT_do_ldraw_import.prefs["verbose"]                 = self.verbose
+
+        assert self.filepath != "", "Model file path not specified."
+
+        ImportSettings.save_settings(IMPORT_OT_do_ldraw_import.prefs)
         ImportSettings.apply_settings()
+
+        model_globals.LDRAW_MODEL_FILE = self.filepath
 
         # wm = context.window_manager
         # self._timer = wm.event_timer_add(0.01, window=context.window)
@@ -339,31 +474,35 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator):
         # return {'RUNNING_MODAL'}
 
         # https://docs.python.org/3/library/profile.html
+        load_result = None
         if self.profile:
             import cProfile
             import pstats
 
             from pathlib import Path
-            prof_output = os.path.join(Path.home(), 'export_ldraw_import.prof')
+            prof_output = os.path.join(Path.home(), 'ldraw_import_mm.prof')
 
             with cProfile.Profile() as profiler:
-                blender_import.do_import(bpy.path.abspath(self.filepath))
+                load_result = blender_import.do_import(bpy.path.abspath(self.filepath))
             stats = pstats.Stats(profiler)
             stats.sort_stats(pstats.SortKey.TIME)
             stats.print_stats()
             stats.dump_stats(filename=prof_output)
         else:
-            blender_import.do_import(bpy.path.abspath(self.filepath))
+            load_result = blender_import.do_import(bpy.path.abspath(self.filepath))
+        
+        model_globals.LDRAW_MODEL_LOADED = True
 
-        print("")
-        print("======Import Complete======")
-        print(self.filepath)
-        print(f"Part count: {LDrawNode.part_count}")
+        ImportSettings.debugPrint("=====Import MM Complete====")
+        if load_result is None:
+            ImportSettings.debugPrint("Import MM result: None")
+        ImportSettings.debugPrint(f"Model file: {model_globals.LDRAW_MODEL_FILE}")
+        ImportSettings.debugPrint(f"Part count: {LDrawNode.part_count}")
         end = time.perf_counter()
-        elapsed = (end - start)
-        print(f"elapsed: {elapsed}")
-        print("===========================")
-        print("")
+        elapsed = end - start
+        ImportSettings.debugPrint(f"Elapsed time: {elapsed}")
+        ImportSettings.debugPrint("===========================")
+        ImportSettings.debugPrint("")
 
         return {'FINISHED'}
 
@@ -372,70 +511,69 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator):
         space_factor = 0.3
 
         layout = self.layout
+        layout.use_property_split = True  # Active single-column layout
 
-        col = layout.column()
-        col.prop(self, "ldraw_path")
-        col.prop(self, "studio_ldraw_path")
+        box = layout.box()
 
-        layout.separator(factor=space_factor)
-        col = layout.column()
-        col.label(text="Import Options")
-        col.prop(self, "prefer_studio")
-        col.prop(self, "prefer_unofficial")
-        col.prop(self, "use_alt_colors")
-        col.prop(self, "resolution")
-        col.prop(self, "display_logo")
-        col.prop(self, "chosen_logo")
-        col.prop(self, "profile")
+        box.prop(self, "ldraw_path")
+        box.prop(self, "studio_ldraw_path")
 
         layout.separator(factor=space_factor)
-        col = layout.column()
-        col.label(text="Scaling Options")
-        col.prop(self, "import_scale")
-        col.prop(self, "parent_to_empty")
-        col.prop(self, "make_gaps")
-        col.prop(self, "gap_scale")
-        col.prop(self, "gap_target")
-        col.prop(self, "gap_scale_strategy")
+        box.label(text="Import Options")
+        box.prop(self, "prefer_studio")
+        box.prop(self, "prefer_unofficial")
+        box.prop(self, "use_alt_colors")
+        box.prop(self, "resolution")
+        box.prop(self, "display_logo")
+        box.prop(self, "chosen_logo")
+        box.prop(self, "profile")
 
         layout.separator(factor=space_factor)
-        col = layout.column()
-        col.label(text="Cleanup Options")
-        col.prop(self, "remove_doubles")
-        col.prop(self, "merge_distance")
-        col.prop(self, "smooth_type")
-        col.prop(self, "shade_smooth")
-        col.prop(self, "recalculate_normals")
-        col.prop(self, "triangulate")
+        box.label(text="Scaling Options")
+        box.prop(self, "import_scale")
+        box.prop(self, "parent_to_empty")
+        box.prop(self, "make_gaps")
+        box.prop(self, "gap_scale")
+        box.prop(self, "gap_target")
+        box.prop(self, "gap_scale_strategy")
 
         layout.separator(factor=space_factor)
-        col = layout.column()
-        col.label(text="Meta Commands")
-        col.prop(self, "meta_bfc")
-        col.prop(self, "meta_group")
-        col.prop(self, "meta_print_write")
-        col.prop(self, "meta_step")
-        col.prop(self, "meta_step_groups")
-        col.prop(self, "frames_per_step")
-        col.prop(self, "set_end_frame")
-        col.prop(self, "meta_clear")
-        # col.prop(self, "meta_pause")
-        col.prop(self, "meta_save")
-        col.prop(self, "set_timeline_markers")
+        box.label(text="Cleanup Options")
+        box.prop(self, "remove_doubles")
+        box.prop(self, "merge_distance")
+        box.prop(self, "smooth_type")
+        box.prop(self, "shade_smooth")
+        box.prop(self, "recalculate_normals")
+        box.prop(self, "triangulate")
 
         layout.separator(factor=space_factor)
-        col = layout.column()
-        col.label(text="Extras")
-        col.prop(self, "use_freestyle_edges")
-        col.prop(self, "import_edges")
-        col.prop(self, "treat_shortcut_as_model")
-        col.prop(self, "treat_models_with_subparts_as_parts")
-        col.prop(self, "no_studs")
-        col.prop(self, "preserve_hierarchy")
+        box.label(text="Meta Commands")
+        box.prop(self, "meta_bfc")
+        box.prop(self, "meta_group")
+        box.prop(self, "meta_print_write")
+        box.prop(self, "meta_step")
+        box.prop(self, "meta_step_groups")
+        box.prop(self, "frames_per_step")
+        box.prop(self, "set_end_frame")
+        box.prop(self, "meta_clear")
+        # box.prop(self, "meta_pause")
+        box.prop(self, "meta_save")
+        box.prop(self, "set_timeline_markers")
+
+        layout.separator(factor=space_factor)
+        box.label(text="Extras")
+        box.prop(self, "use_freestyle_edges")
+        box.prop(self, "import_edges")
+        box.prop(self, "treat_shortcut_as_model")
+        box.prop(self, "treat_models_with_subparts_as_parts")
+        box.prop(self, "no_studs")
+        box.prop(self, "preserve_hierarchy")
+        box.prop(self, "verbose")
 
 
 def build_import_menu(self, context):
-    self.layout.operator(IMPORT_OT_do_ldraw_import.bl_idname, text="LPub3D LDraw MM (.mpd/.ldr/.l3b/.dat)")
+    self.layout.operator(IMPORT_OT_do_ldraw_import.bl_idname,
+                         text="LPub3D LDraw MM (.mpd/.ldr/.l3b/.dat)")
 
 
 classesToRegister = [
