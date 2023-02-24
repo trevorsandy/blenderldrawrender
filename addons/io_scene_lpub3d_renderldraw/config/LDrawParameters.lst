@@ -1,0 +1,248 @@
+# This config file captures parameters for the Blender LDraw Render addon
+# Parameters must be prefixed using one of the following predefined
+# 'Item' labels:
+# - lgeo_colour
+# - sloped_brick
+# - light_brick
+
+# All items must use a comma',' delimiter as the primary delimiter.
+# For sloped_brick items, a pipe'|' delimiter must be used to specify
+# a range (min|max) within which the angle must lie when appropriate.
+# Spaces between item attributes are not required and are used to
+# facilitate human readability.
+
+
+# LGEO CUSTOM COLOURS
+# LGEO is a parts library for rendering LEGO using the POV-Ray
+# rendering software. This is the list of LEGO colours suitable
+# for realistic rendering extracted from the LGEO file 'lg_color.inc'.
+# When the 'Colour Scheme' option is set to 'Realistic', the standard
+# LDraw colours RGB value is overwritten with the values defined here.
+# Note: You can customize these RGB values as you want.
+
+# Item-----  ID-    R--   G--   B--
+lgeo_colour,   0,    33,   33,   33
+lgeo_colour,   1,    13,  105,  171
+lgeo_colour,   2,    40,  127,   70
+lgeo_colour,   3,     0,  143,  155
+lgeo_colour,   4,   196,   40,   27
+lgeo_colour,   5,   205,   98,  152
+lgeo_colour,   6,    98,   71,   50
+lgeo_colour,   7,   161,  165,  162
+lgeo_colour,   8,   109,  110,  108
+lgeo_colour,   9,   180,  210,  227
+lgeo_colour,   10,   75,  151,   74
+lgeo_colour,   11,   85,  165,  175
+lgeo_colour,   12,  242,  112,   94
+lgeo_colour,   13,  252,  151,  172
+lgeo_colour,   14,  245,  205,   47
+lgeo_colour,   15,  242,  243,  242
+lgeo_colour,   17,  194,  218,  184
+lgeo_colour,   18,  249,  233,  153
+lgeo_colour,   19,  215,  197,  153
+lgeo_colour,   20,  193,  202,  222
+lgeo_colour,   21,  224,  255,  176
+lgeo_colour,   22,  107,   50,  123
+lgeo_colour,   23,   35,   71,  139
+lgeo_colour,   25,  218,  133,   64
+lgeo_colour,   26,  146,   57,  120
+lgeo_colour,   27,  164,  189,   70
+lgeo_colour,   28,  149,  138,  115
+lgeo_colour,   29,  228,  173,  200
+lgeo_colour,   30,  172,  120,  186
+lgeo_colour,   31,  225,  213,  237
+lgeo_colour,   32,    0,   20,   20
+lgeo_colour,   33,  123,  182,  232
+lgeo_colour,   34,  132,  182,  141
+lgeo_colour,   35,  217,  228,  167
+lgeo_colour,   36,  205,   84,   75
+lgeo_colour,   37,  228,  173,  200
+lgeo_colour,   38,  255,   43,    0
+lgeo_colour,   40,  166,  145,  130
+lgeo_colour,   41,  170,  229,  255
+lgeo_colour,   42,  198,  255,    0
+lgeo_colour,   43,  193,  223,  240
+lgeo_colour,   44,  150,  112,  159
+lgeo_colour,   46,  247,  241,  141
+lgeo_colour,   47,  252,  252,  252
+lgeo_colour,   52,  156,  149,  199
+lgeo_colour,   54,  255,  246,  123
+lgeo_colour,   57,  226,  176,   96
+lgeo_colour,   65,  236,  201,   53
+lgeo_colour,   66,  202,  176,    0
+lgeo_colour,   67,  255,  255,  255
+lgeo_colour,   68,  243,  207,  155
+lgeo_colour,   69,  142,   66,  133
+lgeo_colour,   70,  105,   64,   39
+lgeo_colour,   71,  163,  162,  164
+lgeo_colour,   72,   99,   95,   97
+lgeo_colour,   73,  110,  153,  201
+lgeo_colour,   74,  161,  196,  139
+lgeo_colour,   77,  220,  144,  149
+lgeo_colour,   78,  246,  215,  179
+lgeo_colour,   79,  255,  255,  255
+lgeo_colour,   80,  140,  140,  140
+lgeo_colour,   82,  219,  172,   52
+lgeo_colour,   84,  170,  125,   85
+lgeo_colour,   85,   52,   43,  117
+lgeo_colour,   86,  124,   92,   69
+lgeo_colour,   89,  155,  178,  239
+lgeo_colour,   92,  204,  142,  104
+lgeo_colour,  100,  238,  196,  182
+lgeo_colour,  115,  199,  210,   60
+lgeo_colour,  134,  174,  122,   89
+lgeo_colour,  135,  171,  173,  172
+lgeo_colour,  137,  106,  122,  150
+lgeo_colour,  142,  220,  188,  129
+lgeo_colour,  148,   62,   60,   57
+lgeo_colour,  151,   14,   94,   77
+lgeo_colour,  179,  160,  160,  160
+lgeo_colour,  183,  242,  243,  242
+lgeo_colour,  191,  248,  187,   61
+lgeo_colour,  212,  159,  195,  233
+lgeo_colour,  216,  143,   76,   42
+lgeo_colour,  226,  253,  234,  140
+lgeo_colour,  232,  125,  187,  221
+lgeo_colour,  256,   33,   33,   33
+lgeo_colour,  272,   32,   58,   86
+lgeo_colour,  273,   13,  105,  171
+lgeo_colour,  288,   39,   70,   44
+lgeo_colour,  294,  189,  198,  173
+lgeo_colour,  297,  170,  127,   46
+lgeo_colour,  308,   53,   33,    0
+lgeo_colour,  313,  171,  217,  255
+lgeo_colour,  320,  123,   46,   47
+lgeo_colour,  321,   70,  155,  195
+lgeo_colour,  322,  104,  195,  226
+lgeo_colour,  323,  211,  242,  234
+lgeo_colour,  324,  196,    0,   38
+lgeo_colour,  326,  226,  249,  154
+lgeo_colour,  330,  119,  119,   78
+lgeo_colour,  334,  187,  165,   61
+lgeo_colour,  335,  149,  121,  118
+lgeo_colour,  366,  209,  131,    4
+lgeo_colour,  373,  135,  124,  144
+lgeo_colour,  375,  193,  194,  193
+lgeo_colour,  378,  120,  144,  129
+lgeo_colour,  379,   94,  116,  140
+lgeo_colour,  383,  224,  224,  224
+lgeo_colour,  406,    0,   29,  104
+lgeo_colour,  449,  129,    0,  123
+lgeo_colour,  450,  203,  132,   66
+lgeo_colour,  462,  226,  155,   63
+lgeo_colour,  484,  160,   95,   52
+lgeo_colour,  490,  215,  240,    0
+lgeo_colour,  493,  101,  103,   97
+lgeo_colour,  494,  208,  208,  208
+lgeo_colour,  496,  163,  162,  164
+lgeo_colour,  503,  199,  193,  183
+lgeo_colour,  504,  137,  135,  136
+lgeo_colour,  511,  250,  250,  250
+
+# SLOPED BRICKS
+# Dictionary with part number (without any extension for decorations), as key,
+# of pieces that have grainy slopes, and, as values, a set containing the angles (in
+# degrees) of the face's normal to the horizontal plane. Use a | delimited tuple to
+# represent a range within which the angle must lie.
+
+# Item------  PartID-  Angle/Angle Range (in degrees)
+sloped_brick,     962,  45
+sloped_brick,    2341, -45
+sloped_brick,    2449, -16
+sloped_brick,    2875,  45
+sloped_brick,    2876,  40|63
+sloped_brick,    3037,  45
+sloped_brick,    3038,  45
+sloped_brick,    3039,  45
+sloped_brick,    3040,  45
+sloped_brick,    3041,  45
+sloped_brick,    3042,  45
+sloped_brick,    3043,  45
+sloped_brick,    3044,  45
+sloped_brick,    3045,  45
+sloped_brick,    3046,  45
+sloped_brick,    3048,  45
+sloped_brick,    3049,  45
+sloped_brick,    3135,  45
+sloped_brick,    3297,  63
+sloped_brick,    3298,  63
+sloped_brick,    3299,  63
+sloped_brick,    3300,  63
+sloped_brick,    3660, -45
+sloped_brick,    3665, -45
+sloped_brick,    3675,  63
+sloped_brick,    3676, -45
+sloped_brick,   3678b,  24
+sloped_brick,    3684,  15
+sloped_brick,    3685,  16
+sloped_brick,    3688,  15
+sloped_brick,    3747, -63
+sloped_brick,    4089, -63
+sloped_brick,    4161,  63
+sloped_brick,    4286,  63
+sloped_brick,    4287, -63
+sloped_brick,    4445,  45
+sloped_brick,    4460,  16
+sloped_brick,    4509,  63
+sloped_brick,    4854, -45
+sloped_brick,    4856, -60|-70, -45
+sloped_brick,    4857,  45
+sloped_brick,    4858,  72
+sloped_brick,    4861,  45,      63
+sloped_brick,    4871, -45
+sloped_brick,    4885,  72
+sloped_brick,    6069,  72,      45
+sloped_brick,    6153,  60|70,   26|4
+sloped_brick,    6227,  45
+sloped_brick,    6270,  45
+sloped_brick,   13269,  40|63
+sloped_brick,   13548,  45
+sloped_brick,   15571,  45
+sloped_brick,   18759, -45
+sloped_brick,   22390,  40|55
+sloped_brick,   22391,  40|55
+sloped_brick,   22889, -45
+sloped_brick,   28192,  45
+sloped_brick,   30180,  47
+sloped_brick,   30182,  45
+sloped_brick,   30183, -45
+sloped_brick,   30249,  35
+sloped_brick,   30283, -45
+sloped_brick,   30363,  72
+sloped_brick,   30373, -24
+sloped_brick,   30382,  11,      45
+sloped_brick,   30390, -45
+sloped_brick,   30499,  16
+sloped_brick,   32083,  45
+sloped_brick,   43708,  72
+sloped_brick,   43710,  72,      45
+sloped_brick,   43711,  72,      45
+sloped_brick,   47759,  40|63
+sloped_brick,   52501, -45
+sloped_brick,   60219, -45
+sloped_brick,   60477,  72
+sloped_brick,   60481,  24
+sloped_brick,   63341,  45
+sloped_brick,   72454, -45
+sloped_brick,   92946,  45
+sloped_brick,   93348,  72
+sloped_brick,   95188,  65
+sloped_brick,   99301,  63
+sloped_brick,  303923,  45
+sloped_brick,  303926,  45
+sloped_brick,  304826,  45
+sloped_brick,  329826,  64
+sloped_brick,  374726, -64
+sloped_brick,  428621,  64
+sloped_brick, 4162628,  17
+sloped_brick, 4195004,  45
+
+# LIGHTED BRICKS
+# Dictionary with part number (with extension), as key,
+# of lighted bricks, light emission colour and intensity, as values.
+
+# Item-------  PartID---  Light--------------  Intensity
+lighted_brick, 62930.dat, 1.000, 0.373, 0.059, 1.0
+lighted_brick, 54869.dat, 1.000, 0.052, 0.017, 1.0
+
+# end of parameters

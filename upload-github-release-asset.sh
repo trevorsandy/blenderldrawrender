@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Author: Trevor SANDY
-# Last Update January 15, 2023
+# Last Update February 12, 2023
 #
 # Adapted from original script by Stefan Buck
 # License: MIT
@@ -119,14 +119,24 @@ function package_archive
 	fi
 	cd $GH_REPO_PATH/addons
 	zip -r ldraw_render_addons.zip io_scene_lpub3d_importldraw io_scene_lpub3d_importldraw_mm io_scene_lpub3d_renderldraw -x \
-	"io_scene_lpub3d_importldraw/__pycache__/*" \
-	"io_scene_lpub3d_importldraw/images/*" \
-	"io_scene_lpub3d_importldraw_mm/__pycache__/*" \
 	"io_scene_lpub3d_importldraw/loadldraw/__pycache__/*" \
+	"io_scene_lpub3d_importldraw/__pycache__/*" \
 	"io_scene_lpub3d_importldraw/.gitignore" \
     "io_scene_lpub3d_importldraw/.gitattributes" \
 	"io_scene_lpub3d_importldraw/README.md" \
-	"io_scene_lpub3d_renderldraw/__pycache__/*"
+	"io_scene_lpub3d_importldraw_mm/__pycache__/*" \
+	"io_scene_lpub3d_importldraw_mm/examples/*" \
+	"io_scene_lpub3d_importldraw_mm/_deploy.py" \
+	"io_scene_lpub3d_importldraw_mm/.gitignore" \
+    "io_scene_lpub3d_importldraw_mm/.gitattributes" \
+	"io_scene_lpub3d_importldraw_mm/export_options.py" \
+	"io_scene_lpub3d_importldraw_mm/ldraw_export.py" \
+	"io_scene_lpub3d_importldraw_mm/operator_panel_ldraw.py" \
+	"io_scene_lpub3d_importldraw_mm/operator_export.py" \
+	"io_scene_lpub3d_importldraw_mm/export_options.py" \
+	"io_scene_lpub3d_importldraw_mm/Readme.md" \
+	"io_scene_lpub3d_renderldraw/__pycache__/*" \
+	"io_scene_lpub3d_renderldraw/modelglobals/__pycache__/*"
 	cd ../
 	zip -r $GH_ASSET_NAME addons/ldraw_render_addons.zip config/BlenderLDrawParameters.lst installBlenderAddons.py
 	rm addons/ldraw_render_addons.zip
@@ -217,6 +227,17 @@ fi
 
 # Package the archive
 package_archive
+
+# Publish the archive (Set DEV_USE to enable)
+DEV_USE=1
+if [[ -n $DEV_USE && -f $GH_ASSET_NAME ]]; then
+	declare -r p=Publish
+	PUBLISH_SRC=$PWD
+	PUBLISH_DEST="/home/trevorsandy/projects/build-LPub3D-Desktop_Qt_5_15_2_MSVC2019_32bit-Debug/mainApp/32bit_debug/3rdParty/Blender"
+	echo -n "Publish package '$GH_ASSET_NAME' to Dev..." && \
+	(cd "$PUBLISH_DEST" && cp -f "$PUBLISH_SRC/$GH_ASSET_NAME" .) >$p.out 2>&1 && rm $p.out
+	[ -f $p.out ] && echo "ERROR - failed to publish $GH_ASSET_NAME to Dev" && tail -80 $p.out || echo "Success."
+fi
 
 exit 1        #ENABLE FOR TEST
 
