@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update February 19, 2023
+Last Update February 24, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Render LDraw GPLv2 license.
@@ -130,15 +130,6 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
     bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
     prefs = type('', (), {})()
-    use_ldraw_import = False
-    use_ldraw_import_mm = False
-    for addon in bpy.context.preferences.addons:
-        if addon.module == 'io_scene_lpub3d_importldraw_mm':
-            use_ldraw_import_mm = True
-            break
-        elif addon.module == 'io_scene_lpub3d_importldraw':
-            use_ldraw_import = True
-            break
     image_file_name = 'rendered_ldraw_image.png'
     image_directory = os.path.abspath(os.path.expanduser('~'))
     image_file_path = os.path.join(image_directory, image_file_name)
@@ -156,11 +147,19 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
     busy        = None
     tasks       = None
 
-    # Properties
-    if use_ldraw_import_mm:
-        prefs = operator_import.ImportSettings.get_settings()
-    elif use_ldraw_import:
+    use_ldraw_import = True
+    for addon in bpy.context.preferences.addons:
+        if addon.module == 'io_scene_lpub3d_importldraw_mm':
+            use_ldraw_import = False
+            break
+        if addon.module == 'io_scene_lpub3d_importldraw':
+            use_ldraw_import = True
+            break
+
+    if use_ldraw_import:
         prefs = importldraw.Preferences("")
+    else:
+        prefs = operator_import.ImportSettings.get_settings()
 
     model_file: StringProperty(
         name="",
@@ -171,79 +170,73 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
     blend_file: StringProperty(
         name="",
         description="Specify absolute file path to supplement blend file - optional",
-        default=r"",
+        default=prefs.get('blendfile', r"") if use_ldraw_import else prefs.get('blend_file', r"")
     )
 
     ldraw_path: StringProperty(
         name="",
         description="Full filepath to the LDraw Parts Library (download from http://www.ldraw.org)",
-        default=r""
+        default=prefs.get('ldrawdirectory', r"") if use_ldraw_import else prefs.get('ldraw_path', r"")
     )
 
     resolution_width: IntProperty(
         name="Resolution (X)",
         description="Specify the render resolution width (x) in pixels",
-        default=800
+        default=prefs.get('resolutionwidth', 800) if use_ldraw_import else prefs.get('resolution_width', 800)
     )
 
     resolution_height: IntProperty(
         name="Resolution (Y)",
         description="Specify the render resolution height (y) in pixels",
-        default=600
+        default=prefs.get('resolutionheight', 600) if use_ldraw_import else prefs.get('resolution_height', 600)
     )
 
     render_percentage: IntProperty(
         name="Render Percentage",
         description="Specify the percentage of the render size at which to generate the image",
-        default=100
+        default=prefs.get('renderpercentage', 100) if use_ldraw_import else prefs.get('render_percentage', 100)
     )
 
     overwrite_image: BoolProperty(
         name="Overwrite Rendered Image",
         description="Specify whether to overwrite an existing rendered image file.",
-        default=False
+        default=prefs.get('overwriteimage', False) if use_ldraw_import else prefs.get('overwrite_image', False)
     )
 
     blendfile_trusted: BoolProperty(
         name="Trusted Blend File",
         description="Specify whether to treat the .blend file as being loaded from a trusted source.",
-        default=False
+        default=prefs.get('blendfiletrusted', False) if use_ldraw_import else prefs.get('blendfile_trusted', False)
     )
 
     transparent_background: BoolProperty(
         name="Transparent Background",
         description="Specify whether to render a background  (affects 'Photo-realistic look only).",
-        default=False
+        default=prefs.get('transparentbackground', False) if use_ldraw_import else prefs.get('transparent_background', False)
     )
 
     add_environment: BoolProperty(
         name="Add Environment",
         description="Adds a ground plane and environment texture (for realistic look only)",
-        default=True
+        default=prefs.get('addenvironment', True) if use_ldraw_import else prefs.get('add_environment', False)
     )
 
     crop_image: BoolProperty(
         name="Crop Image",
         description="Crop the image border at opaque content. Requires transparent background set to True",
-        default=False,
+        default=prefs.get('cropimage', False) if use_ldraw_import else prefs.get('crop_image', False),
     )
 
     render_window: BoolProperty(
         name="Display Render Window",
         description="Specify whether to display the render window during Blender user interface image render",
-        default=True
-    )
-
-    load_ldraw_model: BoolProperty(
-        name="Load LDraw Model",
-        description="Specify whether to load the specified LDraw model before rendering - default is True).",
-        default=True
+        default=prefs.get('renderwindow', True) if use_ldraw_import else prefs.get('render_window', True)
     )
 
     use_look: EnumProperty(
         name="Overall Look",
         description="Realism or Schematic look",
-        default="normal",
+        default=prefs.get('uselook', 'normal') if use_ldraw_import else prefs.get('use_look', 'normal'),
         items=(
             ("normal", "Realistic Look", "Render to look realistic."),
             ("instructions", "Lego Instructions Look", "Render to look like the instruction book pictures."),
@@ -253,16 +246,27 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
     search_additional_paths: BoolProperty(
         name="Search Additional Paths",
         description="Search additional LDraw paths (automatically set for fade previous steps and highlight step)",
-        default=False
+        default=prefs.get('searchadditionalpaths', False) if use_ldraw_import else prefs.get('search_additional_paths', False)
     )
 
     verbose: BoolProperty(
         name="Verbose Output",
         description="Output all messages while working, else only show warnings and errors",
+        default=prefs.get('verbose', True)
+    )
+
+    load_ldraw_model: BoolProperty(
+        name="Load LDraw Model",
+        description="Specify whether to load the specified LDraw model before rendering - default is True).",
         default=True
     )
 
     # Hidden properties
+    use_ldraw_import_mm: BoolProperty(
+        default=not bool(use_ldraw_import),
+        options={'HIDDEN'}
+    )
+
     cli_render: BoolProperty(
         default=False,
         options={'HIDDEN'}
@@ -273,14 +277,14 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
         options={'HIDDEN'}
     )
 
-    image_file: StringProperty(
-        default=image_file_path,
+    environment_file: StringProperty(
+        name="",
+        default=prefs.get('environmentfile', r"") if use_ldraw_import else prefs.get('environment_file', r""),
         options={'HIDDEN'}
     )
 
-    environment_file: StringProperty(
-        name="",
-        default=r"",
+    image_file: StringProperty(
+        default=image_file_path,
         options={'HIDDEN'}
     )
 
@@ -523,6 +527,8 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
         self.debugPrint("Performing GUI Render Task...")
         self.debugPrint("-------------------------")
 
+        self.use_ldraw_import = not bool(self.use_ldraw_import_mm)
+
         if self.use_ldraw_import_mm:
             RenderLDrawOps.prefs      = operator_import.ImportSettings.get_settings()
             self.ldraw_path           = RenderLDrawOps.prefs.get('ldraw_path', FileSystem.locate_ldraw())
@@ -597,6 +603,8 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
         if bpy.app.version < (2, 82, 0):
             self.report({'ERROR'}, 'The RenderLDraw addon requires Blender 2.82 or greater.')
             return {'FINISHED'}
+
+        self.use_ldraw_import = not bool(self.use_ldraw_import_mm)
 
         self.debugPrint("-------------------------")
         if self.cli_render:

@@ -138,7 +138,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
 
     shade_smooth: bpy.props.BoolProperty(
         name="Shade smooth",
-        description="Shade smooth",
+        description="Use flat or smooth shading for part faces",
         default=ImportSettings.get_setting('shade_smooth'),
     )
 
@@ -159,7 +159,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
 
     smooth_type: bpy.props.EnumProperty(
         name="Smooth type",
-        description="Use this strategy to smooth meshes",
+        description="Use either autosmooth or an edge split modifier to smooth part faces",
         default=ImportSettings.get_setting('smooth_type'),
         items=(
             ("auto_smooth", "Auto smooth", "Use auto smooth"),

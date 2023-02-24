@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update February 19, 2023
+Last Update February 24, 2023
 Copyright (c) 2020 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
@@ -105,7 +105,7 @@ verbose                       = 0
 class Preferences():
     """LPub3D Import LDraw - Preferences"""
 
-    __sectionName = 'importLDraw'
+    __sectionName = 'ImportLDraw'
 
     def __init__(self, preferencesfile):
         if preferencesfile.__ne__(""):

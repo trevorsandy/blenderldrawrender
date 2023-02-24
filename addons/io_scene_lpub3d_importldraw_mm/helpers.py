@@ -84,7 +84,7 @@ def read_json(folder, filename, default=None):
 def read_ini(ini_file, default=None):
     assert ini_file != "", "LDrawRendererPreferences.ini file was not specified."
     try:
-        section_name = 'importLDrawMM'
+        section_name = 'ImportLDrawMM'
         config = configparser.RawConfigParser()
         read = config.read(ini_file)
         if read and config[section_name]:

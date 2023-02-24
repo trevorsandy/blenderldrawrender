@@ -108,7 +108,7 @@ class ImportSettings:
 
     @classmethod
     def get_ini_settings(cls, ini_settings_file):
-        section_name = 'importLDrawMM'
+        section_name = 'ImportLDrawMM'
         ini_settings = helpers.read_ini(ini_settings_file, cls.default_settings)
         assert ini_settings is not None, "INI Settings is not defined."
         for k, v in cls.default_settings.items():
