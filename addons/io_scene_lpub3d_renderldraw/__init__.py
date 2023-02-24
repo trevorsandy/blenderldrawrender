@@ -35,7 +35,7 @@ bl_info = {
     "name": "LPub3D Render LDraw",
     "description": "Render LDraw model as .png file",
     "author": "Trevor SANDY <trevor.sandy@gmail.com>",
-    "version": (1, 3, 4),
+    "version": (1, 3, 5),
     "blender": (2, 82, 0),
     "location": "Render",
     "warning": "",
@@ -57,24 +57,14 @@ def menuRender(self, context):
 def register():
     """Register LPub3D Render LDraw."""
     bpy.utils.register_class(renderldraw.RenderLDrawOps)
-    if hasattr(bpy.types, 'TOPBAR_MT_render'):
-        # Blender 2.80
-        bpy.types.TOPBAR_MT_render.prepend(menuRender)
-    else:
-        # Blender 2.79
-        bpy.types.INFO_MT_render.prepend(menuRender)
+    bpy.types.TOPBAR_MT_render.prepend(menuRender)
 
 
 # When disabling the addon.
 def unregister():
     """Unregister LPub3D Render LDraw."""
     bpy.utils.unregister_class(renderldraw.RenderLDrawOps)
-    if hasattr(bpy.types, 'TOPBAR_MT_render'):
-        # Blender 2.80
-        bpy.types.TOPBAR_MT_render.remove(menuRender)
-    else:
-        # Blender 2.79
-        bpy.types.INFO_MT_render.remove(menuRender)
+    bpy.types.TOPBAR_MT_render.remove(menuRender)
 
 
 if __name__ == "__main__":
