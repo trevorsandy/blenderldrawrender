@@ -150,19 +150,7 @@ class Preferences():
             loadldraw.debugPrint(f"WARNING: Could not save preferences. Unexpected error: {sys.exc_info()[0]}")
         return False
 
-def colourSchemeCallback(customldconfig):
-    """LPub3D Import LDraw - Colour scheme items"""
 
-    items = [
-        ("lgeo", "Realistic colours", "Uses the LGEO colour scheme for realistic colours."),
-        ("ldraw", "Original LDraw colours", "Uses the standard LDraw colour scheme (LDConfig.ldr)."),
-        ("alt", "Alternate LDraw colours", "Uses the alternate LDraw colour scheme (LDCfgalt.ldr)."),
-    ]
-
-    if customldconfig != "":
-        items.append(("custom", "Custom LDraw colours", "Uses a user specified LDraw colour file."))
-
-    return items
 
 class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     """LPub3D Import LDraw - Import Operator."""
@@ -214,11 +202,16 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         )
     )
 
-    colourScheme: EnumProperty(
+    useColourScheme: EnumProperty(
         name="Colour scheme options",
         description="Colour scheme options",
         default=prefs.get("useColourScheme", "lgeo"),
-        items=colourSchemeCallback(prefs.get("customLDConfigFile", ""))
+        items=[
+            ("lgeo", "Realistic colours", "Uses the LGEO colour scheme for realistic colours."),
+            ("ldraw", "Original LDraw colours", "Uses the standard LDraw colour scheme (LDConfig.ldr)."),
+            ("alt", "Alternate LDraw colours", "Uses the alternate LDraw colour scheme (LDCfgalt.ldr)."),
+            ("custom", "Custom LDraw colours", "Uses a user specified LDraw colour file.")
+        ],
     )
 
     logoStudVersion: EnumProperty(
@@ -358,7 +351,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         default=prefs.get("cameraBorderPercentage", 5.0)
     )
 
-    customLDConfigPath: StringProperty(
+    customLDConfigFile: StringProperty(
         name="",
         description="Full directory path to specified custom LDraw colours (LDConfig) file",
         default=prefs.get("customLDConfigFile", r"")
@@ -436,12 +429,6 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         default=prefs.get("verbose", True)
     )
 
-    # Hidden properties
-    parameterFile: StringProperty(
-        default=prefs.get("parameterFile", r""),
-        options={'HIDDEN'}
-    )
-
     preferencesFile: StringProperty(
         default=r"",
         options={'HIDDEN'}
@@ -483,7 +470,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         box.prop(self, "importLights")
         box.prop(self, "importScale")
         box.prop(self, "look", expand=True)        
-        box.prop(self, "colourScheme", expand=True)
+        box.prop(self, "useColourScheme", expand=True)
         box.prop(self, "positionCamera")
         box.prop(self, "cameraBorderPercentage")    
         box.prop(self, "positionOnGround")
@@ -547,9 +534,9 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         self.bevelEdges              = ImportLDrawOps.prefs.get("bevelEdges",           self.bevelEdges)
         self.bevelWidth              = ImportLDrawOps.prefs.get("bevelWidth",           self.bevelWidth)
         self.cameraBorderPercentage  = ImportLDrawOps.prefs.get("cameraBorderPercentage", self.cameraBorderPercentage)
-        self.colourScheme            = ImportLDrawOps.prefs.get("useColourScheme",      self.colourScheme)
+        self.useColourScheme         = ImportLDrawOps.prefs.get("useColourScheme",      self.useColourScheme)
         self.curvedWalls             = ImportLDrawOps.prefs.get("curvedWalls",          self.curvedWalls)
-        self.customLDConfigPath      = ImportLDrawOps.prefs.get("customLDConfigFile",   self.customLDConfigPath)
+        self.customLDConfigFile      = ImportLDrawOps.prefs.get("customLDConfigFile",   self.customLDConfigFile)
         self.defaultColour           = ImportLDrawOps.prefs.get("defaultColour",        self.defaultColour)
         self.environmentFile         = ImportLDrawOps.prefs.get("environmentFile",      self.environmentFile)
         self.flatten                 = ImportLDrawOps.prefs.get("flattenHierarchy",     self.flatten)
@@ -566,7 +553,6 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         self.numberNodes             = ImportLDrawOps.prefs.get("numberNodes",          self.numberNodes)
         self.overwriteExistingMaterials = ImportLDrawOps.prefs.get("overwriteExistingMaterials", self.overwriteExistingMaterials)
         self.overwriteExistingMeshes = ImportLDrawOps.prefs.get("overwriteExistingMeshes", self.overwriteExistingMeshes)
-        self.parameterFile           = ImportLDrawOps.prefs.get("parameterFile",        self.parameterFile)
         self.positionCamera          = ImportLDrawOps.prefs.get("positionCamera",       self.positionCamera)
         self.positionOnGround        = ImportLDrawOps.prefs.get("positionObjectOnGroundAtOrigin", self.positionOnGround)
         self.removeDoubles           = ImportLDrawOps.prefs.get("removeDoubles",        self.removeDoubles)
@@ -581,14 +567,14 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         self.useUnofficialParts      = ImportLDrawOps.prefs.get("useUnofficialParts",   self.useUnofficialParts)
         self.verbose                 = ImportLDrawOps.prefs.get("verbose",              self.verbose)
 
-        if self.colourScheme == "custom":
-            assert self.customLDConfigPath != "", "Custom LDraw colour (LDConfig) file path not specified."
+        if self.useColourScheme == "custom":
+            assert self.customLDConfigFile != "", "Custom LDraw colour (LDConfig) file path not specified."
 
         if self.preferencesFile == "":
             
             # Read current preferences from the UI and save them
 
-            ImportLDrawOps.prefs.set("customLDConfigFile",     self.customLDConfigPath)
+            ImportLDrawOps.prefs.set("customLDConfigFile",     self.customLDConfigFile)
             ImportLDrawOps.prefs.set("environmentFile",        self.environmentFile)
             ImportLDrawOps.prefs.set("addEnvironment",         self.addEnvironment)
             ImportLDrawOps.prefs.set("addSubsurface",          self.addSubsurface)
@@ -616,7 +602,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             ImportLDrawOps.prefs.set("searchAdditionalPaths",  self.searchAdditionalPaths)
             ImportLDrawOps.prefs.set("smoothShading",          self.smoothParts)
             ImportLDrawOps.prefs.set("studLogoDirectory",      self.studLogoPath)
-            ImportLDrawOps.prefs.set("useColourScheme",        self.colourScheme)
+            ImportLDrawOps.prefs.set("useColourScheme",        self.useColourScheme)
             ImportLDrawOps.prefs.set("useLogoStuds",           self.useLogoStuds)
             ImportLDrawOps.prefs.set("useLook",                self.look)
             ImportLDrawOps.prefs.set("useUnofficialParts",     self.useUnofficialParts)
@@ -650,7 +636,6 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         loadldraw.Options.numberNodes                 = self.numberNodes
         loadldraw.Options.overwriteExistingMaterials  = self.overwriteExistingMaterials
         loadldraw.Options.overwriteExistingMeshes     = self.overwriteExistingMeshes
-        loadldraw.Options.parameterFile               = self.parameterFile
         loadldraw.Options.positionCamera              = self.positionCamera
         loadldraw.Options.positionObjectOnGroundAtOrigin = self.positionOnGround
         loadldraw.Options.removeDoubles               = self.removeDoubles
@@ -660,14 +645,14 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         loadldraw.Options.useArchiveLibrary           = self.useArchiveLibrary
         loadldraw.Options.searchAdditionalPaths       = self.searchAdditionalPaths
         loadldraw.Options.smoothShading               = self.smoothParts
-        loadldraw.Options.useColourScheme             = self.colourScheme
+        loadldraw.Options.useColourScheme             = self.useColourScheme
         loadldraw.Options.useLogoStuds                = self.useLogoStuds
         loadldraw.Options.useLSynthParts              = self.useLSynthParts
         loadldraw.Options.useUnofficialParts          = self.useUnofficialParts
         loadldraw.Options.verbose                     = self.verbose
 
         loadldraw.Options.additionalSearchPaths = self.additionalSearchPaths
-        loadldraw.Options.customLDConfigFile          = self.customLDConfigPath
+        loadldraw.Options.customLDConfigFile          = self.customLDConfigFile
 
         #assert self.ldrawPath, "LDraw library path not specified."
         loadldraw.Options.ldrawDirectory              = self.ldrawPath

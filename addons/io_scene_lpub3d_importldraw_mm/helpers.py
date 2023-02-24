@@ -98,6 +98,28 @@ def read_ini(ini_file, default=None):
         print(e)
         return default
 
+def valid_lines(f):
+    """Skip blank and commented lines"""
+    for l in f:
+        line = l.rstrip()
+        if line and line[:1] != "#":
+            yield line
+
+def valid_value(value, decimal=False):
+    """Ensure value is either integer or decimal as specified"""
+    for s in value:
+        if decimal:
+            try:
+                float(s)
+            except ValueError:
+                return False
+        else:
+            try:
+                int(s)
+            except ValueError:
+                return False
+    return True
+
 
 def evaluate_value(x):
     if x == 'True':
@@ -130,6 +152,7 @@ def is_int(x):
     else:
         return f == i
 
+
 def render_print(message,is_error=False):
     """Print output with identification timestamp."""
 
@@ -144,6 +167,7 @@ def render_print(message,is_error=False):
     else:
         sys.stdout.write(f"{message}\n")
         sys.stdout.flush()
+
 
 def clamp(num, min_value, max_value):
     return max(min(num, max_value), min_value)

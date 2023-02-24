@@ -33,7 +33,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
     )
 
     filepath: bpy.props.StringProperty(
-        name="File Path",
+        name="File path",
         description="Filepath used for importing the file",
         maxlen=1024,
         subtype='FILE_PATH',
@@ -42,29 +42,29 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
     ldraw_path: bpy.props.StringProperty(
         name="LDraw path",
         description="Full filepath to the LDraw Parts Library (download from https://www.ldraw.org)",
-        default=ImportSettings.get_setting('ldraw_path'),
+        default=ImportSettings.get_setting('ldraw_path')
     )
 
     custom_ldconfig_file: bpy.props.StringProperty(
-        name="",
+        name="Custom LDConfig",
         description="Full directory path to specified custom LDraw colours (LDConfig) file",
         default=ImportSettings.get_setting('custom_ldconfig_file'),
     )
 
     additional_search_paths: bpy.props.StringProperty(
-        name="",
+        name="Additional search paths",
         description="Full directory paths, comma delimited, to additional LDraw search paths",
-        default=ImportSettings.get_setting('additional_search_paths')
+        default=ImportSettings.get_setting('additional_search_paths'),
     )
 
     environment_file: bpy.props.StringProperty(
-        name="",
+        name="Environment file",
         description="Full file path to .exr environment texture file - specify if not using addon default",
         default=ImportSettings.get_setting('environment_file'),
     )
 
     add_environment: bpy.props.BoolProperty(
-        name="Add Environment",
+        name="Add environment",
         description="Adds a ground plane and environment texture",
         default=ImportSettings.get_setting('add_environment'),
     )
@@ -110,11 +110,16 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         ),
     )
 
-    use_alt_colors: bpy.props.BoolProperty(
-        name="Use alternate colors",
-        # options={'HIDDEN'},
-        description="Use LDCfgalt.ldr",
-        default=ImportSettings.get_setting('use_alt_colors'),
+    use_colour_scheme: bpy.props.EnumProperty(
+        name="Colour scheme options",
+        description="Colour scheme options",
+        default=ImportSettings.get_setting('use_colour_scheme'),
+        items=[
+            ("lgeo", "Realistic colours", "Uses the LGEO colour scheme for realistic colours."),
+            ("ldraw", "Original LDraw colours", "Uses the standard LDraw colour scheme (LDConfig.ldr)."),
+            ("alt", "Alternate LDraw colours", "Uses the alternate LDraw colour scheme (LDCfgalt.ldr)."),
+            ("custom", "Custom LDraw colours", "Uses a user specified LDraw colour file.")
+        ],
     )
 
     remove_doubles: bpy.props.BoolProperty(
@@ -350,7 +355,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         name="Use Archive Libraries",
         description="Add any archive (zip) libraries in the LDraw file path to the library search list",
         default=ImportSettings.get_setting('use_archive_library'),
-    )    
+    )
 
     profile: bpy.props.BoolProperty(
         name="Profile",
@@ -430,7 +435,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
 
         self.prefer_studio           = IMPORT_OT_do_ldraw_import.prefs.get("prefer_studio", self.prefer_studio)
         self.prefer_unofficial       = IMPORT_OT_do_ldraw_import.prefs.get("prefer_unofficial", self.prefer_unofficial)
-        self.use_alt_colors          = IMPORT_OT_do_ldraw_import.prefs.get("use_alt_colors", self.use_alt_colors)
+        self.use_colour_scheme       = IMPORT_OT_do_ldraw_import.prefs.get("use_colour_scheme", self.use_colour_scheme)
         self.resolution              = IMPORT_OT_do_ldraw_import.prefs.get("resolution", self.resolution)
         self.display_logo            = IMPORT_OT_do_ldraw_import.prefs.get("display_logo", self.display_logo)
         self.chosen_logo             = IMPORT_OT_do_ldraw_import.prefs.get("chosen_logo", self.chosen_logo)
@@ -488,7 +493,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
 
             IMPORT_OT_do_ldraw_import.prefs["prefer_studio"]           = self.prefer_studio
             IMPORT_OT_do_ldraw_import.prefs["prefer_unofficial"]       = self.prefer_unofficial
-            IMPORT_OT_do_ldraw_import.prefs["use_alt_colors"]          = self.use_alt_colors
+            IMPORT_OT_do_ldraw_import.prefs["use_colour_scheme"]       = self.use_colour_scheme
             IMPORT_OT_do_ldraw_import.prefs["resolution"]              = self.resolution
             IMPORT_OT_do_ldraw_import.prefs["display_logo"]            = self.display_logo
             IMPORT_OT_do_ldraw_import.prefs["chosen_logo"]             = self.chosen_logo
@@ -605,8 +610,8 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         box.prop(self, "import_lights")
         box.prop(self, "prefer_studio")
         box.prop(self, "prefer_unofficial")
-        box.prop(self, "use_alt_colors")
-        box.prop(self, "resolution")
+        box.prop(self, "use_colour_scheme", expand=True)
+        box.prop(self, "resolution", expand=True)
         box.prop(self, "display_logo")
         box.prop(self, "chosen_logo")
 
@@ -616,14 +621,14 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         box.prop(self, "parent_to_empty")
         box.prop(self, "make_gaps")
         box.prop(self, "gap_scale")
-        box.prop(self, "gap_target")
-        box.prop(self, "gap_scale_strategy")
+        box.prop(self, "gap_target", expand=True)
+        box.prop(self, "gap_scale_strategy", expand=True)
 
         layout.separator(factor=space_factor)
         box.label(text="Cleanup Options")
         box.prop(self, "remove_doubles")
         box.prop(self, "merge_distance")
-        box.prop(self, "smooth_type")
+        box.prop(self, "smooth_type", expand=True)
         box.prop(self, "shade_smooth")
         box.prop(self, "recalculate_normals")
         box.prop(self, "triangulate")

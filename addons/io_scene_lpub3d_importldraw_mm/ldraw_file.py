@@ -62,19 +62,38 @@ class LDrawFile:
         LDraw color system see: http://www.ldraw.org/article/547"""
 
         # if there is no LDCfgalt.ldr, look for LDConfig.ldr
-        # the Stud.io library doesn't have LDCfgalt.ldr, so the default of use_alt_colors == True
+        # the Stud.io library doesn't have LDCfgalt.ldr,
+        # so if use_colour_scheme == alt and prefer_studio set filename to default_ldconfig
         # might trip up the user because they'll get a bunch of invalid color errors
-        alt_filename = "LDCfgalt.ldr"
-        standard_filename = "LDConfig.ldr"
+        alt_ldconfig = "LDCfgalt.ldr"
+        default_ldconfig = "LDConfig.ldr"
 
-        if LDrawColor.use_alt_colors:
-            filename = alt_filename
+        if LDrawColor.use_colour_scheme == "custom":
+            filename = os.path.expanduser(FileSystem.custom_ldconfig_file)
+            if not os.path.exists(filename):
+                print(f"Custom colour file not found -using {default_ldconfig}")
+                filename = default_ldconfig
+        elif LDrawColor.use_colour_scheme == "alt":
+            if FileSystem.prefer_studio:
+                print(f"Stud.io library doesn't have LDCfgalt.ldr -using {default_ldconfig}")
+                filename = default_ldconfig
+            else:
+                filename = alt_ldconfig
         else:
-            filename = standard_filename
+            filename = default_ldconfig
 
         ldraw_file = LDrawFile.get_file(filename)
-        if filename == alt_filename and ldraw_file is None:
-            ldraw_file = LDrawFile.get_file(standard_filename)
+        if filename != default_ldconfig and ldraw_file is None:
+            ldraw_file = LDrawFile.get_file(default_ldconfig)
+
+        # LGEO is a parts library for rendering LEGO using the povray rendering software.
+        # It has a list of LEGO colours suitable for realistic rendering.
+        # I've extracted the following colours from the LGEO file: lg_color.inc
+        # LGEO is downloadable from http://ldraw.org/downloads-2/downloads.html
+        # We overwrite the standard LDraw colours if we have better LGEO colours.
+        if LDrawColor.use_colour_scheme == "lgeo":
+            LDrawColor.set_lgeo_colors(FileSystem.read_lgeo_colors())
+
         return ldraw_file
 
     @classmethod

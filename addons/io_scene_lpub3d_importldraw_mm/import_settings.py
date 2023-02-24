@@ -10,18 +10,18 @@ class ImportSettings:
     filesystem_defaults = {
         'ldraw_path': FileSystem.locate_ldraw(),
         'studio_ldraw_path': FileSystem.locate_studio_ldraw(),
-        'envoronment_file': FileSystem.locate_environment_file(),
+        'environment_file': FileSystem.locate_environment_file(),
         'custom_ldconfig_file': FileSystem.defaults['custom_ldconfig_file'],
         'additional_search_paths': FileSystem.defaults['additional_search_paths'],
         'search_additional_paths': FileSystem.defaults['search_additional_paths'],
-        'prefer_studio': FileSystem.defaults['prefer_studio'],
+        'prefer_unofficial': FileSystem.defaults['prefer_unofficial'],        
         'use_archive_library': FileSystem.defaults['use_archive_library'],
         'prefer_studio': FileSystem.defaults['prefer_studio'],
         'resolution': FileSystem.defaults['resolution'],
     }
 
     ldraw_color_defaults = {
-        'use_alt_colors': LDrawColor.defaults['use_alt_colors'],
+        'use_colour_scheme': LDrawColor.defaults['use_colour_scheme'],
     }
 
     import_options_defaults = {

@@ -70,7 +70,7 @@ class BlenderMaterials:
     def __build_key(cls, color, use_edge_color, part_slopes, parts_cloth, texmap, pe_texmap, use_backface_culling):
         _key = (color.name, color.code, use_backface_culling,)
 
-        if LDrawColor.use_alt_colors:
+        if LDrawColor.use_colour_scheme:
             _key += ("alt",)
         if use_edge_color:
             _key += ("edge",)

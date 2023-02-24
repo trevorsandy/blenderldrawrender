@@ -3,6 +3,7 @@ import string
 import glob
 from sys import platform
 from pathlib import Path
+from . import helpers
 
 
 class FileSystem:
@@ -45,16 +46,6 @@ class FileSystem:
     def reset_caches(cls):
         cls.__search_paths = []
         cls.__lowercase_paths = {}
-
-    @staticmethod
-    def locate_environment_file():
-        file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                    '../io_scene_lpub3d_importldraw/loadldraw/background.exr'))
-        print(f"DEBUG:  environment_file: {file_path}")
-        if os.path.exists(file_path):
-            return file_path
-        print(f"DEBUG:  ERROR environment_file not Found: {file_path}")
-        return ""
 
     @staticmethod
     def locate_ldraw():
@@ -123,7 +114,6 @@ class FileSystem:
 
         return ldraw_path
 
-
     @staticmethod
     def locate_studio_ldraw():
         ldraw_folder_name = 'ldraw'
@@ -144,6 +134,56 @@ class FileSystem:
                 return studio_path
 
         return ""
+
+    @staticmethod
+    def locate_environment_file():
+        file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                    '../io_scene_lpub3d_importldraw/loadldraw/background.exr'))
+        if os.path.exists(file_path):
+            return file_path
+        return ""
+
+    @staticmethod
+    def locate_parameters_file():
+        file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                    '../io_scene_lpub3d_renderldraw/config/LDrawParameters.lst'))
+        if os.path.exists(file_path):
+            return file_path
+        print(f"DEBUG:  WARNING parameters_file not Found: {file_path}")
+        return ""
+
+    @classmethod
+    def read_lgeo_colors(cls):
+        filename = cls.locate_parameters_file()
+        
+        lgeo_colours = {}
+
+        if  filename != "":
+            with open(filename, "rt", encoding="utf_8") as parameters_file:
+                for line in helpers.valid_lines(parameters_file):
+                    line_split = line.replace(" ", "").rstrip().split(",")
+                    item = line_split[0]
+                    # LGEO is a parts library for rendering LEGO using the povray rendering software.
+                    # It has a list of LEGO colours suitable for realistic rendering.
+                    # I've extracted the following colours from the LGEO file: lg_color.inc
+                    # LGEO is downloadable from http://ldraw.org/downloads-2/downloads.html
+                    # We overwrite the standard LDraw colours if we have better LGEO colours.
+                    if item == "lgeo_colour":
+                        colour = ()
+                        if helpers.valid_value(line_split[1]):
+                            code = int(line_split[1])
+                        else:
+                            print(f"WARNING Colour code must be an integer: {line_split[1]}")
+
+                        if helpers.valid_value((line_split[2:])):
+                            colour = tuple(map(int, line_split[2:]))
+                        else:
+                            print(f"WARNING Colour tuple must be integers: {line_split[2:]}")
+
+                        if colour:
+                            lgeo_colours[code] = colour
+
+        return lgeo_colours
 
     @classmethod
     def build_search_paths(cls, parent_filepath=None):
@@ -213,12 +253,11 @@ class FileSystem:
                 cls.__lowercase_paths[file.lower()] = file
 
         if cls.additional_search_paths != "" and cls.search_additional_paths:
-            dirs = cls.additional_search_paths.replace("\\\\", "\\").strip().split(",")
-            for dir in dirs:
-                dir = os.path.expanduser(dir.strip("\"").strip("'"))
-                if dir.lower() not in {path.lower() for path in cls.__search_paths} and os.path.exists(dir):
-                    cls.__append_search_path(dir)
-
+            search_dirs = cls.additional_search_paths.replace("\\\\", "\\").strip().split(",")
+            for search_dir in search_dirs:
+                search_dir = os.path.expanduser(search_dir.strip("\"").strip("'"))
+                if search_dir.lower() not in {path[0].lower() for path in cls.__search_paths} and os.path.exists(search_dir):
+                    cls.__append_search_path(search_dir)
 
     @classmethod
     def __append_search_path(cls, path):

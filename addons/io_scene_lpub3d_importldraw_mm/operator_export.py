@@ -38,7 +38,7 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
         default=FileSystem.locate_ldraw(),
     )
 
-    use_alt_colors: bpy.props.BoolProperty(
+    use_colour_scheme: bpy.props.BoolProperty(
         name="Use alternate colors",
         # options={'HIDDEN'},
         description="Use LDCfgalt.ldr",
@@ -111,7 +111,7 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
 
         FileSystem.ldraw_path = self.ldraw_path
         FileSystem.resolution = self.resolution
-        LDrawColor.use_alt_colors = self.use_alt_colors
+        LDrawColor.use_colour_scheme = self.use_colour_scheme
 
         ExportOptions.selection_only = self.selection_only
         ExportOptions.export_precision = self.export_precision
@@ -151,7 +151,7 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
         col = layout.column()
         col.label(text="Export Options")
         # col.prop(self, "selection_only")
-        col.prop(self, "use_alt_colors")
+        col.prop(self, "use_colour_scheme")
         col.prop(self, "export_precision")
 
         layout.separator(factor=space_factor)

@@ -545,12 +545,12 @@ class Configure:
 
         # Search additional search paths
         if Options.additionalSearchPaths != "" and Options.searchAdditionalPaths:
-            dirs = Options.additionalSearchPaths.replace("\\\\", "\\").strip().split(",")
-            for dir in dirs:
-                dir = os.path.expanduser(dir.strip("\"").strip("'"))
-                if dir.lower() not in {path.lower() for path in Configure.searchPaths} and os.path.exists(dir):
-                    Configure.__appendPath(dir)
-                    debugPrint("Additional LDraw path to be used is: {0}".format(dir))
+            addl_paths = Options.additionalSearchPaths.replace("\\\\", "\\").strip().split(",")
+            for addl_path in addl_paths:
+                addl_path = os.path.expanduser(addl_path.strip("\"").strip("'"))
+                if addl_path.lower() not in {path.lower() for path in Configure.searchPaths} and os.path.exists(addl_path):
+                    Configure.__appendPath(addl_path)
+                    debugPrint(f"Additional LDraw path to be used is: {addl_path}")
 
     def archiveLibraryFound(path):
         import fnmatch
@@ -657,8 +657,7 @@ class Configure:
         return result
 
     def __setLDrawParameterFile():
-        parameterFilePath = Options.parameterFile if Options.parameterFile != "" else \
-            os.path.join(os.path.dirname(__file__), "BlenderLDrawParameters.lst")
+        parameterFilePath = os.path.join(os.path.dirname(__file__), "LDrawParameters.lst")
         if os.path.exists(parameterFilePath):
             Configure.parameterFile = parameterFilePath.replace("\\\\", "\\")
             debugPrint("The LDraw parameter file to be used is: {0}".format(Configure.parameterFile))
@@ -673,7 +672,7 @@ class Configure:
             Configure.ldrawInstallDirectory = os.path.expanduser(Options.ldrawDirectory)
         assert Configure.ldrawInstallDirectory, "LDraw library path not specified."
         if Configure.ldrawInstallDirectory != "":
-            Options.ldrawDirectory = Configure.ldrawInstallDirectory;
+            Options.ldrawDirectory = Configure.ldrawInstallDirectory
             if Options.useArchiveLibrary is True:
                 haveArchiveLibraries = Configure.archiveLibraryFound(Options.ldrawDirectory.replace("\\\\", "\\"))
             debugPrint("The LDraw parts library path to be used is: {0}".format(Configure.ldrawInstallDirectory))
@@ -714,7 +713,7 @@ class Parameters():
         for l in f:
             line = l.rstrip()
             if line and line[:1] != "#":
-                yield line  # .split('#')[0].rstrip()
+                yield line
 
     @staticmethod
     def loadParameters():
