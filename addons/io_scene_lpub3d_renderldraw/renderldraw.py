@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update February 12, 2023
+Last Update February 19, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Render LDraw GPLv2 license.
@@ -135,8 +135,10 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
     for addon in bpy.context.preferences.addons:
         if addon.module == 'io_scene_lpub3d_importldraw_mm':
             use_ldraw_import_mm = True
+            break
         elif addon.module == 'io_scene_lpub3d_importldraw':
             use_ldraw_import = True
+            break
     image_file_name = 'rendered_ldraw_image.png'
     image_directory = os.path.abspath(os.path.expanduser('~'))
     image_file_path = os.path.join(image_directory, image_file_name)
@@ -273,6 +275,12 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
 
     image_file: StringProperty(
         default=image_file_path,
+        options={'HIDDEN'}
+    )
+
+    environment_file: StringProperty(
+        name="",
+        default=r"",
         options={'HIDDEN'}
     )
 
@@ -416,13 +424,13 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
 
     def debugPrintPreferences(self):
         self.debugPrint("-------------------------")
-        if not self.use_ldraw_import_mm:
+        if self.use_ldraw_import:
             self.debugPrint(f"Look:                {self.use_look}")
-            self.debugPrint(f"Add_Environment:     {self.add_environment}")
         if self.load_ldraw_model:
             self.debugPrint(f"Resolution_Width:    {self.resolution_width}")
             self.debugPrint(f"Resolution_Height:   {self.resolution_height}")
             self.debugPrint(f"Render_Percentage:   {self.render_percentage}")
+        self.debugPrint(f"Add_Environment:     {self.add_environment}")            
         self.debugPrint(f"Overwrite_Image:     {self.overwrite_image}")
         self.debugPrint(f"Trans_Background:    {self.transparent_background}")
         self.debugPrint(f"Crop_Image:          {self.crop_image}")
@@ -431,6 +439,8 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
         if not self.blend_file == "":
             self.debugPrint(f"Blendfile_Trusted:   {self.blendfile_trusted}")
             self.debugPrint(f"Blend_File:          {self.blend_file}")
+        if not self.environment_file == "" and self.add_environment:
+            self.debugPrint(f"Environment_File:    {self.environment_file}")
 
     def setImportLDrawPreferences(self):
         """Import parameter settings when running from command line or LDraw file already loaded."""
@@ -441,6 +451,7 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
                 self.resolution_height       = operator_import.ImportSettings.get_setting("resolution_height")
                 self.render_percentage       = operator_import.ImportSettings.get_setting("render_percentage")
                 self.search_additional_paths = operator_import.ImportSettings.get_setting("search_additional_paths")
+            self.add_environment         = operator_import.ImportSettings.get_setting('add_environment')
             self.overwrite_image         = operator_import.ImportSettings.get_setting("overwrite_image")
             self.transparent_background  = operator_import.ImportSettings.get_setting("transparent_background")
             self.crop_image              = operator_import.ImportSettings.get_setting("crop_image")
@@ -475,11 +486,14 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
         box = layout.box()
         box.label(text="LDraw Render Options", icon='PREFERENCES')
         if not self.ldraw_model_loaded and self.ldraw_path == "":
-            box.label(text="LDraw filepath:", icon='FILEBROWSER')
+            box.label(text="LDraw file:", icon='FILEBROWSER')
             box.prop(self, "ldraw_path")
-        box.label(text="Model filepath:", icon='FILEBROWSER')
+        box.label(text="Model file:", icon='FILEBROWSER')
         box.prop(self, "model_file")
-        box.label(text="Blend filepath:", icon='FILEBROWSER')
+        if not self.ldraw_model_loaded:
+            box.label(text="Environment file:", icon='FILEBROWSER')
+            box.prop(self, "environment_file")
+        box.label(text="Blend file:", icon='FILEBROWSER')
         box.prop(self, "blend_file")
 
         box.prop(self, "resolution_width")
@@ -496,8 +510,8 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
 
         if not self.use_ldraw_import_mm:
             box.prop(self, "use_look", expand=True)
-            box.prop(self, "add_environment")
 
+        box.prop(self, "add_environment")
         box.prop(self, "transparent_background")
         box.prop(self, "crop_image")
         box.prop(self, "verbose")
@@ -541,6 +555,8 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
             self.debugPrint(f"Image_File:          {self.image_file}")
         else:
             if self.use_ldraw_import_mm:
+                self.add_environment         = RenderLDrawOps.prefs.get('add_environment',         self.add_environment)
+                self.environment_file        = RenderLDrawOps.prefs.get('environment_file',        self.environment_file)
                 self.overwrite_image         = RenderLDrawOps.prefs.get('overwrite_image',         self.overwrite_image)
                 self.transparent_background  = RenderLDrawOps.prefs.get('transparent_background',  self.transparent_background)
                 self.crop_image              = RenderLDrawOps.prefs.get('crop_image',              self.crop_image)
@@ -552,6 +568,7 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
             elif self.use_ldraw_import:
                 self.use_look                = RenderLDrawOps.prefs.get('uselook',               self.use_look)
                 self.add_environment         = RenderLDrawOps.prefs.get('addenvironment',        self.add_environment)
+                self.environment_file        = RenderLDrawOps.prefs.get('environmentfile',       self.environment_file)
                 self.overwrite_image         = RenderLDrawOps.prefs.get('overwriteimage',        self.overwrite_image)
                 self.transparent_background  = RenderLDrawOps.prefs.get('transparentbackground', self.transparent_background)
                 self.crop_image              = RenderLDrawOps.prefs.get('cropimage',             self.crop_image)
@@ -596,7 +613,7 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
                 RenderLDrawOps.prefs  = operator_import.ImportSettings.get_settings()
         elif self.use_ldraw_import:
             preferences_folder = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                                 '../io_scene_lpub3d_importldraw'))
+                                                 '../io_scene_lpub3d_importldraw/config'))
             preferences_file = os.path.join(preferences_folder, 'ImportLDrawPreferences.ini')
             if model_globals.LDRAW_MODEL_LOADED:
                 self.load_ldraw_model = False
@@ -646,6 +663,8 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
 
             if not self.cli_render or self.import_only:
                 if self.use_ldraw_import_mm:
+                    RenderLDrawOps.prefs['add_environment']         = self.add_environment
+                    RenderLDrawOps.prefs['environment_file']        = self.environment_file
                     RenderLDrawOps.prefs['ldraw_path']              = self.ldraw_path
                     RenderLDrawOps.prefs['resolution_width']        = self.resolution_width
                     RenderLDrawOps.prefs['resolution_height']       = self.resolution_height
@@ -662,6 +681,7 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
                 elif self.use_ldraw_import:
                     RenderLDrawOps.prefs.set('uselook',               self.use_look)
                     RenderLDrawOps.prefs.set('addenvironment',        self.add_environment)
+                    RenderLDrawOps.prefs.set('environmentfile',       self.environment_file)
                     RenderLDrawOps.prefs.set('ldrawdirectory',        self.ldraw_path)
                     RenderLDrawOps.prefs.set('resolutionwidth',       self.resolution_width)
                     RenderLDrawOps.prefs.set('resolutionheight',      self.resolution_height)

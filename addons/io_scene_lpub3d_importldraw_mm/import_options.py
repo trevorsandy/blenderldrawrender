@@ -85,6 +85,9 @@ class ImportOptions:
     defaults['import_lights'] = True
     import_lights = defaults['import_lights']
 
+    defaults['add_environment'] = True
+    add_environment = defaults['add_environment']
+
     defaults['use_freestyle_edges'] = False
     use_freestyle_edges = defaults['use_freestyle_edges']
 

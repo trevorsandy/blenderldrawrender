@@ -18,7 +18,10 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+    # Declarations
     filename_ext = ""
+    ldraw_model_file_loaded = False
 
     # Preferences declaration
     prefs = ImportSettings.get_settings()
@@ -40,6 +43,30 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         name="LDraw path",
         description="Full filepath to the LDraw Parts Library (download from https://www.ldraw.org)",
         default=ImportSettings.get_setting('ldraw_path'),
+    )
+
+    custom_ldconfig_file: bpy.props.StringProperty(
+        name="",
+        description="Full directory path to specified custom LDraw colours (LDConfig) file",
+        default=ImportSettings.get_setting('custom_ldconfig_file'),
+    )
+
+    additional_search_paths: bpy.props.StringProperty(
+        name="",
+        description="Full directory paths, comma delimited, to additional LDraw search paths",
+        default=ImportSettings.get_setting('additional_search_paths')
+    )
+
+    environment_file: bpy.props.StringProperty(
+        name="",
+        description="Full file path to .exr environment texture file - specify if not using addon default",
+        default=ImportSettings.get_setting('environment_file'),
+    )
+
+    add_environment: bpy.props.BoolProperty(
+        name="Add Environment",
+        description="Adds a ground plane and environment texture",
+        default=ImportSettings.get_setting('add_environment'),
     )
 
     studio_ldraw_path: bpy.props.StringProperty(
@@ -313,6 +340,12 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         default=ImportSettings.get_setting('triangulate'),
     )
 
+    search_additional_paths: bpy.props.BoolProperty(
+        name="Search Additional Paths",
+        description="Search additional LDraw paths (automatically set for fade previous steps and highlight step)",
+        default=ImportSettings.get_setting('search_additional_paths'),
+    )
+
     profile: bpy.props.BoolProperty(
         name="Profile",
         description="Profile import performance",
@@ -374,12 +407,20 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
             IMPORT_OT_do_ldraw_import.prefs = ImportSettings.get_settings()
 
         # Initialize model globals
+        self.ldraw_model_file_loaded = model_globals.LDRAW_MODEL_LOADED
         model_globals.init()
 
-        self.ldraw_path              = IMPORT_OT_do_ldraw_import.prefs.get("ldraw_path", self.ldraw_path)
-        self.studio_ldraw_path       = IMPORT_OT_do_ldraw_import.prefs.get("studio_ldraw_path", self.studio_ldraw_path)
+        self.ldraw_path               = IMPORT_OT_do_ldraw_import.prefs.get("ldraw_path", self.ldraw_path)
+        self.studio_ldraw_path        = IMPORT_OT_do_ldraw_import.prefs.get("studio_ldraw_path", self.studio_ldraw_path)
+
+        self.add_environment          = IMPORT_OT_do_ldraw_import.prefs.get("add_environment", self.add_environment)
+        self.environment_file         = IMPORT_OT_do_ldraw_import.prefs.get("environment_file", self.environment_file)
         self.import_cameras           = IMPORT_OT_do_ldraw_import.prefs.get("import_cameras", self.import_cameras)
         self.import_lights            = IMPORT_OT_do_ldraw_import.prefs.get("import_lights", self.import_lights)
+        self.search_additional_paths  = IMPORT_OT_do_ldraw_import.prefs.get("search_additional_paths", self.search_additional_paths)
+
+        self.custom_ldconfig_file     = IMPORT_OT_do_ldraw_import.prefs.get("custom_ldconfig_file",   self.custom_ldconfig_file)
+        self.additional_search_paths  = IMPORT_OT_do_ldraw_import.prefs.get("additional_search_paths", self.additional_search_paths)
 
         self.prefer_studio           = IMPORT_OT_do_ldraw_import.prefs.get("prefer_studio", self.prefer_studio)
         self.prefer_unofficial       = IMPORT_OT_do_ldraw_import.prefs.get("prefer_unofficial", self.prefer_unofficial)
@@ -387,7 +428,6 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         self.resolution              = IMPORT_OT_do_ldraw_import.prefs.get("resolution", self.resolution)
         self.display_logo            = IMPORT_OT_do_ldraw_import.prefs.get("display_logo", self.display_logo)
         self.chosen_logo             = IMPORT_OT_do_ldraw_import.prefs.get("chosen_logo", self.chosen_logo)
-        self.profile                 = IMPORT_OT_do_ldraw_import.prefs.get("profile", self.profile)
 
         self.import_scale            = IMPORT_OT_do_ldraw_import.prefs.get("import_scale", self.import_scale)
         self.parent_to_empty         = IMPORT_OT_do_ldraw_import.prefs.get("parent_to_empty", self.parent_to_empty)
@@ -423,6 +463,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         self.no_studs                = IMPORT_OT_do_ldraw_import.prefs.get("no_studs", self.no_studs)
         self.preserve_hierarchy      = IMPORT_OT_do_ldraw_import.prefs.get("preserve_hierarchy", self.preserve_hierarchy)
 
+        self.profile                 = IMPORT_OT_do_ldraw_import.prefs.get("profile", self.profile)
         self.verbose                 = IMPORT_OT_do_ldraw_import.prefs.get("verbose", self.verbose)
 
         if self.preferences_file == "":
@@ -430,15 +471,21 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
             IMPORT_OT_do_ldraw_import.prefs["ldraw_path"]              = self.ldraw_path
             IMPORT_OT_do_ldraw_import.prefs["studio_ldraw_path"]       = self.studio_ldraw_path
 
+            IMPORT_OT_do_ldraw_import.prefs['add_environment']         = self.add_environment
+            IMPORT_OT_do_ldraw_import.prefs['environment_file']        = self.environment_file
             IMPORT_OT_do_ldraw_import.prefs['import_cameras']          = self.import_cameras
             IMPORT_OT_do_ldraw_import.prefs['import_lights']           = self.import_lights
+            IMPORT_OT_do_ldraw_import.prefs['search_additional_paths'] = self.search_additional_paths
+
+            IMPORT_OT_do_ldraw_import.prefs['custom_ldconfig_file']    = self.custom_ldconfig_file
+            IMPORT_OT_do_ldraw_import.prefs['additional_search_paths'] = self.additional_search_paths
+
             IMPORT_OT_do_ldraw_import.prefs["prefer_studio"]           = self.prefer_studio
             IMPORT_OT_do_ldraw_import.prefs["prefer_unofficial"]       = self.prefer_unofficial
             IMPORT_OT_do_ldraw_import.prefs["use_alt_colors"]          = self.use_alt_colors
             IMPORT_OT_do_ldraw_import.prefs["resolution"]              = self.resolution
             IMPORT_OT_do_ldraw_import.prefs["display_logo"]            = self.display_logo
             IMPORT_OT_do_ldraw_import.prefs["chosen_logo"]             = self.chosen_logo
-            IMPORT_OT_do_ldraw_import.prefs["profile"]                 = self.profile
 
             IMPORT_OT_do_ldraw_import.prefs["import_scale"]            = self.import_scale
             IMPORT_OT_do_ldraw_import.prefs["parent_to_empty"]         = self.parent_to_empty
@@ -474,7 +521,13 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
             IMPORT_OT_do_ldraw_import.prefs["no_studs"]                = self.no_studs
             IMPORT_OT_do_ldraw_import.prefs["preserve_hierarchy"]      = self.preserve_hierarchy
 
+            IMPORT_OT_do_ldraw_import.prefs["profile"]                 = self.profile
             IMPORT_OT_do_ldraw_import.prefs["verbose"]                 = self.verbose
+
+        if self.environment_file == "":
+            IMPORT_OT_do_ldraw_import.prefs["environment_file"]        = ImportSettings.get_environment_file()
+        else:
+            IMPORT_OT_do_ldraw_import.prefs["environment_file"]        = self.environment_file
 
         assert self.filepath != "", "Model file path not specified."
 
@@ -506,7 +559,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
             stats.dump_stats(filename=prof_output)
         else:
             load_result = blender_import.do_import(bpy.path.abspath(self.filepath))
-        
+
         model_globals.LDRAW_MODEL_LOADED = True
 
         ImportSettings.debugPrint("=====Import MM Complete====")
@@ -530,21 +583,26 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         layout.use_property_split = True  # Active single-column layout
 
         box = layout.box()
-
+        box.label(text="LDraw Import Options", icon='PREFERENCES')
+        box.label(text="Import filepaths:", icon='FILEBROWSER')
         box.prop(self, "ldraw_path")
+        box.prop(self, "custom_ldconfig_file")
         box.prop(self, "studio_ldraw_path")
+        box.prop(self, "search_additional_paths")
+        if not self.ldraw_model_file_loaded:
+            box.prop(self, "environment_file")
 
         layout.separator(factor=space_factor)
         box.label(text="Import Options")
+        box.prop(self, "add_environment")
         box.prop(self, "import_cameras")
-        box.prop(self, "import_lights")       
+        box.prop(self, "import_lights")
         box.prop(self, "prefer_studio")
         box.prop(self, "prefer_unofficial")
         box.prop(self, "use_alt_colors")
         box.prop(self, "resolution")
         box.prop(self, "display_logo")
         box.prop(self, "chosen_logo")
-        box.prop(self, "profile")
 
         layout.separator(factor=space_factor)
         box.label(text="Scaling Options")
@@ -587,6 +645,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         box.prop(self, "no_studs")
         box.prop(self, "preserve_hierarchy")
         box.prop(self, "verbose")
+        box.prop(self, "profile")        
 
 
 def build_import_menu(self, context):

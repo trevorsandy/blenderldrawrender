@@ -14,6 +14,9 @@ class FileSystem:
     defaults['studio_ldraw_path'] = ''
     studio_ldraw_path = defaults['studio_ldraw_path']
 
+    defaults['environment_file'] = ''
+    environment_file = defaults['environment_file']
+
     defaults['prefer_studio'] = False
     prefer_studio = defaults['prefer_studio']
 
@@ -30,6 +33,16 @@ class FileSystem:
     def reset_caches(cls):
         cls.__search_paths = []
         cls.__lowercase_paths = {}
+
+    @staticmethod
+    def locate_environment_file():
+        file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                    '../io_scene_lpub3d_importldraw/loadldraw/background.exr'))
+        print(f"DEBUG:  environment_file: {file_path}")
+        if os.path.exists(file_path):
+            return file_path
+        print(f"DEBUG:  ERROR environment_file not Found: {file_path}")
+        return ""
 
     @staticmethod
     def locate_ldraw():

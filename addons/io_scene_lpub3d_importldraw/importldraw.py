@@ -379,9 +379,9 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         default=prefs.get("lsynthDirectory", r"")
     )
 
-    environmentPath: StringProperty(
+    environmentFile: StringProperty(
         name="",
-        description="Full file path to .exr environment texture file - specify if not using default bundled in addon",
+        description="Full file path to .exr environment texture file - specify if not using addon default",
         default=prefs.get("environmentFile", r"")
     )
 
@@ -460,6 +460,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     def draw(self, context):
         """Display import options."""
 
+        space_factor = 0.3
         layout = self.layout
         layout.use_property_split = True  # Active single-column layout
 
@@ -467,20 +468,30 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         box.label(text="LDraw Import Options", icon='PREFERENCES')
         box.label(text="LDraw filepath:", icon='FILEBROWSER')
         box.prop(self, "ldrawPath")
-        box.prop(self, "importScale")
-        box.prop(self, "look", expand=True)
-        box.prop(self, "colourScheme", expand=True)
-        box.prop(self, "addEnvironment")
-        box.prop(self, "positionCamera")
-        box.prop(self, "cameraBorderPercentage")
+        box.prop(self, "customLDConfigFile")
+        box.prop(self, "searchAdditionalPaths")
+        if not self.ldraw_model_file_loaded:
+            box.prop(self, "environmentFile")
 
+        layout.separator(factor=space_factor)
+        box.label(text="Import Options")    
+        box.prop(self, "addEnvironment")        
         box.prop(self, "importCameras")
         box.prop(self, "importLights")
-
+        box.prop(self, "importScale")
+        box.prop(self, "look", expand=True)        
+        box.prop(self, "colourScheme", expand=True)
+        box.prop(self, "positionCamera")
+        box.prop(self, "cameraBorderPercentage")    
+        box.prop(self, "positionOnGround")
         box.prop(self, "useLogoStuds")
-        box.prop(self, "logoStudVersion", expand=True)
-        box.prop(self, "instanceStuds")
+        box.prop(self, "logoStudVersion", expand=True)    
+        box.prop(self, "numberNodes")
 
+        layout.separator(factor=space_factor)
+        box.label(text="Cleanup Options")
+        box.prop(self, "flatten")  
+        box.prop(self, "instanceStuds")
         box.prop(self, "resPrims", expand=True)
         box.prop(self, "smoothParts")
         box.prop(self, "addSubsurface")
@@ -491,16 +502,14 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         box.prop(self, "curvedWalls")
         box.prop(self, "linkParts")
 
-        box.prop(self, "positionOnGround")
-        box.prop(self, "numberNodes")
-        box.prop(self, "flatten")
-
+        layout.separator(factor=space_factor)
         box.label(text="Resolve Ambiguous Normals:", icon='ORIENTATION_NORMAL')
-        box.prop(self, "resolveNormals", expand=True)
+        box.prop(self, "resolveNormals", expand=True)          
 
+        layout.separator(factor=space_factor)
+        box.label(text="Extras")
         box.prop(self, "useUnofficialParts")
         box.prop(self, "useArchiveLibrary")
-        box.prop(self, "searchAdditionalPaths")
         box.prop(self, "verbose")
 
     def execute(self, context):
@@ -539,7 +548,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         self.curvedWalls             = ImportLDrawOps.prefs.get("curvedWalls",          self.curvedWalls)
         self.customLDConfigPath      = ImportLDrawOps.prefs.get("customLDConfigFile",   self.customLDConfigPath)
         self.defaultColour           = ImportLDrawOps.prefs.get("defaultColour",        self.defaultColour)
-        self.environmentPath         = ImportLDrawOps.prefs.get("environmentFile",      self.environmentPath)
+        self.environmentFile         = ImportLDrawOps.prefs.get("environmentFile",      self.environmentFile)
         self.flatten                 = ImportLDrawOps.prefs.get("flattenHierarchy",     self.flatten)
         self.gapsSize                = ImportLDrawOps.prefs.get("gapWidth",             self.gapsSize)
         self.importCameras           = ImportLDrawOps.prefs.get("importCameras",        self.importCameras)
@@ -577,7 +586,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             # Read current preferences from the UI and save them
 
             ImportLDrawOps.prefs.set("customLDConfigFile",     self.customLDConfigPath)
-            ImportLDrawOps.prefs.set("environmentFile",        self.environmentPath)
+            ImportLDrawOps.prefs.set("environmentFile",        self.environmentFile)
             ImportLDrawOps.prefs.set("addEnvironment",         self.addEnvironment)
             ImportLDrawOps.prefs.set("addSubsurface",          self.addSubsurface)
             ImportLDrawOps.prefs.set("bevelEdges",             self.bevelEdges)
@@ -660,10 +669,10 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         #assert self.ldrawPath, "LDraw library path not specified."
         loadldraw.Options.ldrawDirectory              = self.ldrawPath
 
-        if not self.environmentPath:
-            loadldraw.Options.environmentFile = os.path.join(os.path.dirname(__file__), "loadldraw/background.exr")
+        if self.environmentFile == "":
+            loadldraw.Options.environmentFile         = ImportLDrawOps.prefs.getEnvironmentFile()
         else:
-            loadldraw.Options.environmentFile         = self.environmentPath
+            loadldraw.Options.environmentFile         = self.environmentFile
         if not self.lsynthPath:
             loadldraw.Options.LSynthDirectory = os.path.join(os.path.dirname(__file__), "lsynth")
         else:
@@ -686,6 +695,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         if load_result is None:
             loadldraw.debugPrint("Import result: None")
         loadldraw.debugPrint(f"Model file: {model_globals.LDRAW_MODEL_FILE}")
+        loadldraw.debugPrint(f"Object count: {loadldraw.globalObjectsToAdd}")        
         loadldraw.debugPrint(f"Elapsed time: {loadldraw.formatElapsed(loadldraw.ldrawLoadElapsed)}")
         loadldraw.debugPrint("-------------------------")
         loadldraw.debugPrint("")

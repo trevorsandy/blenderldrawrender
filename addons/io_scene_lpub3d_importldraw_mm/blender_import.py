@@ -1,5 +1,6 @@
 import bpy
 import bmesh
+from mathutils import Vector
 
 from .blender_materials import BlenderMaterials
 from .import_options import ImportOptions
@@ -65,7 +66,7 @@ def do_import(filepath):
         light_object = 'Light'
         if light_object in scene_object_names:
             light = bpy.context.scene.objects[light_object]
-            light_location = blender_light.get_light_location(light.location)
+            light_location = light.location - Vector((4.076245307922363, 1.0054539442062378, 5.903861999511719))
             if light_location.length < 0.001:
                 __unlink_from_scene(light)
 
@@ -93,13 +94,17 @@ def do_import(filepath):
     # Select the created root object
     # __select_object(root_node)
 
+    if ImportOptions.add_environment:
+        __setup_environment()
+
     return obj
 
 
 def __scene_setup():
-    bpy.context.scene.eevee.use_ssr = True
-    bpy.context.scene.eevee.use_ssr_refraction = True
-    bpy.context.scene.eevee.use_taa_reprojection = True
+    if not ImportOptions.add_environment:
+        bpy.context.scene.eevee.use_ssr = True
+        bpy.context.scene.eevee.use_ssr_refraction = True
+        bpy.context.scene.eevee.use_taa_reprojection = True
 
     # https://blender.stackexchange.com/a/146838
     if ImportOptions.use_freestyle_edges:
@@ -220,3 +225,97 @@ def __load_materials(file):
 
             group.link_obj(collection, obj)
         j += 1
+
+def __get_layers(scene):
+    return scene.view_layers
+
+def __get_layer_names(scene):
+    return list(map((lambda x: x.name), __get_layers(scene)))
+
+def __add_plane(location, size):
+    bpy.ops.mesh.primitive_plane_add(size=size, enter_editmode=False, location=location)
+
+def __use_denoising(scene, denoising):
+    if hasattr(__get_layers(scene)[0], "cycles"):
+        __get_layers(scene)[0].cycles.use_denoising = denoising
+
+def __setup_realistic_look():
+    # Setup realistic look
+    scene = bpy.context.scene
+
+    # Use cycles render
+    scene.render.engine = 'CYCLES'
+
+    # Add environment texture for world
+    if FileSystem.environment_file != "":
+        scene.world.use_nodes = True
+        nodes = scene.world.node_tree.nodes
+        links = scene.world.node_tree.links
+        world_node_names = list(map((lambda x: x.name), scene.world.node_tree.nodes))
+
+        if 'LegoEnvMap' in world_node_names:
+            env_tex = nodes['LegoEnvMap']
+        else:
+            env_tex          = nodes.new('ShaderNodeTexEnvironment')
+            env_tex.location = (-250, 300)
+            env_tex.name     = 'LegoEnvMap'
+            env_tex.image    = bpy.data.images.load(FileSystem.environment_file, check_existing=True)
+
+        if 'Background' in world_node_names:
+            background = nodes['Background']
+            links.new(env_tex.outputs[0], background.inputs[0])
+    else:
+        scene.world.color = (1.0, 1.0, 1.0)
+
+    __use_denoising(scene, True)
+
+    if (scene.cycles.samples < 400):
+        scene.cycles.samples = 400
+    if (scene.cycles.diffuse_bounces < 20):
+        scene.cycles.diffuse_bounces = 20
+    if (scene.cycles.glossy_bounces < 20):
+        scene.cycles.glossy_bounces = 20
+
+    #  See Enable eevee transparency https://github.com/TobyLobster/ImportLDraw/pull/46/
+    scene.eevee.use_ssr = True
+    scene.eevee.use_ssr_refraction = True
+    scene.eevee.use_taa_reprojection = True
+
+def __setup_environment():
+    # Add ground plane with white material
+    __add_plane((0, 0, 0), 100000 * ImportOptions.import_scale)
+
+    blender_name = "Mat_LegoGroundPlane"
+    # Reuse current material if it exists, otherwise create a new material
+    if bpy.data.materials.get(blender_name) is None:
+        material = bpy.data.materials.new(blender_name)
+    else:
+        material = bpy.data.materials[blender_name]
+
+    # Use nodes
+    material.use_nodes = True
+
+    nodes = material.node_tree.nodes
+    links = material.node_tree.links
+
+    # Remove any existing nodes
+    for n in nodes:
+        nodes.remove(n)
+
+    node = nodes.new('ShaderNodeBsdfDiffuse')
+    node.location = 0, 5
+    node.inputs['Color'].default_value = (1, 1, 1, 1)
+    node.inputs['Roughness'].default_value = 1.0
+
+    out = nodes.new('ShaderNodeOutputMaterial')
+    out.location = 200, 0
+    links.new(node.outputs[0], out.inputs[0])
+
+    for obj in bpy.context.selected_objects:
+        obj.name = "LegoGroundPlane"
+        if obj.data.materials:
+            obj.data.materials[0] = material
+        else:
+            obj.data.materials.append(material)
+
+    __setup_realistic_look()

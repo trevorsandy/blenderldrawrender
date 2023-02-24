@@ -10,6 +10,7 @@ class ImportSettings:
     filesystem_defaults = {
         'ldraw_path': FileSystem.locate_ldraw(),
         'studio_ldraw_path': FileSystem.locate_studio_ldraw(),
+        'envoronment_file': FileSystem.locate_environment_file(),
         'prefer_unofficial': FileSystem.defaults['prefer_unofficial'],
         'prefer_studio': FileSystem.defaults['prefer_studio'],
         'resolution': FileSystem.defaults['resolution'],
@@ -44,6 +45,7 @@ class ImportSettings:
         'import_edges': ImportOptions.defaults['import_edges'],
         'import_cameras': ImportOptions.defaults['import_cameras'],
         'import_lights': ImportOptions.defaults['import_lights'],
+        'add_environment': ImportOptions.defaults['add_environment'],
         'use_freestyle_edges': ImportOptions.defaults['use_freestyle_edges'],
         'import_scale': ImportOptions.defaults['import_scale'],
         'parent_to_empty': ImportOptions.defaults['parent_to_empty'],
@@ -98,6 +100,10 @@ class ImportSettings:
             return value
         else:
             return default
+
+    @classmethod
+    def get_environment_file(cls):
+        return cls.default_settings.get('environment_file')
 
     @classmethod
     def get_ini_settings(cls, ini_settings_file):
