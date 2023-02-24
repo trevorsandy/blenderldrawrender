@@ -114,7 +114,7 @@ class Preferences():
             loadldraw.debugPrint(f"Preferences file:    {self.__prefsFilepath}")
         else:
             self.__prefsPath = os.path.dirname(__file__)
-            self.__prefsFilepath = os.path.join(self.__prefsPath, "ImportLDrawPreferences.ini")
+            self.__prefsFilepath = os.path.join(self.__prefsPath, "config/ImportLDrawPreferences.ini")
 
         self.__config = configparser.RawConfigParser()
         self.__prefsRead = self.__config.read(self.__prefsFilepath)
@@ -150,6 +150,14 @@ class Preferences():
             loadldraw.debugPrint(f"WARNING: Could not save preferences. Unexpected error: {sys.exc_info()[0]}")
         return False
 
+    def getEnvironmentFile(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), 'loadldraw/background.exr'))
+
+    def getLSynthPath(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), 'lsynth'))
+    
+    def getLStudsPath(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), 'studs'))
 
 
 class ImportLDrawOps(bpy.types.Operator, ImportHelper):

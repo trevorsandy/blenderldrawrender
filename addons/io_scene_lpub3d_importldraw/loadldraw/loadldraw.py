@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update February 12, 2023
+Last Update February 16, 2023
 Copyright (c) 2020 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
@@ -657,7 +657,8 @@ class Configure:
         return result
 
     def __setLDrawParameterFile():
-        parameterFilePath = os.path.join(os.path.dirname(__file__), "LDrawParameters.lst")
+        parameterFilePath = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                            '../../io_scene_lpub3d_renderldraw/config/LDrawParameters.lst'))
         if os.path.exists(parameterFilePath):
             Configure.parameterFile = parameterFilePath.replace("\\\\", "\\")
             debugPrint("The LDraw parameter file to be used is: {0}".format(Configure.parameterFile))
