@@ -48,6 +48,18 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         default=ImportSettings.get_setting('studio_ldraw_path'),
     )
 
+    import_cameras: bpy.props.BoolProperty(
+        name="Import cameras",
+        description="Import camera definitions (from models authored in LPub3D or LeoCAD)",
+        default=ImportSettings.get_setting('import_cameras'),
+    )
+
+    import_lights: bpy.props.BoolProperty(
+        name="Import lights",
+        description="Import Light definitions (from models authored in LPub3D or LeoCAD)",
+        default=ImportSettings.get_setting('import_lights'),
+    )    
+
     prefer_studio: bpy.props.BoolProperty(
         name="Prefer Stud.io library",
         description="Search for parts in Stud.io library first",
@@ -366,6 +378,8 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
 
         self.ldraw_path              = IMPORT_OT_do_ldraw_import.prefs.get("ldraw_path", self.ldraw_path)
         self.studio_ldraw_path       = IMPORT_OT_do_ldraw_import.prefs.get("studio_ldraw_path", self.studio_ldraw_path)
+        self.import_cameras           = IMPORT_OT_do_ldraw_import.prefs.get("import_cameras", self.import_cameras)
+        self.import_lights            = IMPORT_OT_do_ldraw_import.prefs.get("import_lights", self.import_lights)
 
         self.prefer_studio           = IMPORT_OT_do_ldraw_import.prefs.get("prefer_studio", self.prefer_studio)
         self.prefer_unofficial       = IMPORT_OT_do_ldraw_import.prefs.get("prefer_unofficial", self.prefer_unofficial)
@@ -416,6 +430,8 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
             IMPORT_OT_do_ldraw_import.prefs["ldraw_path"]              = self.ldraw_path
             IMPORT_OT_do_ldraw_import.prefs["studio_ldraw_path"]       = self.studio_ldraw_path
 
+            IMPORT_OT_do_ldraw_import.prefs['import_cameras']          = self.import_cameras
+            IMPORT_OT_do_ldraw_import.prefs['import_lights']           = self.import_lights
             IMPORT_OT_do_ldraw_import.prefs["prefer_studio"]           = self.prefer_studio
             IMPORT_OT_do_ldraw_import.prefs["prefer_unofficial"]       = self.prefer_unofficial
             IMPORT_OT_do_ldraw_import.prefs["use_alt_colors"]          = self.use_alt_colors
@@ -520,6 +536,8 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
 
         layout.separator(factor=space_factor)
         box.label(text="Import Options")
+        box.prop(self, "import_cameras")
+        box.prop(self, "import_lights")       
         box.prop(self, "prefer_studio")
         box.prop(self, "prefer_unofficial")
         box.prop(self, "use_alt_colors")

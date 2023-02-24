@@ -7,6 +7,7 @@ from .ldraw_file import LDrawFile
 from .ldraw_node import LDrawNode
 from .filesystem import FileSystem
 from . import blender_camera
+from . import blender_light
 from .ldraw_colors import LDrawColor
 from . import helpers
 from . import strings
@@ -46,9 +47,10 @@ def do_import(filepath):
     # Get existing scene names
     scene_object_names = [x.name for x in bpy.context.scene.objects]
 
-    # Remove default objects
-    if "Cube" in scene_object_names:
-        cube = bpy.context.scene.objects['Cube']
+    # Remove default cube object
+    cube_object = 'Cube'
+    if cube_object in scene_object_names:
+        cube = bpy.context.scene.objects[cube_object]
         if cube.location.length < 0.001:
             __unlink_from_scene(cube)
 
@@ -58,6 +60,15 @@ def do_import(filepath):
         if camera is not None:
             __unlink_from_scene(camera)
 
+    # Remove default light
+    if LDrawNode.lights:
+        light_object = 'Light'
+        if light_object in scene_object_names:
+            light = bpy.context.scene.objects[light_object]
+            light_location = blender_light.get_light_location(light.location)
+            if light_location.length < 0.001:
+                __unlink_from_scene(light)
+
     max_clip_end = 0
     for camera in LDrawNode.cameras:
         camera = blender_camera.create_camera(camera, empty=LDrawNode.top_empty, collection=LDrawNode.top_collection)
@@ -65,6 +76,10 @@ def do_import(filepath):
             if camera.data.clip_end > max_clip_end:
                 max_clip_end = camera.data.clip_end
             bpy.context.scene.camera = camera
+
+    for light in LDrawNode.lights:
+        light = blender_light.create_light(light, empty=LDrawNode.top_empty, collection=LDrawNode.top_collection)
+        light.parent = root_node
 
     if bpy.context.screen is not None:
         for area in bpy.context.screen.areas:
@@ -74,6 +89,9 @@ def do_import(filepath):
                     if space.type == "VIEW_3D":
                         if space.clip_end < max_clip_end:
                             space.clip_end = max_clip_end
+
+    # Select the created root object
+    # __select_object(root_node)
 
     return obj
 
@@ -108,6 +126,10 @@ def __scene_setup():
         lineset.select_edge_mark = True
         lineset.select_external_contour = False
         lineset.select_material_boundary = False
+
+def __select_object(obj):
+    obj.select_set(state=True)
+    bpy.context.view_layer.objects.active = obj
 
 def __unlink_from_scene(obj):
     if bpy.context.collection.objects.find(obj.name) >= 0:

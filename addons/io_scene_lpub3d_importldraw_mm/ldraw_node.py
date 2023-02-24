@@ -16,6 +16,7 @@ from .texmap import TexMap
 from . import helpers
 from . import ldraw_props
 from .ldraw_camera import LDrawCamera
+from .ldraw_light import LDrawLight
 from .pe_texmap import PETexInfo, PETexmap
 
 
@@ -30,6 +31,7 @@ class LDrawNode:
     current_frame = 0
     top_empty = None
     cameras = []
+    lights = []
 
     __groups_collection = None
     __gap_scale_empty = None
@@ -64,6 +66,7 @@ class LDrawNode:
         cls.current_frame = 0
         cls.top_empty = None
         cls.cameras = []
+        cls.lights = []
 
         cls.__groups_collection = None
         cls.__gap_scale_empty = None
@@ -97,6 +100,7 @@ class LDrawNode:
         self.meta_args = {}
 
         self.camera = None
+        self.light  = None
 
         self.texmap_start = False
         self.texmap_next = False
@@ -264,8 +268,10 @@ class LDrawNode:
                     LDrawNode.__meta_print(child_node)
                 elif child_node.meta_command.startswith("group"):
                     LDrawNode.__meta_group(child_node)
-                elif child_node.meta_command == "leocad_camera":
-                    LDrawNode.__meta_leocad_camera(self, child_node, matrix)
+                elif child_node.meta_command == "lpub3d_camera":
+                    LDrawNode.__meta_lpub3d_camera(self, child_node, matrix)
+                elif child_node.meta_command == "lpub3d_light":
+                    LDrawNode.__meta_lpub3d_light(self, child_node, matrix)
                 elif child_node.meta_command == "texmap":
                     LDrawNode.__meta_texmap(self, child_node, matrix)
                 elif child_node.meta_command.startswith("pe_tex_"):
@@ -772,12 +778,15 @@ class LDrawNode:
                     LDrawNode.__next_collection = None
 
     @staticmethod
-    def __meta_leocad_camera(ldraw_node, child_node, matrix):
-        meta = "!LEOCAD"
+    def __meta_lpub3d_camera(ldraw_node, child_node, matrix):
+        if not ImportOptions.import_cameras:
+            return
+
         clean_line = child_node.line
-        processing_lpub_meta = clean_line.startswith("0 !LPUB ")
-        if processing_lpub_meta:
-            meta = "!LPUB"
+        meta = "!LPUB"
+        is_lpub_meta = clean_line.startswith(f"0 {meta} ")
+        if not is_lpub_meta:
+            meta = "!LEOCAD"
         _params = helpers.get_params(clean_line, f"0 {meta} CAMERA ", lowercase=True)
 
         if ldraw_node.camera is None:
@@ -798,8 +807,8 @@ class LDrawNode:
                 _params = _params[2:]
             elif _params[0] == "position":
                 (x, y, z) = map(float, _params[1:4])
-                # Convert LPu3D transform, switch Z and Y with -Z in the up direction
-                if processing_lpub_meta:
+                # Convert LPub3D transform, switch Z and Y with -Z in the up direction
+                if is_lpub_meta:
                     vector = matrix @ mathutils.Vector((x, z, -y))
                 else:
                     vector = matrix @ mathutils.Vector((x, y, z))
@@ -807,8 +816,8 @@ class LDrawNode:
                 _params = _params[4:]
             elif _params[0] == "target_position":
                 (x, y, z) = map(float, _params[1:4])
-                # Convert LPu3D transform, switch Z and Y with -Z in the up direction
-                if processing_lpub_meta:
+                # Convert LPub3D transform, switch Z and Y with -Z in the up direction
+                if is_lpub_meta:
                     vector = matrix @ mathutils.Vector((x, z, -y))
                 else:
                     vector = matrix @ mathutils.Vector((x, y, z))
@@ -816,8 +825,8 @@ class LDrawNode:
                 _params = _params[4:]
             elif _params[0] == "up_vector":
                 (x, y, z) = map(float, _params[1:4])
-                # Convert LPu3D transform, switch Z and Y with -Z in the up direction
-                if processing_lpub_meta:
+                # Convert LPub3D transform, switch Z and Y with -Z in the up direction
+                if is_lpub_meta:
                     vector = matrix @ mathutils.Vector((x, z, -y))
                 else:
                     vector = matrix @ mathutils.Vector((x, y, z))
@@ -840,6 +849,98 @@ class LDrawNode:
 
                 LDrawNode.cameras.append(ldraw_node.camera)
                 ldraw_node.camera = None
+            else:
+                _params = _params[1:]
+
+    @staticmethod
+    def __meta_lpub3d_light(ldraw_node, child_node, matrix):
+        if not ImportOptions.import_lights:
+            return
+
+        clean_line = child_node.line
+        meta = "!LPUB"
+        is_lpub_meta = clean_line.startswith(f"0 {meta} ")
+        if not is_lpub_meta:
+            meta = "!LEOCAD"
+        _params = helpers.get_params(clean_line, f"0 {meta} LIGHT ", lowercase=True)
+
+        if ldraw_node.light is None:
+            ldraw_node.light = LDrawLight()
+
+        # "Light commands can be grouped in the same line"
+        # _params = _params[1:] at the end bumps promotes _params[2] to _params[1]
+        while len(_params) > 0:
+            if _params[0] == "position":
+                (x, y, z) = map(float, _params[1:4])
+                # Convert LPub3D transform, switch Z and Y with -Z in the up direction
+                if is_lpub_meta:
+                    vector = matrix @ mathutils.Vector((x, z, -y))
+                else:
+                    vector = matrix @ mathutils.Vector((x, y, z))
+                ldraw_node.light.position = vector
+                _params = _params[4:]
+            elif _params[0] == "target_position":
+                (x, y, z) = map(float, _params[1:4])
+                # Convert LPub3D transform, switch Z and Y with -Z in the up direction
+                if is_lpub_meta:
+                    vector = matrix @ mathutils.Vector((x, z, -y))
+                else:
+                    vector = matrix @ mathutils.Vector((x, y, z))
+                ldraw_node.light.target_position = vector
+                _params = _params[4:]
+            elif _params[0] == "color_rgb":
+                ldraw_node.light.color = mathutils.Vector(
+                    (float(_params[1]), float(_params[2]), float(_params[3])))
+                _params = _params[4:]
+            elif _params[0] == "power":
+                ldraw_node.light.exponent = float(_params[1])
+                _params = _params[2:]
+            elif _params[0] == "strength":
+                ldraw_node.light.exponent = float(_params[1])
+                _params = _params[2:]
+            elif _params[0] == "angle":
+                ldraw_node.light.factor_a = ImportOptions.import_scale * float(_params[1])
+                _params = _params[2:]
+            elif _params[0] == "radius":
+                ldraw_node.light.factor_a = float(_params[1])
+                _params = _params[2:]
+            elif _params[0] == "size":
+                ldraw_node.light.factor_a = float(_params[1])
+                _params = _params[2:]
+            elif _params[0] == "width":
+                ldraw_node.light.factor_a = float(_params[1])
+                _params = _params[2:]
+            elif _params[0] == "height":
+                ldraw_node.light.factor_b = float(_params[1])
+                _params = _params[2:]
+            elif _params[0] == "spot_blend":
+                ldraw_node.light.factor_b = float(_params[1])
+                _params = _params[2:]
+            elif _params[0] == "spot_size":
+                ldraw_node.light.spot_size = float(_params[1])
+                _params = _params[2:]
+            elif _params[0] == "specular":
+                ldraw_node.light.specular = float(_params[1])
+                _params = _params[2:]
+            elif _params[0] == "cutoff_distance":
+                ldraw_node.light.use_cutoff = True
+                ldraw_node.light.cutoff_distance = float(_params[1])
+                _params = _params[2:]
+            elif _params[0] == "type":
+                ldraw_node.light.type = _params[1].upper().strip()
+                _params = _params[2:]
+            elif _params[0] == "shape":
+                ldraw_node.light.shape = _params[1].upper().strip()
+                _params = _params[2:]
+            elif _params[0] == "name":
+                name_args = clean_line.split("NAME ")
+                ldraw_node.light.name = "Imported {0}".format(name_args[1])
+
+                # By definition this is the last of the light parameters
+                _params = []
+
+                LDrawNode.lights.append(ldraw_node.light)
+                ldraw_node.light = None
             else:
                 _params = _params[1:]
 

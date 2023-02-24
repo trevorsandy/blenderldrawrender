@@ -42,6 +42,8 @@ class ImportSettings:
         'starting_step_frame': ImportOptions.defaults['starting_step_frame'],
         'smooth_type': ImportOptions.defaults['smooth_type'],
         'import_edges': ImportOptions.defaults['import_edges'],
+        'import_cameras': ImportOptions.defaults['import_cameras'],
+        'import_lights': ImportOptions.defaults['import_lights'],
         'use_freestyle_edges': ImportOptions.defaults['use_freestyle_edges'],
         'import_scale': ImportOptions.defaults['import_scale'],
         'parent_to_empty': ImportOptions.defaults['parent_to_empty'],

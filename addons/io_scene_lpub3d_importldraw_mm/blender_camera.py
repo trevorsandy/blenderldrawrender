@@ -1,8 +1,8 @@
-import bpy
 import math
-import mathutils
+import bpy
 
 from .import_options import ImportOptions
+from . import blender_lookat
 from . import group
 
 
@@ -62,31 +62,6 @@ def create_camera(camera, empty=None, collection=None):
     if obj.parent is not None:
         obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
 
-    __look_at(obj, camera.target_position, camera.up_vector)
+    blender_lookat.look_at(obj, camera.target_position, camera.up_vector)
 
     return obj
-
-
-def __look_at(obj, target_location, up_vector):
-    # back vector is a vector pointing from the target to the camera
-    back = obj.location - target_location
-    back = back.normalized()
-
-    # If our back and up vectors are very close to pointing the same way (or opposite), choose a different up_vector
-    if abs(back.dot(up_vector)) > 0.9999:
-        up_vector = mathutils.Vector((0.0, 0.0, 1.0))
-        if abs(back.dot(up_vector)) > 0.9999:
-            up_vector = mathutils.Vector((1.0, 0.0, 0.0))
-
-    right = up_vector.cross(back)
-    right = right.normalized()
-
-    up = back.cross(right)
-    up = up.normalized()
-
-    obj.matrix_world = mathutils.Matrix((
-        [right[0], up[0], back[0], obj.location[0]],
-        [right[1], up[1], back[1], obj.location[1]],
-        [right[2], up[2], back[2], obj.location[2]],
-        [0.0, 0.0, 0.0, 1.0],
-    ))

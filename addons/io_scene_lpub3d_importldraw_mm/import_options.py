@@ -79,6 +79,12 @@ class ImportOptions:
     defaults['import_edges'] = False
     import_edges = defaults['import_edges']
 
+    defaults['import_cameras'] = True
+    import_cameras = defaults['import_cameras']
+
+    defaults['import_lights'] = True
+    import_lights = defaults['import_lights']
+
     defaults['use_freestyle_edges'] = False
     use_freestyle_edges = defaults['use_freestyle_edges']
 

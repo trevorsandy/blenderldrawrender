@@ -261,13 +261,13 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
 
     importCameras: BoolProperty(
         name="Import cameras",
-        description="Import camera definitions (from models authored in LeoCAD)",
+        description="Import camera definitions (from models authored in LPub3D or LeoCAD)",
         default=prefs.get("importCameras", True)
     )
 
     importLights: BoolProperty(
         name="Import lights",
-        description="Import Light definitions (from models authored in LPub3D)",
+        description="Import Light definitions (from models authored in LPub3D or LeoCAD)",
         default=prefs.get("importLights", True)
     )
 
