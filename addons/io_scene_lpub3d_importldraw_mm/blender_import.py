@@ -133,9 +133,6 @@ def do_import(filepath):
                         if space.clip_end < max_clip_end:
                             space.clip_end = max_clip_end
 
-    # Select the created root object
-    # __select_object(root_node)
-
     if ImportOptions.add_environment:
         __setup_environment()
 
@@ -173,10 +170,6 @@ def __scene_setup():
         lineset.select_edge_mark = True
         lineset.select_external_contour = False
         lineset.select_material_boundary = False
-
-def __select_object(obj):
-    obj.select_set(state=True)
-    bpy.context.view_layer.objects.active = obj
 
 def __unlink_from_scene(obj):
     if bpy.context.collection.objects.find(obj.name) >= 0:
