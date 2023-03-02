@@ -40,6 +40,48 @@ def do_import(filepath):
     # return root_node.load()
     obj = root_node.load()
 
+    if ImportOptions.add_environment:
+        mesh_objs = []
+        top_obj = None
+
+        for collection in bpy.data.collections:
+            for top in collection.all_objects:
+                if top.name == collection.name:
+                    top_obj = top
+                    mesh_objs = [mesh_obj for mesh_obj in top.children if mesh_obj.type == 'MESH']
+                    break
+            if mesh_objs and top_obj is not None:
+                break
+
+        if mesh_objs:
+            bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
+            vertices = []
+
+            for mesh_obj in mesh_objs:
+                points = [mesh_obj.matrix_world @ Vector(v[:]) for v in mesh_obj.bound_box]
+                vertices.extend(points)
+
+            # Calculate our bounding box in global coordinate space
+            bbox_min = Vector((0, 0, 0))
+            bbox_max = Vector((0, 0, 0))
+
+            bbox_min[0] = min(v[0] for v in vertices)
+            bbox_min[1] = min(v[1] for v in vertices)
+            bbox_min[2] = min(v[2] for v in vertices)
+            bbox_max[0] = max(v[0] for v in vertices)
+            bbox_max[1] = max(v[1] for v in vertices)
+            bbox_max[2] = max(v[2] for v in vertices)
+
+            bbox_ctr = (bbox_min + bbox_max) * 0.5
+            offset_to_centre_model = Vector((-bbox_ctr.x, -bbox_ctr.y, -bbox_min.z))
+
+            if top_obj:
+                top_obj.location += offset_to_centre_model
+
+            # Offset all points
+            vertices = [v + offset_to_centre_model for v in vertices]
+            offset_to_centre_model = Vector((0, 0, 0))
+
     if ImportOptions.meta_step:
         if ImportOptions.set_end_frame:
             bpy.context.scene.frame_end = LDrawNode.current_frame + ImportOptions.frames_per_step
