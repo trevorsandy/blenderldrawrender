@@ -1,6 +1,7 @@
 import bpy
 import bmesh
 from mathutils import Vector
+from mathutils import Euler
 
 from .blender_materials import BlenderMaterials
 from .import_options import ImportOptions
@@ -41,6 +42,7 @@ def do_import(filepath):
     obj = root_node.load()
 
     if ImportOptions.add_environment:
+        vertices = []
         mesh_objs = []
         top_obj = None
 
@@ -55,8 +57,6 @@ def do_import(filepath):
 
         if mesh_objs:
             bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
-            vertices = []
-
             for mesh_obj in mesh_objs:
                 points = [mesh_obj.matrix_world @ Vector(v[:]) for v in mesh_obj.bound_box]
                 vertices.extend(points)
@@ -81,6 +81,30 @@ def do_import(filepath):
             # Offset all points
             vertices = [v + offset_to_centre_model for v in vertices]
             offset_to_centre_model = Vector((0, 0, 0))
+            
+    if ImportOptions.position_camera:
+        camera = bpy.context.scene.camera
+        if LDrawNode.cameras:
+            imported_camera_name = LDrawNode.cameras[0].name
+            helpers.render_print(f"Positioning Camera: {imported_camera_name}")
+        elif camera is not None:
+            helpers.render_print(f"Positioning Camera: {camera.data.name}")
+            # Set up a default camera position and rotation
+            camera.location = Vector((6.5, -6.5, 4.75))
+            camera.rotation_mode = 'XYZ'
+            camera.rotation_euler = Euler((1.0471975803375244, 0.0, 0.7853981852531433), 'XYZ')
+
+            # Must have at least three vertices to move the camera
+            if len(vertices) >= 3:
+                render = bpy.context.scene.render
+                is_ortho = camera.data.type == 'ORTHO'
+                if is_ortho:
+                    blender_camera.iterate_camera_position(camera, render, bbox_ctr, True, vertices)
+                else:
+                    for i in range(20):
+                        error = blender_camera.iterate_camera_position(camera, render, bbox_ctr, True, vertices)
+                        if error < 0.001:
+                            break
 
     if ImportOptions.meta_step:
         if ImportOptions.set_end_frame:
@@ -268,6 +292,9 @@ def __get_layer_names(scene):
     return list(map((lambda x: x.name), __get_layers(scene)))
 
 def __add_plane(location, size):
+    parent = LDrawNode.top_collection.name
+    bpy.context.view_layer.active_layer_collection = \
+    bpy.context.view_layer.layer_collection.children[parent]
     bpy.ops.mesh.primitive_plane_add(size=size, enter_editmode=False, location=location)
 
 def __use_denoising(scene, denoising):
@@ -277,6 +304,7 @@ def __use_denoising(scene, denoising):
 def __setup_realistic_look():
     # Setup realistic look
     scene = bpy.context.scene
+    render = scene.render
 
     # Use cycles render
     scene.render.engine = 'CYCLES'
@@ -315,6 +343,62 @@ def __setup_realistic_look():
     scene.eevee.use_ssr = True
     scene.eevee.use_ssr_refraction = True
     scene.eevee.use_taa_reprojection = True
+
+# Check layer names to see if we were previously rendering instructions and change settings back.
+    layer_names = __get_layer_names(scene)
+    if ("SolidBricks" in layer_names) or ("TransparentBricks" in layer_names):
+        render.use_freestyle = False
+
+        # Change camera back to Perspective
+        if scene.camera is not None:
+            scene.camera.data.type = 'PERSP'
+
+        # For Blender Render, reset to opaque background
+        render.alpha_mode = 'SKY'
+
+        # Turn off cycles transparency
+        scene.cycles.film_transparent = False
+
+        # Get the render/view layers we are interested in:
+        layers = __get_layers(scene)
+
+        # If we have previously added render layers for instructions look, re-enable any disabled render layers
+        for i in range(len(layers)):
+            layers[i].use = True
+
+        # Un-name SolidBricks and TransparentBricks layers
+        if "SolidBricks" in layer_names:
+            layers.remove(layers["SolidBricks"])
+
+        if "TransparentBricks" in layer_names:
+            layers.remove(layers["TransparentBricks"])
+
+        # Re-enable all layers
+        for i in range(len(layers)):
+            layers[i].use = True
+
+        # Create Compositing Nodes
+        scene.use_nodes = True
+
+        # If scene nodes exist for compositing instructions look, remove them
+        node_names = list(map((lambda x: x.name), scene.node_tree.nodes))
+        if "Solid" in node_names:
+            scene.node_tree.nodes.remove(scene.node_tree.nodes["Solid"])
+
+        if "Trans" in node_names:
+            scene.node_tree.nodes.remove(scene.node_tree.nodes["Trans"])
+
+        if "Z Combine" in node_names:
+            scene.node_tree.nodes.remove(scene.node_tree.nodes["Z Combine"])
+
+        # Set up standard link from Render Layers to Composite
+        if "Render Layers" in node_names:
+            if "Composite" in node_names:
+                rl = scene.node_tree.nodes["Render Layers"]
+                zCombine = scene.node_tree.nodes["Composite"]
+
+                links = scene.node_tree.links
+                links.new(rl.outputs[0], zCombine.inputs[0])    
 
 def __setup_environment():
     # Add ground plane with white material

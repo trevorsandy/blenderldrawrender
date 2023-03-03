@@ -81,6 +81,19 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         default=ImportSettings.get_setting('import_cameras'),
     )
 
+    position_camera: bpy.props.BoolProperty(
+        name="Position camera",
+        description="Position the camera to show the whole model",
+        default=ImportSettings.get_setting('position_camera'),
+    )
+    
+    camera_border_percent: bpy.props.FloatProperty(
+        name="Camera Border %",
+        description="When positioning the camera, include a (percentage) border around the model in the render",
+        default=ImportSettings.get_setting('camera_border_percent'),
+        min=0.5,
+    ) 
+    
     import_lights: bpy.props.BoolProperty(
         name="Import lights",
         description="Import Light definitions (from models authored in LPub3D or LeoCAD)",
@@ -198,7 +211,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         description="Don't merge the constituent subparts and primitives into the top level part. Some parts may not render properly",
         default=ImportSettings.get_setting('preserve_hierarchy'),
     )
-
+    
     parent_to_empty: bpy.props.BoolProperty(
         name="Parent to empty",
         description="Parent the model to an empty",
@@ -212,7 +225,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         precision=2,
         min=0.01,
         max=1.00,
-    )
+    )   
 
     make_gaps: bpy.props.BoolProperty(
         name="Make gaps",
@@ -282,7 +295,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         description="Set the end frame to the last step",
         default=ImportSettings.get_setting('set_end_frame'),
     )
-
+    
     frames_per_step: bpy.props.IntProperty(
         name="Frames per step",
         description="Frames per step",
@@ -427,6 +440,8 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         self.add_environment          = IMPORT_OT_do_ldraw_import.prefs.get("add_environment", self.add_environment)
         self.environment_file         = IMPORT_OT_do_ldraw_import.prefs.get("environment_file", self.environment_file)
         self.import_cameras           = IMPORT_OT_do_ldraw_import.prefs.get("import_cameras", self.import_cameras)
+        self.position_camera          = IMPORT_OT_do_ldraw_import.prefs.get("position_camera", self.position_camera)
+        self.camera_border_percent    = IMPORT_OT_do_ldraw_import.prefs.get("camera_border_percent", self.camera_border_percent)
         self.import_lights            = IMPORT_OT_do_ldraw_import.prefs.get("import_lights", self.import_lights)
         self.search_additional_paths  = IMPORT_OT_do_ldraw_import.prefs.get("search_additional_paths", self.search_additional_paths)
 
@@ -485,6 +500,8 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
             IMPORT_OT_do_ldraw_import.prefs['add_environment']         = self.add_environment
             IMPORT_OT_do_ldraw_import.prefs['environment_file']        = self.environment_file
             IMPORT_OT_do_ldraw_import.prefs['import_cameras']          = self.import_cameras
+            IMPORT_OT_do_ldraw_import.prefs['position_camera']         = self.position_camera
+            IMPORT_OT_do_ldraw_import.prefs['camera_border_percent']   = self.camera_border_percent
             IMPORT_OT_do_ldraw_import.prefs['import_lights']           = self.import_lights
             IMPORT_OT_do_ldraw_import.prefs['search_additional_paths'] = self.search_additional_paths
 
@@ -607,6 +624,8 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         box.label(text="Import Options")
         box.prop(self, "add_environment")
         box.prop(self, "import_cameras")
+        box.prop(self, "position_camera")
+        box.prop(self, "camera_border_percent")
         box.prop(self, "import_lights")
         box.prop(self, "prefer_studio")
         box.prop(self, "prefer_unofficial")

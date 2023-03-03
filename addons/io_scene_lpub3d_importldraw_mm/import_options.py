@@ -94,6 +94,12 @@ class ImportOptions:
     defaults['import_scale'] = 0.02
     import_scale = defaults['import_scale']
 
+    defaults['camera_border_percent'] = True
+    camera_border_percent = defaults['camera_border_percent']
+    
+    defaults['position_camera'] = True
+    position_camera = defaults['position_camera']
+    
     defaults['parent_to_empty'] = True  # True False
     parent_to_empty = defaults['parent_to_empty']
 

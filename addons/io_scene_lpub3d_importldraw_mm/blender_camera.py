@@ -1,9 +1,12 @@
 import math
 import bpy
+import sys
+from mathutils import Vector
 
 from .import_options import ImportOptions
 from . import blender_lookat
 from . import group
+#from . import helpers
 
 
 def create_camera(camera, empty=None, collection=None):
@@ -65,3 +68,122 @@ def create_camera(camera, empty=None, collection=None):
     blender_lookat.look_at(obj, camera.target_position, camera.up_vector)
 
     return obj
+
+# **************************************************************************************
+def iterate_camera_position(camera, render, vcentre3d, move_camera, vertices):
+
+    bpy.context.view_layer.update()
+
+    minX = sys.float_info.max
+    maxX = -sys.float_info.max
+    minY = sys.float_info.max
+    maxY = -sys.float_info.max
+
+    # Calculate matrix to take 3d points into normalised camera space
+    modelview_matrix = camera.matrix_world.inverted()
+
+    get_depsgraph_method = getattr(bpy.context, "evaluated_depsgraph_get", None)
+    if callable(get_depsgraph_method):
+        depsgraph = get_depsgraph_method()
+    else:
+        depsgraph = bpy.context.depsgraph
+    projection_matrix = camera.calc_matrix_camera(
+        depsgraph,
+        x=render.resolution_x,
+        y=render.resolution_y,
+        scale_x=render.pixel_aspect_x,
+        scale_y=render.pixel_aspect_y)
+
+    mp_matrix = projection_matrix @ modelview_matrix
+    mpinv_matrix = mp_matrix.copy()
+    mpinv_matrix.invert()
+
+    is_ortho = bpy.context.scene.camera.data.type == 'ORTHO'
+
+    # Convert 3d points to camera space, calculating the min and max extents in 2d normalised camera space.
+    min_dist_to_camera = sys.float_info.max
+    for point in vertices:
+        p1 = mp_matrix @ Vector((point.x, point.y, point.z, 1))
+        if is_ortho:
+            point2d = (p1.x, p1.y)
+        elif abs(p1.w) < 1e-8:
+            continue
+        else:
+            point2d = (p1.x / p1.w, p1.y / p1.w)
+        minX = min(point2d[0], minX)
+        minY = min(point2d[1], minY)
+        maxX = max(point2d[0], maxX)
+        maxY = max(point2d[1], maxY)
+        disttocamera = (point - camera.location).length
+        min_dist_to_camera = min(min_dist_to_camera, disttocamera)
+
+    # helpers.render_print("minX,maxX: " + ('%.5f' % minX) + "," + ('%.5f' % maxX))
+    # helpers.render_print("minY,maxY: " + ('%.5f' % minY) + "," + ('%.5f' % maxY))
+
+    # Calculate distance d from camera to centre of the model
+    d = (vcentre3d - camera.location).length
+
+    # Which axis is filling most of the display?
+    largest_span = max(maxX - minX, maxY - minY)
+
+    # Force option to be in range
+    camera_border_percent = min((ImportOptions.camera_border_percent / 100.0), 0.99999)
+
+    # How far should the camera be away from the object?
+    # Zoom in or out to make the coverage close to 1 
+    # (or 1-border if theres a border amount specified)
+    scale = largest_span / (2 - 2 * camera_border_percent)
+    desired_min_dist_to_camera = scale * min_dist_to_camera
+
+    # Adjust d to be the change in distance from the centre of the object
+    offsetD = min_dist_to_camera - desired_min_dist_to_camera
+
+    # Calculate centre of object on screen
+    centre2d = Vector(((minX + maxX) * 0.5, (minY + maxY) * 0.5))
+
+    # Get the forward vector of the camera
+    temp_matrix = camera.matrix_world.copy()
+    temp_matrix.invert()
+    forwards4d = -temp_matrix[2]
+    forwards3d = Vector((forwards4d.x, forwards4d.y, forwards4d.z))
+
+    # Transform the 2d centre of object back into 3d space
+    if is_ortho:
+        centre3d = mpinv_matrix @ Vector((centre2d.x, centre2d.y, 0, 1))
+        centre3d = Vector((centre3d.x, centre3d.y, centre3d.z))
+
+        # Move centre3d a distance d from the camera plane
+        v = centre3d - camera.location
+        dist = v.dot(forwards3d)
+        centre3d = centre3d + (d - dist) * forwards3d
+    else:
+        centre3d = mpinv_matrix @ Vector((centre2d.x, centre2d.y, -1, 1))
+        centre3d = Vector((centre3d.x / centre3d.w, centre3d.y / centre3d.w, centre3d.z / centre3d.w))
+
+        # Make sure the 3d centre of the object is distance d from the camera location
+        forwards = centre3d - camera.location
+        forwards.normalize()
+        centre3d = camera.location + d * forwards
+
+    # Get the centre of the viewing area in 3d space at distance d from the camera
+    # This is where we want to move the object to
+    origin3d = camera.location + d * forwards3d
+
+    if move_camera:
+        if is_ortho:
+            offset3d = (centre3d - origin3d)
+
+            camera.data.ortho_scale *= scale
+        else:
+            # How much do we want to move the camera?
+            # We want to move the camera by the same amount as if we moved the centre of the object to the centre of the viewing area.
+            # In practice, this is not completely accurate, since the perspective projection changes the objects silhouette in 2d space
+            # when we move the camera, but it's close in practice. We choose to move it conservatively by 93% of our calculated amount,
+            # a figure obtained by some quick practical observations of the convergence on a few test models.
+            offset3d = 0.93 * (centre3d - origin3d) + offsetD * forwards3d
+        # helpers.render_print("offset3d: " + ('%.5f' % offset3d.x) + "," + ('%.5f' % offset3d.y) + "," + ('%.5f' % offset3d.z) + " length:" + ('%.5f' % offset3d.length))
+        # helpers.render_print("move by: " + ('%.5f' % offset3d.length))
+        camera.location += Vector((offset3d.x, offset3d.y, offset3d.z))
+        return offset3d.length
+
+    return 0.0
