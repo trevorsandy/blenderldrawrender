@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update February 12, 2023
+Last Update March 03, 2023
 Copyright (c) 2020 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
@@ -37,7 +37,7 @@ bl_info = {
     "name": "LPub3D Import LDraw",
     "description": "Import LDraw models in .mpd .ldr .l3b and .dat formats",
     "author": "Trevor SANDY <trevor.sandy@gmail.com>",
-    "version": (1, 3, 5),
+    "version": (1, 3, 6),
     "blender": (2, 82, 0),
     "location": "File > Import",
     "warning": "",
