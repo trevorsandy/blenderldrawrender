@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update February 16, 2023
+Last Update May 06, 2023
 Copyright (c) 2020 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
@@ -46,12 +46,6 @@ import bmesh
 import time
 import platform
 import operator
-import traceback
-import glob
-import copy
-import itertools
-from pprint import pprint
-from typing import Dict, Any
 from zipfile import ZipFile
 
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update March 03, 2023
+Last Update May 06, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Render LDraw GPLv2 license.
@@ -22,12 +22,18 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 """
 
-# Import From Files - See PR https://github.com/TobyLobster/ImportLDraw/pull/49/
+#############################################
+# support reloading sub-modules
 if "bpy" in locals():
-    import importlib
-    importlib.reload(renderldraw)
+    from importlib import reload
+    reload(renderldraw)
+    reload(model_globals)
+    del reload
 else:
     from . import renderldraw
+    from .modelglobals import model_globals
+# support reloading sub-modules
+#############################################
 
 import bpy
 

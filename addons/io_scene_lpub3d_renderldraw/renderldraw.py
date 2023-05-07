@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update March 03, 2023
+Last Update May 06, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Render LDraw GPLv2 license.
@@ -26,13 +26,6 @@ LPub3D Render LDraw
 This file defines the LDraw render routines.
 """
 
-# Import From Files - See PR https://github.com/TobyLobster/ImportLDraw/pull/49/
-if "bpy" in locals():
-    import importlib
-    importlib.reload(model_globals)
-else:
-    from .modelglobals import model_globals
-
 import os
 import sys
 import bpy
@@ -42,6 +35,7 @@ from bpy_extras.io_utils import ImportHelper
 from io_scene_lpub3d_importldraw import importldraw
 from io_scene_lpub3d_importldraw_mm import operator_import
 from io_scene_lpub3d_importldraw_mm.filesystem import FileSystem
+from .modelglobals import model_globals
 from bpy.props import (StringProperty,
                        IntProperty,
                        EnumProperty,

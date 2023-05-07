@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update March 03, 2023
+Last Update May 06, 2023
 Copyright (c) 2020 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
@@ -24,12 +24,18 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 Adapted from Import LDraw by Toby Nelson - tobymnelson@gmail.com
 """
 
-# Import From Files - See PR https://github.com/TobyLobster/ImportLDraw/pull/49/
+#############################################
+# support reloading sub-modules
 if "bpy" in locals():
-    import importlib
-    importlib.reload(importldraw)
+    from importlib import reload
+    reload(importldraw)
+    reload(loadldraw)
+    del reload
 else:
     from . import importldraw
+    from . import loadldraw
+# support reloading sub-modules
+#############################################
 
 import bpy
 
