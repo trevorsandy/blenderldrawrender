@@ -136,4 +136,10 @@ LDrawBlenderRenderAddons.zip
 .vscode/
 
 # Notepad++ Session File
-BlenderRenderAddons.xml
+blenderldrawrender_session.xml
+
+# Development config file
+LDrawRendererPreferences.ini
+
+# Script error
+Publish.out
