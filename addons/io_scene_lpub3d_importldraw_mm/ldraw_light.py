@@ -1,5 +1,12 @@
 import mathutils
 
+lights = []
+
+
+def reset_caches():
+    global lights
+    lights = []
+
 class LDrawLight:
     """Data about a light"""
 

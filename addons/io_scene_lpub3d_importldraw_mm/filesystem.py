@@ -23,7 +23,7 @@ class FileSystem:
 
     defaults['studio_ldraw_path'] = ''
     studio_ldraw_path = defaults['studio_ldraw_path']
-    
+
     defaults['prefer_studio'] = False
     prefer_studio = defaults['prefer_studio']
 

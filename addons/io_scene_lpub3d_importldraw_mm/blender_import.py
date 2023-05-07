@@ -1,7 +1,9 @@
 import bpy
 import bmesh
+# blen_ld_ren_mod
 from mathutils import Vector
 from mathutils import Euler
+# mod_end
 
 from .blender_materials import BlenderMaterials
 from .import_options import ImportOptions
@@ -9,19 +11,41 @@ from .ldraw_file import LDrawFile
 from .ldraw_node import LDrawNode
 from .filesystem import FileSystem
 from . import blender_camera
+# blen_ld_ren_mod
 from . import blender_light
+# mod_end
 from .ldraw_colors import LDrawColor
 from . import helpers
 from . import strings
 
 from . import group
+from . import ldraw_meta
+from . import ldraw_object
+from . import ldraw_camera
+from . import matrices
+# blen_ld_ren_mod
+from . import ldraw_light
+# mod_end
+
 
 def do_import(filepath):
+    # blen_ld_ren_mod
     #print(filepath)  # TODO: multiple filepaths?
+    # mod_end
 
     __scene_setup()
+
     LDrawFile.reset_caches()
     LDrawNode.reset_caches()
+    group.reset_caches()
+    ldraw_meta.reset_caches()
+    ldraw_object.reset_caches()
+    ldraw_camera.reset_caches()
+    matrices.reset_caches()
+    # blen_ld_ren_mod
+    ldraw_light.reset_caches()
+    # mod_end    
+
     FileSystem.build_search_paths(parent_filepath=filepath)
     LDrawFile.read_color_table()
     BlenderMaterials.create_blender_node_groups()
@@ -41,6 +65,7 @@ def do_import(filepath):
     # return root_node.load()
     obj = root_node.load()
 
+    # blen_ld_ren_mod
     if ImportOptions.add_environment:
         vertices = []
         mesh_objs = []
@@ -84,8 +109,8 @@ def do_import(filepath):
             
     if ImportOptions.position_camera:
         camera = bpy.context.scene.camera
-        if LDrawNode.cameras:
-            imported_camera_name = LDrawNode.cameras[0].name
+        if ldraw_camera.cameras:
+            imported_camera_name = ldraw_camera.cameras[0].name
             helpers.render_print(f"Positioning Camera: {imported_camera_name}")
         elif camera is not None:
             helpers.render_print(f"Positioning Camera: {camera.data.name}")
@@ -105,12 +130,14 @@ def do_import(filepath):
                         error = blender_camera.iterate_camera_position(camera, render, bbox_ctr, True, vertices)
                         if error < 0.001:
                             break
-
+    # mod_end
+    
     if ImportOptions.meta_step:
         if ImportOptions.set_end_frame:
-            bpy.context.scene.frame_end = LDrawNode.current_frame + ImportOptions.frames_per_step
+            bpy.context.scene.frame_end = ldraw_meta.current_frame + ImportOptions.frames_per_step
             bpy.context.scene.frame_set(bpy.context.scene.frame_end)
 
+    # blen_ld_ren_mod
     # Get existing scene names
     scene_object_names = [x.name for x in bpy.context.scene.objects]
 
@@ -122,30 +149,32 @@ def do_import(filepath):
             __unlink_from_scene(cube)
 
     # Remove default camera
-    if LDrawNode.cameras:
+    if ldraw_camera.cameras:
         camera = bpy.context.scene.camera
         if camera is not None:
             __unlink_from_scene(camera)
 
     # Remove default light
-    if LDrawNode.lights:
+    if ldraw_light.lights:
         light_object = 'Light'
         if light_object in scene_object_names:
             light = bpy.context.scene.objects[light_object]
             light_location = light.location - Vector((4.076245307922363, 1.0054539442062378, 5.903861999511719))
             if light_location.length < 0.001:
                 __unlink_from_scene(light)
+    # mod_end
 
     max_clip_end = 0
-    for camera in LDrawNode.cameras:
-        camera = blender_camera.create_camera(camera, empty=LDrawNode.top_empty, collection=LDrawNode.top_collection)
+    for camera in ldraw_camera.cameras:
+        camera = blender_camera.create_camera(camera, empty=ldraw_object.top_empty, collection=group.top_collection)
         if bpy.context.scene.camera is None:
             if camera.data.clip_end > max_clip_end:
                 max_clip_end = camera.data.clip_end
             bpy.context.scene.camera = camera
 
-    for light in LDrawNode.lights:
-        light = blender_light.create_light(light, empty=LDrawNode.top_empty, collection=LDrawNode.top_collection)
+    # blen_ld_ren_mod
+    for light in ldraw_light.lights:
+        light = blender_light.create_light(light, empty=ldraw_object.top_empty, collection=group.top_collection)
         light.parent = root_node
 
     if bpy.context.screen is not None:
@@ -159,15 +188,18 @@ def do_import(filepath):
 
     if ImportOptions.add_environment:
         __setup_environment()
+    # mod_end
 
     return obj
 
 
 def __scene_setup():
+    # blen_ld_ren_mod
     if not ImportOptions.add_environment:
         bpy.context.scene.eevee.use_ssr = True
         bpy.context.scene.eevee.use_ssr_refraction = True
         bpy.context.scene.eevee.use_taa_reprojection = True
+    # mod_end
 
     # https://blender.stackexchange.com/a/146838
     if ImportOptions.use_freestyle_edges:
@@ -195,9 +227,11 @@ def __scene_setup():
         lineset.select_external_contour = False
         lineset.select_material_boundary = False
 
+# blen_ld_ren_mod
 def __unlink_from_scene(obj):
     if bpy.context.collection.objects.find(obj.name) >= 0:
         bpy.context.collection.objects.unlink(obj)
+# mod_end
 
 def __load_materials(file):
     ImportOptions.meta_group = False
@@ -285,6 +319,7 @@ def __load_materials(file):
             group.link_obj(collection, obj)
         j += 1
 
+# blen_ld_ren_mod
 def __get_layers(scene):
     return scene.view_layers
 
@@ -292,7 +327,7 @@ def __get_layer_names(scene):
     return list(map((lambda x: x.name), __get_layers(scene)))
 
 def __add_plane(location, size):
-    parent = LDrawNode.top_collection.name
+    parent = group.top_collection.name
     bpy.context.view_layer.active_layer_collection = \
     bpy.context.view_layer.layer_collection.children[parent]
     bpy.ops.mesh.primitive_plane_add(size=size, enter_editmode=False, location=location)
@@ -438,3 +473,4 @@ def __setup_environment():
             obj.data.materials.append(material)
 
     __setup_realistic_look()
+# mod_end
