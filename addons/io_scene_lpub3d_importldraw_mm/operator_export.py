@@ -11,8 +11,9 @@ from . import ldraw_export
 class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
     """Export an LDraw model File."""
 
-    bl_idname = "ldraw_exporter.export_operator"
-    bl_label = "Export LDraw"
+    bl_idname = "export_scene.lpub3d_export_ldraw_mm"
+    bl_description = "Export LDraw model (.ldr/.dat)"
+    bl_label = "Export LDraw MM"
     bl_options = {'PRESET'}
 
     filename_ext: bpy.props.EnumProperty(
@@ -165,7 +166,7 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
 
 
 def build_export_menu(self, context):
-    self.layout.operator(EXPORT_OT_do_ldraw_export.bl_idname, text="LDraw (.mpd/.ldr/.l3b/.dat)")
+    self.layout.operator(EXPORT_OT_do_ldraw_export.bl_idname, text="LPub3D LDraw MM (.ldr/.dat)")
 
 
 classesToRegister = [
@@ -178,7 +179,7 @@ registerClasses, unregisterClasses = bpy.utils.register_classes_factory(classesT
 
 def register():
     bpy.utils.register_class(EXPORT_OT_do_ldraw_export)
-    bpy.types.TOPBAR_MT_file_export.append(build_export_menu)
+    bpy.types.TOPBAR_MT_file_export.prepend(build_export_menu)
 
 
 def unregister():

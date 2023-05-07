@@ -9,7 +9,7 @@ class CO_PT_ldraw_panel(bpy.types.Panel):
     # having a friendly name here gives a _PT_ warning message
     # not setting it works
     # bl_idname = 'CO_PT_ldraw_panel'
-    bl_label = 'LDraw'
+    bl_label = 'LDraw MM'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_context = 'objectmode'
