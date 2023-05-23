@@ -231,15 +231,16 @@ package_archive
 
 # Publish the archive to dev env (Set DEV_USE=1 to enable)
 DEV_USE=1
+
 if [[ -n $DEV_USE && -f $GH_ASSET_NAME ]]; then
     declare -r p=Publish
     PUBLISH_SRC=$PWD
     PUBLISH_DEST="/home/$GH_USER/projects/build-LPub3D-Desktop_Qt_5_15_2_MSVC2019_32bit-Debug/mainApp/32bit_debug/3rdParty/Blender"
     echo -n "Publish package '$GH_ASSET_NAME' to Dev Env..." && \
     ([ -d "$PUBLISH_DEST" ] || mkdir -p "$PUBLISH_DEST"; \
-     cd "$PUBLISH_DEST" && cp -f "$PUBLISH_SRC/$GH_ASSET_NAME" . && \
-     rm "$PUBLISH_SRC/$GH_ASSET_NAME") >$p.out 2>&1 && rm $p.out
+     cd "$PUBLISH_DEST" && cp -f "$PUBLISH_SRC/$GH_ASSET_NAME" .) >$p.out 2>&1 && rm $p.out
     [ -f $p.out ] && echo "ERROR - failed to publish $GH_ASSET_NAME to Dev Env" && tail -80 $p.out || echo "Success."
+#	rm "$PUBLISH_SRC/$GH_ASSET_NAME" || true
     rm "$LOG"
     exit 1
 fi
