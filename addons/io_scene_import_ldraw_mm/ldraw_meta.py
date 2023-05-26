@@ -212,7 +212,7 @@ def meta_root_group_nxt(ldraw_node, child_node):
                 group.next_collection = None
 
 
-def meta_lpub3d_camera(ldraw_node, child_node, matrix):
+def meta_lp_lc_camera(ldraw_node, child_node, matrix):
     if not ImportOptions.import_cameras:
         return
 
@@ -286,7 +286,7 @@ def meta_lpub3d_camera(ldraw_node, child_node, matrix):
         else:
             _params = _params[1:]
 
-def meta_lpub3d_light(ldraw_node, child_node, matrix):
+def meta_lp_lc_light(ldraw_node, child_node, matrix):
     if not ImportOptions.import_lights:
         return
     clean_line = child_node.line

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Author: Trevor SANDY
-# Last Update May 06, 2023
+# Last Update May 23, 2023
 #
 # Adapted from original script by Stefan Buck
 # License: MIT
@@ -121,23 +121,23 @@ function package_archive
     cd $GH_REPO_PATH
     zip -r $GH_ASSET_NAME  \
     setup \
-    addons/io_scene_lpub3d_importldraw/ \
-    addons/io_scene_lpub3d_importldraw_mm/ \
-    addons/io_scene_lpub3d_renderldraw/ \
+    addons/io_scene_import_ldraw/ \
+    addons/io_scene_import_ldraw_mm/ \
+    addons/io_scene_render_ldraw/ \
     install_blender_ldraw_addons.py -x \
-    "addons/io_scene_lpub3d_importldraw/loadldraw/__pycache__/*" \
-    "addons/io_scene_lpub3d_importldraw/__pycache__/*" \
-    "addons/io_scene_lpub3d_importldraw/.gitignore" \
-    "addons/io_scene_lpub3d_importldraw/.gitattributes" \
-    "addons/io_scene_lpub3d_importldraw/README.md" \
-    "addons/io_scene_lpub3d_importldraw_mm/__pycache__/*" \
-    "addons/io_scene_lpub3d_importldraw_mm/examples/*" \
-    "addons/io_scene_lpub3d_importldraw_mm/_deploy.py" \
-    "addons/io_scene_lpub3d_importldraw_mm/.gitignore" \
-    "addons/io_scene_lpub3d_importldraw_mm/.gitattributes" \
-    "addons/io_scene_lpub3d_importldraw_mm/Readme.md" \
-    "addons/io_scene_lpub3d_renderldraw/__pycache__/*" \
-    "addons/io_scene_lpub3d_renderldraw/modelglobals/__pycache__/*" \
+    "addons/io_scene_import_ldraw/loadldraw/__pycache__/*" \
+    "addons/io_scene_import_ldraw/__pycache__/*" \
+    "addons/io_scene_import_ldraw/.gitignore" \
+    "addons/io_scene_import_ldraw/.gitattributes" \
+    "addons/io_scene_import_ldraw/README.md" \
+    "addons/io_scene_import_ldraw_mm/__pycache__/*" \
+    "addons/io_scene_import_ldraw_mm/examples/*" \
+    "addons/io_scene_import_ldraw_mm/_deploy.py" \
+    "addons/io_scene_import_ldraw_mm/.gitignore" \
+    "addons/io_scene_import_ldraw_mm/.gitattributes" \
+    "addons/io_scene_import_ldraw_mm/Readme.md" \
+    "addons/io_scene_render_ldraw/__pycache__/*" \
+    "addons/io_scene_render_ldraw/modelglobals/__pycache__/*" \
     "setup/addon_setup/config/LDrawRendererPreferences.ini" \
     "setup/addon_setup/__pycache__/*"
     echo && echo "Created release package '$GH_ASSET_NAME'" && echo
@@ -203,7 +203,7 @@ echo
 VER_TAG=${VER_TAG//./", "} # replace . with ", "
 VER_TAG=${VER_TAG/v/}      # replace v with ""
 echo "Updating .py files to version $VER_TAG"
-for GH_FILE in addons/io_scene_lpub3d_importldraw/__*.py addons/io_scene_lpub3d_importldraw_mm/__*.py addons/io_scene_lpub3d_renderldraw/__*.py;
+for GH_FILE in addons/io_scene_import_ldraw/__*.py addons/io_scene_import_ldraw_mm/__*.py addons/io_scene_render_ldraw/__*.py;
 do
     echo "Set version to '$VER_TAG' in file '$GH_FILE'"
     if [ -f ${GH_FILE} -a -r ${GH_FILE} ]
@@ -229,7 +229,7 @@ fi
 # Package the archive
 package_archive
 
-# Publish the archive to dev env (Set DEV_USE=1 to enable)
+# Publish the archive to dev env (Set DEV_USE=1 to enable, set DEL_ZIP to delete archive)
 DEV_USE=1
 
 if [[ -n $DEV_USE && -f $GH_ASSET_NAME ]]; then
@@ -240,7 +240,7 @@ if [[ -n $DEV_USE && -f $GH_ASSET_NAME ]]; then
     ([ -d "$PUBLISH_DEST" ] || mkdir -p "$PUBLISH_DEST"; \
      cd "$PUBLISH_DEST" && cp -f "$PUBLISH_SRC/$GH_ASSET_NAME" .) >$p.out 2>&1 && rm $p.out
     [ -f $p.out ] && echo "ERROR - failed to publish $GH_ASSET_NAME to Dev Env" && tail -80 $p.out || echo "Success."
-#	rm "$PUBLISH_SRC/$GH_ASSET_NAME" || true
+#   rm "$PUBLISH_SRC/$GH_ASSET_NAME" || true
     rm "$LOG"
     exit 1
 fi

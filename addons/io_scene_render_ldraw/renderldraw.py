@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update May 06, 2023
+Last Update May 26, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Render LDraw GPLv2 license.
@@ -32,9 +32,9 @@ import bpy
 import time
 import datetime
 from bpy_extras.io_utils import ImportHelper
-from io_scene_lpub3d_importldraw import importldraw
-from io_scene_lpub3d_importldraw_mm import operator_import
-from io_scene_lpub3d_importldraw_mm.filesystem import FileSystem
+from io_scene_import_ldraw import importldraw
+from io_scene_import_ldraw_mm import operator_import
+from io_scene_import_ldraw_mm.filesystem import FileSystem
 from .modelglobals import model_globals
 from bpy.props import (StringProperty,
                        IntProperty,
@@ -114,9 +114,9 @@ def format_elapsed(interval, long_form=False, seconds_places=3):
 
 
 class RenderLDrawOps(bpy.types.Operator, ImportHelper):
-    """LPub3D Render LDraw - Render Operator."""
+    """Render LDraw - Render Operator."""
 
-    bl_idname = "render_scene.lpub3drenderldraw"
+    bl_idname = "render_scene.lpub3d_render_ldraw"
     bl_description = "Render LDraw model (.png)"
     bl_label = "Render LDraw Model"
     bl_space_type = "PROPERTIES"
@@ -143,10 +143,10 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
 
     use_ldraw_import = True
     for addon in bpy.context.preferences.addons:
-        if addon.module == 'io_scene_lpub3d_importldraw_mm':
+        if addon.module == 'io_scene_import_ldraw_mm':
             use_ldraw_import = False
             break
-        if addon.module == 'io_scene_lpub3d_importldraw':
+        if addon.module == 'io_scene_import_ldraw':
             use_ldraw_import = True
             break
 
@@ -591,7 +591,7 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
         return {'RUNNING_MODAL'}
 
     def execute(self, context):
-        """LPub3D Render LDraw model."""
+        """Render LDraw model."""
 
         # Confirm minimum Blender version
         if bpy.app.version < (2, 82, 0):
@@ -608,14 +608,14 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
         preferences_file = ""
         if self.use_ldraw_import_mm:
             preferences_folder = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                                 '../io_scene_lpub3d_importldraw_mm/config'))
+                                                 '../io_scene_import_ldraw_mm/config'))
             preferences_file = os.path.join(preferences_folder, 'ImportOptions.json')
             if model_globals.LDRAW_MODEL_LOADED:
                 self.load_ldraw_model = False
                 RenderLDrawOps.prefs  = operator_import.ImportSettings.get_settings()
         elif self.use_ldraw_import:
             preferences_folder = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                                 '../io_scene_lpub3d_importldraw/config'))
+                                                 '../io_scene_import_ldraw/config'))
             preferences_file = os.path.join(preferences_folder, 'ImportLDrawPreferences.ini')
             if model_globals.LDRAW_MODEL_LOADED:
                 self.load_ldraw_model = False
@@ -704,7 +704,7 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
                 load_result = bpy.ops.import_scene.lpub3d_import_ldraw_mm('EXEC_DEFAULT', **kwargs)
             elif self.use_ldraw_import:
                 kwargs = {'preferencesFile': self.preferences_file, 'modelFile': self.model_file}
-                load_result = bpy.ops.import_scene.lpub3dimportldraw('EXEC_DEFAULT', **kwargs)
+                load_result = bpy.ops.import_scene.lpub3d_import_ldraw('EXEC_DEFAULT', **kwargs)
 
             if self.cli_render:
                 model_globals.LDRAW_IMAGE_FILE = self.image_file

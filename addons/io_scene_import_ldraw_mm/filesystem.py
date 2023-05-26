@@ -138,7 +138,7 @@ class FileSystem:
     @staticmethod
     def locate_environment_file():
         file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                    '../io_scene_lpub3d_importldraw/loadldraw/background.exr'))
+                                    '../io_scene_import_ldraw/loadldraw/background.exr'))
         if os.path.exists(file_path):
             return file_path
         return ""
@@ -146,7 +146,7 @@ class FileSystem:
     @staticmethod
     def locate_parameters_file():
         file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                    '../io_scene_lpub3d_renderldraw/config/LDrawParameters.lst'))
+                                    '../io_scene_render_ldraw/config/LDrawParameters.lst'))
         if os.path.exists(file_path):
             return file_path
         print(f"DEBUG:  WARNING parameters_file not Found: {file_path}")

@@ -217,10 +217,14 @@ class LDrawNode:
                     ldraw_meta.meta_print(child_node)
                 elif child_node.meta_command.startswith("group"):
                     ldraw_meta.meta_group(child_node)
+                elif child_node.meta_command == "leocad_camera":
+                    ldraw_meta.meta_lp_lc_camera(self, child_node, matrix)                    
                 elif child_node.meta_command == "lpub3d_camera":
-                    ldraw_meta.meta_lpub3d_camera(self, child_node, matrix)
+                    ldraw_meta.meta_lp_lc_camera(self, child_node, matrix)
+                elif child_node.meta_command == "leocad_light":
+                    ldraw_meta.meta_lp_lc_light(self, child_node, matrix)                    
                 elif child_node.meta_command == "lpub3d_light":
-                    ldraw_meta.meta_lpub3d_light(self, child_node, matrix)
+                    ldraw_meta.meta_lp_lc_light(self, child_node, matrix)
                 elif child_node.meta_command == "texmap":
                     ldraw_meta.meta_texmap(self, child_node, matrix)
                 elif child_node.meta_command.startswith("pe_tex_"):

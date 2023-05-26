@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update May 06, 2023
+Last Update May 23, 2023
 Copyright (c) 2020 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
@@ -73,4 +73,4 @@ def unregister():
 if __name__ == "__main__":
     register()
     
-    # bpy.ops.import_scene.lpub3dimportldraw('INVOKE_DEFAULT') # Test call
+    # bpy.ops.import_scene.lpub3d_import_ldraw('INVOKE_DEFAULT') # Test call

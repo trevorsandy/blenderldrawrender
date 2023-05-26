@@ -252,7 +252,7 @@ class LDrawFile:
                 if self.__line_clear(clean_line): continue
                 if self.__line_print(clean_line): continue
                 if self.__line_ldcad(clean_line): continue
-                if self.__line_lpub3d(clean_line): continue
+                if self.__line_lp_lc(clean_line): continue
                 if self.__line_texmap(clean_line): continue
                 if self.__line_stud_io(clean_line): continue
             except Exception as e:
@@ -439,10 +439,12 @@ class LDrawFile:
         return False
 
     # https://www.leocad.org/docs/meta.html
-    def __line_lpub3d(self, clean_line):
+    def __line_lp_lc(self, clean_line):
         meta = "!LPUB"
+        name = "lpub3d"
         if clean_line.startswith("0 !LEOCAD "):
             meta = "!LEOCAD"
+            name = "leocad"
 
         if clean_line.startswith(f"0 {meta} GROUP BEGIN "):
             name_args = clean_line.split(maxsplit=4)
@@ -463,14 +465,14 @@ class LDrawFile:
         if clean_line.startswith(f"0 {meta} CAMERA "):
             ldraw_node = LDrawNode()
             ldraw_node.line = clean_line
-            ldraw_node.meta_command = "lpub3d_camera"
+            ldraw_node.meta_command = f"{name}_camera"
             self.child_nodes.append(ldraw_node)
             return True
 
         if clean_line.startswith(f"0 {meta} LIGHT "):
             ldraw_node = LDrawNode()
             ldraw_node.line = clean_line
-            ldraw_node.meta_command = "lpub3d_light"
+            ldraw_node.meta_command = f"{name}_light"
             self.child_nodes.append(ldraw_node)
             return True
         return False

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update May 06, 2023
+Last Update May 23, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Render LDraw GPLv2 license.
@@ -61,14 +61,14 @@ def menuRender(self, context):
 
 # When enabling the addon.
 def register():
-    """Register LPub3D Render LDraw."""
+    """Register Render LDraw."""
     bpy.utils.register_class(renderldraw.RenderLDrawOps)
     bpy.types.TOPBAR_MT_render.prepend(menuRender)
 
 
 # When disabling the addon.
 def unregister():
-    """Unregister LPub3D Render LDraw."""
+    """Unregister Render LDraw."""
     bpy.utils.unregister_class(renderldraw.RenderLDrawOps)
     bpy.types.TOPBAR_MT_render.remove(menuRender)
 
@@ -76,4 +76,4 @@ def unregister():
 if __name__ == "__main__":
     register()
 
-    # bpy.ops.render_scene.lpub3drenderldraw('INVOKE_DEFAULT') # Test call
+    # bpy.ops.render_scene.lpub3d_render_ldraw('INVOKE_DEFAULT') # Test call

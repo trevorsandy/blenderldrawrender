@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update February 24, 2023
+Last Update May 26, 2023
 Copyright (c) 2020 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
@@ -36,14 +36,11 @@ Adapted from Import LDraw by Toby Nelson - tobymnelson@gmail.com
 if "bpy" in locals():
     import importlib
     importlib.reload(loadldraw)
-    importlib.reload(model_globals)
 else:
     from .loadldraw import loadldraw
-    from io_scene_lpub3d_renderldraw.modelglobals import model_globals
 
 import configparser
 import sys
-import time
 import os
 import bpy
 from bpy.props import (StringProperty,
@@ -103,7 +100,7 @@ verbose                       = 0
 """
 
 class Preferences():
-    """LPub3D Import LDraw - Preferences"""
+    """Import LDraw - Preferences"""
 
     __sectionName = 'ImportLDraw'
 
@@ -161,9 +158,9 @@ class Preferences():
 
 
 class ImportLDrawOps(bpy.types.Operator, ImportHelper):
-    """LPub3D Import LDraw - Import Operator."""
+    """Import LDraw - Import Operator."""
 
-    bl_idname = "import_scene.lpub3dimportldraw"
+    bl_idname = "import_scene.lpub3d_import_ldraw"
     bl_description = "Import LDraw model (.mpd/.ldr/.l3b/.dat)"
     bl_label = "Import LDraw Model"
     bl_space_type = "PROPERTIES"
@@ -532,6 +529,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             ImportLDrawOps.prefs = Preferences("")
 
         # Initialize model globals
+        from io_scene_render_ldraw.modelglobals import model_globals
         model_globals.init()
 
         # Update properties with the reinitialized preferences

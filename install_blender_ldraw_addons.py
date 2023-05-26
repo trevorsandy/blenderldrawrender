@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update May 05, 2023
+Last Update May 26, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Blender LDraw Addon GPLv2 license.
@@ -20,13 +20,13 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software Foundation,
 Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-Install LPub3D Blender Addon
+LPub3D Install Blender LDraw Addon
 
-This file defines the routines to install the LPub3D Blender Addon.
+This file defines the routines to install the Blender LDraw Addon.
 
 To Run:
 - Navigate to script directory:
-<LPub3D User Directory>/3rdParty/Blender
+<User Directory>/3rdParty/Blender
 - Execute command
 <blender path>/blender --background --python install_blender_ldraw_addons.py -- -xi
 
@@ -41,7 +41,6 @@ import addon_utils
 
 from pathlib import Path
 from shutil import rmtree
-from pathlib import Path
 
 import bpy
 
@@ -52,30 +51,24 @@ import addon_setup
 
 from addon_setup.preferences import Preferences
 from addon_setup.arguments import BlenderArgumentParser
-from addon_setup import handle_fatal_error
 
 def install_ldraw_addon(argv):
     """Install LDraw Render addons"""
 
-    # Confirm minimum Blender version
-    is_blender_28_or_later = bpy.app.version >= (2, 80, 0)
-    if not is_blender_28_or_later:
-        handle_fatal_error("This addon requires Blender 2.80 or greater.")
-        return {'FINISHED'}
-
     print("INFO: Installing LDraw Addon...")
 
     arg_parser = BlenderArgumentParser(
-        description='Install LPub3D Blender addon.')
+        description='Install Blender LDraw addon.')
     arg_parser.add_argument("-xr", "--disable_ldraw_render", action="store_true",
-                            help="Disable the LPub3D render addon menu action in Blender")
+                            help="Disable the LDraw render addon menu action in Blender")
     arg_parser.add_argument("-xi", "--disable_ldraw_import", action="store_true",
-                            help="Disable the LPub3D import addon menu action in Blender")
+                            help="Disable the LDraw import addon menu action in Blender")
     arg_parser.add_argument("-xm", "--disable_ldraw_import_mm", action="store_true",
-                            help="Disable the LPub3D import addon menu action in Blender")
+                            help="Disable the LDraw import addon menu action in Blender")
     arg_parser.add_argument("-xa", "--disable_ldraw_addons", action="store_true",
-                            help="Disable the LPub3D import and render addon menu actions in Blender")
-
+                            help="Disable the LDraw import and render addon menu actions in Blender")
+    arg_parser.add_argument("-lc", "--leocad", action="store_true",
+                    	    help="Specify if the Blender LDraw install script caller is LeoCAD")
     options = arg_parser.parse_args()
 
     addons_to_load=tuple(map(lambda x: (Path(x["load_dir"]), x["module_name"]),
@@ -89,9 +82,9 @@ def install_ldraw_addon(argv):
             traceback.print_exc()
             sys.exit()
 
-    # Get 'LPub3D Render LDraw' addon version
+    # Get 'Blender LDraw Render' addon version
     for addon in addon_utils.modules():
-        if addon.bl_info.get("name", "") == "LPub3D Render LDraw":
+        if addon.__name__ == addons_to_load[0][1]:
             addon_version = addon.bl_info.get('version', (-1, -1, -1))
             print("ADDON VERSION: {0}".format(".".join(map(str, addon_version))))
             break
@@ -99,13 +92,13 @@ def install_ldraw_addon(argv):
     # Addon installation folder
     blender_addons_path = bpy.utils.user_resource('SCRIPTS', path="addons")
 
-    # Define path to LPub3D Import LDraw script
+    # Define path to LDraw addon install script
     install_script_path = os.getcwd()
 
     # Set LDraw directory in default preference file
     ldraw_path = os.environ.get('LDRAW_DIRECTORY')
 
-    # Set user preferences file from LPub3D Blender settings
+    # Set renderer preferences file path - future use
     config_file = os.path.join(
         install_script_path, "setup/addon_setup/config/LDrawRendererPreferences.ini")
 
@@ -115,7 +108,7 @@ def install_ldraw_addon(argv):
 
     # Save user preferences and LDraw directory to ImportLDraw
     pref_file = os.path.join(
-        blender_addons_path, "io_scene_lpub3d_importldraw/config/ImportLDrawPreferences.ini")
+        blender_addons_path, "io_scene_import_ldraw/config/ImportLDrawPreferences.ini")
     prefs = Preferences(config_file.replace('/', os.path.sep),
                         pref_file.replace('/', os.path.sep), 'TN')
     if ldraw_path != "":
@@ -124,7 +117,7 @@ def install_ldraw_addon(argv):
 
     # Save user preferences and LDraw directory to ImportLDrawMM
     pref_file = os.path.join(
-        blender_addons_path, "io_scene_lpub3d_importldraw_mm/config/ImportOptions.json")
+        blender_addons_path, "io_scene_import_ldraw_mm/config/ImportOptions.json")
     prefs = Preferences(config_file.replace('/', os.path.sep),
                         pref_file.replace('/', os.path.sep), 'MM')
     if ldraw_path != "":
@@ -133,11 +126,11 @@ def install_ldraw_addon(argv):
 
     # Save LDraw parameters to ImportLDraw
     addon_ldraw_parameters_file = os.path.join(
-        blender_addons_path, "io_scene_lpub3d_renderldraw/config/LDrawParameters.lst")
+        blender_addons_path, "io_scene_render_ldraw/config/LDrawParameters.lst")
     prefs.copy_ldraw_parameters(ldraw_parameters_file, addon_ldraw_parameters_file)
 
     # Cleanup pycache
-    for addon_path, addon_module in addons_to_load:
+    for addon_path in map(lambda item: item[0], addons_to_load):
         pycache_path = os.path.join(addon_path, '__pycache__')
         if os.path.isdir(pycache_path):
             rmtree(pycache_path)
@@ -145,17 +138,17 @@ def install_ldraw_addon(argv):
     # Export setup paths
     if (not options.disable_ldraw_import and not options.disable_ldraw_addons):
         environment_file = os.path.join(
-            blender_addons_path, "io_scene_lpub3d_importldraw/loadldraw/background.exr")
+            blender_addons_path, "io_scene_import_ldraw/loadldraw/background.exr")
         lsynth_directory = os.path.join(
-            blender_addons_path, "io_scene_lpub3d_importldraw/lsynth")
+            blender_addons_path, "io_scene_import_ldraw/lsynth")
         studlogo_directory = os.path.join(
-            blender_addons_path, "io_scene_lpub3d_importldraw/studs")
+            blender_addons_path, "io_scene_import_ldraw/studs")
         print(f"DATA: ENVIRONMENT_FILE: {environment_file.replace('/', os.path.sep)}")
         print(f"DATA: LSYNTH_DIRECTORY: {lsynth_directory.replace('/', os.path.sep)}")
         print(f"DATA: STUDLOGO_DIRECTORY: {studlogo_directory.replace('/', os.path.sep)}")
 
     # Finish
-    print("INFO: LPub3D LDraw Addons v{0} installed.".format(".".join(map(str, addon_version))))
+    print("INFO: Blender LDraw Addons v{0} installed.".format(".".join(map(str, addon_version))))
 
 if __name__ == '__main__':
     install_ldraw_addon(sys.argv[1:])

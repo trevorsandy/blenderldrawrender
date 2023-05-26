@@ -2,7 +2,6 @@ import os
 import bpy
 import sys
 import traceback
-from pathlib import Path
 from . environment import user_addon_directory, addon_directories
 
 def setup_addon_links(addons_to_load):
@@ -20,21 +19,26 @@ def setup_addon_links(addons_to_load):
             create_link_in_user_addon_directory(source_path, load_path)
 
 def load(addons_to_load ,options):
-    for source_path, module_name in addons_to_load:
+    for module_name in map(lambda item: item[1], addons_to_load):
         addon_disabled = False
+
         try:
             bpy.ops.preferences.addon_enable(module=module_name)
         except:
-            traceback.print_exc()        
-        if module_name == 'io_scene_lpub3d_importldraw' and \
+            traceback.print_exc()
+    
+        if module_name == 'io_scene_import_ldraw' and \
             (options.disable_ldraw_import or options.disable_ldraw_addons):
             addon_disabled = True
-        if module_name == 'io_scene_lpub3d_importldraw_mm' and \
+
+        if module_name == 'io_scene_import_ldraw_mm' and \
             (options.disable_ldraw_import_mm or options.disable_ldraw_addons):
             addon_disabled = True
-        if module_name == 'io_scene_lpub3d_renderldraw' and \
+
+        if module_name == 'io_scene_render_ldraw' and \
             (options.disable_ldraw_render or options.disable_ldraw_addons):
             addon_disabled = True
+
         if addon_disabled:
             try:
                 bpy.ops.preferences.addon_disable(module=module_name)
@@ -42,6 +46,7 @@ def load(addons_to_load ,options):
                 traceback.print_exc()
             print(f"ADDON MODULE DISABLED:  {module_name}")
             continue
+
         print(f"ADDON MODULE ENABLED:   {module_name}")
 
     # Save user preferences

@@ -2,7 +2,7 @@ import os
 import time
 import bpy
 
-from io_scene_lpub3d_renderldraw.modelglobals import model_globals
+from io_scene_render_ldraw.modelglobals import model_globals
 from bpy_extras.io_utils import ImportHelper
 from .import_settings import ImportSettings
 from .ldraw_node import LDrawNode

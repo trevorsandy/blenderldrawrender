@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update May 06, 2023
+Last Update May 23, 2023
 Copyright (c) 2020 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
@@ -652,7 +652,7 @@ class Configure:
 
     def __setLDrawParameterFile():
         parameterFilePath = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                            '../../io_scene_lpub3d_renderldraw/config/LDrawParameters.lst'))
+                                            '../../io_scene_render_ldraw/config/LDrawParameters.lst'))
         if os.path.exists(parameterFilePath):
             Configure.parameterFile = parameterFilePath.replace("\\\\", "\\")
             debugPrint("The LDraw parameter file to be used is: {0}".format(Configure.parameterFile))
@@ -1890,7 +1890,7 @@ class LDrawCamera:
         self.target_position   = mathutils.Vector((1.0, 0.0, 0.0))
         self.up_vector         = mathutils.Vector((0.0, 1.0, 0.0))
         self.fov_radians       = math.radians(self.fov_degrees)
-        self.name              = "LPub3D_Camera"
+        self.name              = "LDraw_Camera"
         self.orthographic      = False
         self.hidden            = False
 
@@ -1937,7 +1937,7 @@ class LDrawLight:
         self.spot_size        = 75        # degrees
         self.spot_blend       = 0.150
         self.cutoff_distance  = 40
-        self.name             = "LPub3D_Light"
+        self.name             = "LDraw_Light"
         self.color            = mathutils.Vector((1.0, 1.0, 1.0))
         self.use_cutoff       = False
         self.position         = mathutils.Vector((0.0, 0.0, 0.0))
