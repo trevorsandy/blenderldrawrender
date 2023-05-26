@@ -22,6 +22,10 @@ def load(addons_to_load ,options):
     for module_name in map(lambda item: item[1], addons_to_load):
         addon_disabled = False
 
+        if (options.leocad):
+            load_path = os.path.join(user_addon_directory, module_name)
+            set_leocad_addon_name(load_path, module_name)
+
         try:
             bpy.ops.preferences.addon_enable(module=module_name)
         except:
@@ -51,6 +55,29 @@ def load(addons_to_load ,options):
 
     # Save user preferences
     bpy.ops.wm.save_userpref()
+
+def set_leocad_addon_name(directory, module_name):
+    name = '"name": "LPub3D'
+    text = 'text="LPub3D'
+    file_names = ['__init__.py']
+
+    if (module_name.endswith("_mm")):
+        file_names.extend(['operator_import.py', 'operator_export.py'])
+
+    for file_name in file_names:
+        file_path = os.path.join(directory, file_name)
+        with open(file_path,"r") as file:
+            lines = "".join(file.readlines())
+
+        if file_name == '__init__.py':
+            if name in lines:
+                lines = lines.replace(name, '"name": "LeoCAD')
+
+        if text in lines:
+            lines = lines.replace(text, 'text="LeoCAD')
+
+        with open(file_path,"w") as file:
+            file.writelines(lines.splitlines(True))                  
 
 def create_link_in_user_addon_directory(directory, link_path):
     if os.path.exists(link_path):
