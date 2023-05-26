@@ -1,6 +1,7 @@
+import mathutils
+
 import os
 import re
-import mathutils
 
 from .import_options import ImportOptions
 from .filesystem import FileSystem
@@ -15,13 +16,11 @@ from . import ldraw_part_types
 class LDrawFile:
     __raw_files = {}
     __file_cache = {}
-    __key_map = {}
 
     @classmethod
     def reset_caches(cls):
         cls.__raw_files = {}
         cls.__file_cache = {}
-        cls.__key_map = {}
 
     def __init__(self, filename):
         self.filename = filename
@@ -35,6 +34,8 @@ class LDrawFile:
         # to be authored by a user outside of specifications
         self.part_type = None
         self.actual_part_type = None
+        self.optional_qualifier = None
+        self.update_date = None
         self.license = None
         self.help = []
         self.category = None
@@ -264,7 +265,10 @@ class LDrawFile:
     # always return false so that the rest of the line types are parsed even if this is true
     def __line_description(self, strip_line):
         if self.description is None:
-            self.description = strip_line.split(maxsplit=1)[1]
+            parts = strip_line.split(maxsplit=1)
+            if len(parts) > 1:
+                str = parts[1]
+                self.description = str
         return False
 
     # name and author are allowed to be case insensitive
@@ -289,6 +293,18 @@ class LDrawFile:
             parts = strip_line.split(maxsplit=3)
             self.actual_part_type = parts[2]
             self.part_type = self.determine_part_type(self.actual_part_type)
+
+            if 'UPDATE' in strip_line:
+                _r = parts[3]
+                if _r.startswith('UPDATE'):
+                    _p = _r.split(maxsplit=1)
+                    self.optional_qualifier = ''
+                    self.update_date = _p[1]
+                else:
+                    _p = _r.split(maxsplit=1)
+                    self.optional_qualifier = _p[0]
+                    __p = _p[1].split(maxsplit=1)
+                    self.update_date = __p[1]
             return True
 
         if clean_line.startswith("0 Official LCAD "):

@@ -38,6 +38,10 @@ class Preferences():
             self.__default_settings = {
                 'add_environment': self.__config[self.__sectionName]['addenvironment'],
                 'additional_search_paths': self.__config[self.__sectionName]['additionalsearchpaths'],
+                'bevel_edges': self.__config[self.__sectionName]['beveledges'],
+                'bevel_weight': self.__config[self.__sectionName]['bevelweight'],
+                'bevel_width': self.__config[self.__sectionName]['bevelwidth'],
+                'bevel_segments': self.__config[self.__sectionName]['bevelsegments'],                
                 'blend_file': self.__config[self.__sectionName]['blendfile'],
                 'blendfile_trusted': self.__config[self.__sectionName]['blendfiletrusted'],
                 'chosen_logo': self.__config[self.__sectionName]['chosenlogo'],

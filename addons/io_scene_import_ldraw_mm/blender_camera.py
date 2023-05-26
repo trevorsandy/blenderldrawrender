@@ -1,7 +1,7 @@
-import math
-import bpy
 import sys
+import math
 from mathutils import Vector
+import bpy
 
 from .import_options import ImportOptions
 from . import blender_lookat
@@ -49,7 +49,7 @@ def create_camera(camera, empty=None, collection=None):
     obj.hide_render = camera.hidden
 
     if collection is None:
-        collection = bpy.context.scene.collection
+        collection = group.get_scene_collection()
     group.link_obj(collection, obj)
 
     # https://blender.stackexchange.com/a/72899

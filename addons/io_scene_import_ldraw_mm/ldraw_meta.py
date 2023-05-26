@@ -113,7 +113,7 @@ def meta_step():
 
     if ImportOptions.meta_step_groups:
         collection_name = f"Steps"
-        host_collection = bpy.context.scene.collection
+        host_collection = group.get_scene_collection()
         steps_collection = group.get_collection(collection_name, host_collection)
         helpers.hide_obj(steps_collection)
 
@@ -571,9 +571,11 @@ def __handle_vertex_winding(child_node, matrix, winding):
     vertices = child_node.vertices
     if winding == "CW":
         if vert_count == 3:
-            vertices = [matrix @ vertices[0], matrix @ vertices[2], matrix @ vertices[1]]
+            verts = [vertices[0], vertices[2], vertices[1]]
+            vertices = [matrix @ m for m in verts]
         elif vert_count == 4:
-            vertices = [matrix @ vertices[0], matrix @ vertices[3], matrix @ vertices[2], matrix @ vertices[1]]
+            verts = [vertices[0], vertices[3], vertices[2], vertices[1]]
+            vertices = [matrix @ m for m in verts]
 
             # handle bowtie quadrilaterals - 6582.dat
             # https://github.com/TobyLobster/ImportLDraw/pull/65/commits/3d8cebee74bf6d0447b616660cc989e870f00085
@@ -586,20 +588,22 @@ def __handle_vertex_winding(child_node, matrix, winding):
                 vertices[2], vertices[1] = vertices[1], vertices[2]
 
     else:  # winding == "CCW" or winding is None:
-        vertices = [matrix @ m for m in vertices]
-        """this is the default vertex order so don't do anything"""
+        # this is the default vertex order so don't do anything
+        verts = vertices
+        vertices = [matrix @ m for m in verts]
 
     return vertices
 
 
 def __build_pe_texmap(ldraw_node, child_node):
-    clean_line = child_node.line
-    _params = clean_line.split()
-
     pe_texmap = None
-    vert_count = len(child_node.vertices)
 
     if ldraw_node.pe_tex_info is not None:
+        clean_line = child_node.line
+        _params = clean_line.split()
+
+        vert_count = len(child_node.vertices)
+
         # if we have uv data and a pe_tex_info, otherwise pass
         # # custom minifig head > 3626tex.dat (has no pe_tex) > 3626texpole.dat (has no uv data)
         if len(_params) > 14:

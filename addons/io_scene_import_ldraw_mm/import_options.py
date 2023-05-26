@@ -67,17 +67,29 @@ class ImportOptions:
     defaults['set_timeline_markers'] = False
     set_timeline_markers = defaults['set_timeline_markers']
 
-    defaults['smooth_type'] = "edge_split"  # "edge_split" "auto_smooth"
+    defaults['smooth_type'] = ["edge_split", "auto_smooth", "bmesh_split"][0]
     smooth_type = defaults['smooth_type']
 
-    defaults['gap_target'] = "object"  # "mesh"
+    defaults['gap_target'] = ["object", "mesh"][0]
     gap_target = defaults['gap_target']
 
-    defaults['gap_scale_strategy'] = "constraint"  # "object" "constraint"
+    defaults['gap_scale_strategy'] = ["constraint", "object"][1]
     gap_scale_strategy = defaults['gap_scale_strategy']
 
     defaults['import_edges'] = False
     import_edges = defaults['import_edges']
+
+    defaults['bevel_edges'] = False
+    bevel_edges = defaults['bevel_edges']
+
+    defaults['bevel_weight'] = 0.3
+    bevel_weight = defaults['bevel_weight']
+
+    defaults['bevel_width'] = 0.3
+    bevel_width = defaults['bevel_width']
+
+    defaults['bevel_segments'] = 4
+    bevel_segments = defaults['bevel_segments']
 
     defaults['import_cameras'] = True
     import_cameras = defaults['import_cameras']

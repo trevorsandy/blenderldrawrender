@@ -1,4 +1,5 @@
 import bpy
+
 import os
 
 top_collection = None
@@ -32,6 +33,10 @@ def reset_caches():
     end_next_collection = False
     current_step_group = None
     collection_id_map = {}
+
+
+def get_scene_collection():
+    return bpy.context.scene.collection
 
 
 def get_collection(collection_name, host_collection):

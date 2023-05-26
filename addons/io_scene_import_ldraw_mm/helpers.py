@@ -3,12 +3,11 @@ import io
 import re
 import codecs
 import json
+import sys
+import datetime
 import configparser
 from pathlib import Path
-import sys
 import os
-import datetime
-import functools
 
 try:
     from .definitions import APP_ROOT

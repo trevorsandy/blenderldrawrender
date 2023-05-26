@@ -1,6 +1,8 @@
-import os
-import time
 import bpy
+
+import time
+import os
+
 
 from io_scene_render_ldraw.modelglobals import model_globals
 from bpy_extras.io_utils import ImportHelper
@@ -172,11 +174,12 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
 
     smooth_type: bpy.props.EnumProperty(
         name="Smooth type",
-        description="Use either autosmooth or an edge split modifier to smooth part faces",
+        description="Use this strategy to smooth meshes",
         default=ImportSettings.get_setting('smooth_type'),
         items=(
-            ("auto_smooth", "Auto smooth", "Use auto smooth"),
             ("edge_split", "Edge split", "Use an edge split modifier"),
+            ("auto_smooth", "Auto smooth", "Use auto smooth"),
+            ("bmesh_split", "bmesh smooth", "Split during initial mesh processing"),
         ),
     )
 
@@ -211,7 +214,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         description="Don't merge the constituent subparts and primitives into the top level part. Some parts may not render properly",
         default=ImportSettings.get_setting('preserve_hierarchy'),
     )
-    
+
     parent_to_empty: bpy.props.BoolProperty(
         name="Parent to empty",
         description="Parent the model to an empty",
@@ -225,7 +228,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         precision=2,
         min=0.01,
         max=1.00,
-    )   
+    )
 
     make_gaps: bpy.props.BoolProperty(
         name="Make gaps",
@@ -295,7 +298,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         description="Set the end frame to the last step",
         default=ImportSettings.get_setting('set_end_frame'),
     )
-    
+
     frames_per_step: bpy.props.IntProperty(
         name="Frames per step",
         description="Frames per step",
@@ -358,6 +361,44 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         default=ImportSettings.get_setting('triangulate'),
     )
 
+    profile: bpy.props.BoolProperty(
+        name="Profile",
+        description="Profile import performance",
+        default=ImportSettings.get_setting('profile'),
+    )
+
+    bevel_edges: bpy.props.BoolProperty(
+        name="Bevel edges",
+        description="Bevel edges. Can cause some parts to render incorrectly",
+        default=ImportSettings.get_setting('bevel_edges'),
+    )
+
+    bevel_weight: bpy.props.FloatProperty(
+        name="Bevel weight",
+        description="Bevel weight",
+        default=ImportSettings.get_setting('bevel_weight'),
+        precision=1,
+        step=10,
+        min=0.0,
+        max=1.0,
+    )
+
+    bevel_width: bpy.props.FloatProperty(
+        name="Bevel width",
+        description="Bevel width",
+        default=ImportSettings.get_setting('bevel_width'),
+        precision=1,
+        step=10,
+        min=0.0,
+        max=1.0,
+    )
+
+    bevel_segments: bpy.props.IntProperty(
+        name="Bevel segments",
+        description="Bevel segments",
+        default=ImportSettings.get_setting('bevel_segments'),
+    )
+
     search_additional_paths: bpy.props.BoolProperty(
         name="Search Additional Paths",
         description="Search additional LDraw paths (automatically set for fade previous steps and highlight step)",
@@ -368,12 +409,6 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         name="Use Archive Libraries",
         description="Add any archive (zip) libraries in the LDraw file path to the library search list",
         default=ImportSettings.get_setting('use_archive_library'),
-    )
-
-    profile: bpy.props.BoolProperty(
-        name="Profile",
-        description="Profile import performance",
-        default=ImportSettings.get_setting('profile'),
     )
 
     verbose: bpy.props.BoolProperty(
@@ -462,6 +497,11 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         self.gap_target              = IMPORT_OT_do_ldraw_import.prefs.get("gap_target", self.gap_target)
         self.gap_scale_strategy      = IMPORT_OT_do_ldraw_import.prefs.get("gap_scale_strategy", self.gap_scale_strategy)
 
+        self.bevel_edges             = IMPORT_OT_do_ldraw_import.prefs.get("bevel_edges", self.bevel_edges)
+        self.bevel_weight            = IMPORT_OT_do_ldraw_import.prefs.get("bevel_weight", self.bevel_weight)
+        self.bevel_width             = IMPORT_OT_do_ldraw_import.prefs.get("bevel_width", self.bevel_width)
+        self.bevel_segments          = IMPORT_OT_do_ldraw_import.prefs.get("bevel_segments", self.bevel_segments)
+
         self.remove_doubles          = IMPORT_OT_do_ldraw_import.prefs.get("remove_doubles", self.remove_doubles)
         self.merge_distance          = IMPORT_OT_do_ldraw_import.prefs.get("merge_distance", self.merge_distance)
         self.smooth_type             = IMPORT_OT_do_ldraw_import.prefs.get("smooth_type", self.smooth_type)
@@ -522,6 +562,11 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
             IMPORT_OT_do_ldraw_import.prefs["gap_target"]              = self.gap_target
             IMPORT_OT_do_ldraw_import.prefs["gap_scale_strategy"]      = self.gap_scale_strategy
 
+            IMPORT_OT_do_ldraw_import.prefs["bevel_edges"]             = self.bevel_edges
+            IMPORT_OT_do_ldraw_import.prefs["bevel_weight"]            = self.bevel_weight
+            IMPORT_OT_do_ldraw_import.prefs["bevel_width"]             = self.bevel_width
+            IMPORT_OT_do_ldraw_import.prefs["bevel_segments"]          = self.bevel_segments
+            
             IMPORT_OT_do_ldraw_import.prefs["remove_doubles"]          = self.remove_doubles
             IMPORT_OT_do_ldraw_import.prefs["merge_distance"]          = self.merge_distance
             IMPORT_OT_do_ldraw_import.prefs["smooth_type"]             = self.smooth_type
@@ -633,6 +678,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         box.prop(self, "resolution", expand=True)
         box.prop(self, "display_logo")
         box.prop(self, "chosen_logo")
+        col.prop(self, "use_freestyle_edges")
 
         layout.separator(factor=space_factor)
         box.label(text="Scaling Options")
@@ -643,6 +689,12 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         box.prop(self, "gap_target", expand=True)
         box.prop(self, "gap_scale_strategy", expand=True)
 
+        layout.separator(factor=space_factor)
+        box.prop(self, "bevel_edges")
+        box.prop(self, "bevel_weight")
+        box.prop(self, "bevel_width")
+        box.prop(self, "bevel_segments")        
+        
         layout.separator(factor=space_factor)
         box.label(text="Cleanup Options")
         box.prop(self, "remove_doubles")
@@ -668,7 +720,6 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
 
         layout.separator(factor=space_factor)
         box.label(text="Extras")
-        box.prop(self, "use_freestyle_edges")
         box.prop(self, "import_edges")
         box.prop(self, "treat_shortcut_as_model")
         box.prop(self, "treat_models_with_subparts_as_parts")

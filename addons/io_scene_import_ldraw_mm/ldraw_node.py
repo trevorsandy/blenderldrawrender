@@ -1,7 +1,5 @@
 import uuid
 
-import bpy
-
 from . import group
 from .geometry_data import GeometryData
 from .import_options import ImportOptions
@@ -57,6 +55,7 @@ class LDrawNode:
         self.subfile_line_index = 0
 
     def load(self,
+             parent_node=None,
              color_code="16",
              parent_matrix=None,
              geometry_data=None,
@@ -64,7 +63,7 @@ class LDrawNode:
              accum_invert=False,
              parent_collection=None,
              texmap=None,
-             pe_tex_info=None
+             pe_tex_info=None,
              ):
 
         if self.file.is_edge_logo() and not ImportOptions.display_logo:
@@ -85,7 +84,7 @@ class LDrawNode:
 
         if group.top_collection is None:
             collection_name = self.file.name
-            host_collection = bpy.context.scene.collection
+            host_collection = group.get_scene_collection()
             collection = group.get_filename_collection(collection_name, host_collection)
             group.top_collection = collection
 
@@ -122,7 +121,12 @@ class LDrawNode:
             matrix = matrices.identity_matrix
             geometry_data = GeometryData()
 
-        key = LDrawNode.__build_key(self.file.name, color_code, matrix, accum_cull, accum_invert, texmap, pe_tex_info)
+        # when a part is used on its own and also as part of a shortcut, the part will not render in the shortcut
+        # because that part doesn't register as a subpart of the shortcut
+        if parent_node and parent_node.file.is_shortcut():
+            key = LDrawNode.__build_key(self.file.name, color_code, matrix, accum_cull, accum_invert, parent_filename=parent_node.file.name, texmap=texmap, pe_tex_info=pe_tex_info)
+        else:
+            key = LDrawNode.__build_key(self.file.name, color_code, matrix, accum_cull, accum_invert, texmap=texmap, pe_tex_info=pe_tex_info)
 
         if self.file.is_like_model():
             if self.file.has_geometry():
@@ -136,8 +140,8 @@ class LDrawNode:
         winding = "CCW"
         invert_next = False
 
-        mesh = bpy.data.meshes.get(key)
-        if ImportOptions.preserve_hierarchy or mesh is None:
+        mesh = ldraw_mesh.get_mesh(key)
+        if mesh is None or ImportOptions.preserve_hierarchy:
             for child_node in self.file.child_nodes:
                 if child_node.meta_command in ["1", "2", "3", "4", "5"] and not self.texmap_fallback:
                     current_color = LDrawNode.__determine_color(color_code, child_node.color_code)
@@ -154,6 +158,7 @@ class LDrawNode:
                         # may crash based on https://docs.blender.org/api/current/info_gotcha.html#help-my-script-crashes-blender
                         # but testing seems to indicate that adding to bpy.data.meshes does not change hash(mesh) value
                         child_node.load(
+                            parent_node=self,
                             color_code=current_color,
                             parent_matrix=accum_matrix if ImportOptions.preserve_hierarchy else matrix,
                             geometry_data=geometry_data,
@@ -239,16 +244,19 @@ class LDrawNode:
                     invert_next = False
 
         if self.top:
-            mesh = bpy.data.meshes.get(key)
-            if mesh is None:
-                mesh = ldraw_mesh.create_mesh(self, key, geometry_data)
-            obj = ldraw_object.process_top_object(self, mesh, key, accum_matrix, color_code, collection)
+            obj = LDrawNode.__create_obj(self, key, geometry_data, accum_matrix, color_code, collection)
 
             # if LDrawNode.part_count == 1:
             #     raise BaseException("done")
 
-            # yield self
+            # yield obj
             return obj
+
+    @staticmethod
+    def __create_obj(ldraw_node, key, geometry_data, accum_matrix, color_code, collection):
+        mesh = ldraw_mesh.create_mesh(ldraw_node, key, geometry_data)
+        obj = ldraw_object.process_top_object(ldraw_node, mesh, key, accum_matrix, color_code, collection)
+        return obj
 
     # set the working color code to this file's
     # color code if it isn't color code 16
@@ -262,8 +270,8 @@ class LDrawNode:
     # must include matrix, so that parts that are just mirrored versions of other parts
     # such as 32527.dat (mirror of 32528.dat) will render
     @staticmethod
-    def __build_key(filename, color_code, matrix, accum_cull, accum_invert, texmap=None, pe_tex_info=None):
-        _key = (filename, color_code, matrix, accum_cull, accum_invert,)
+    def __build_key(filename, color_code, matrix, accum_cull, accum_invert, parent_filename=None, texmap=None, pe_tex_info=None):
+        _key = (filename, color_code, matrix, accum_cull, accum_invert, parent_filename,)
         if texmap is not None:
             _key += ((texmap.method, texmap.texture, texmap.glossmap),)
         if pe_tex_info is not None:
