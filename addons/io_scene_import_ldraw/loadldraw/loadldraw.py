@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update May 23, 2023
+Last Update May 26, 2023
 Copyright (c) 2020 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
@@ -804,10 +804,10 @@ class Parameters():
 
             debugPrint("Loading angles for slope bricks from parameter list")
             # Create a regular dictionary of parts with ranges of angles to check
-            for part in globalSlopeBricks:
+            for part, angles in globalSlopeBricks.items():
                 globalSlopeAngles[part] = {
                     (c - margin, c + margin) if type(c) is not tuple else (min(c) - margin, max(c) + margin)
-                    for c in globalSlopeBricks[part]
+                    for c in angles
                 }
             debugPrint("Loading light brick colours from parameter list")
         else:
@@ -886,7 +886,7 @@ class Parameters():
                 '30390': {-45},
                 '30499': {16},
                 '32083': {45},
-                '43708': {72},
+                '43708': {(64, 72)},
                 '43710': {72, 45},
                 '43711': {72, 45},
                 '47759': {(40, 63)},
@@ -4104,11 +4104,7 @@ def isSlopeFace(slopeAngles, isGrainySlopeAllowed, faceVertices):
     # debugPrint("Angle to ground {0}".format(angleToGroundDegrees))
 
     # Step 3: Check angle of normal to ground is within one of the acceptable ranges for this part
-    if True in {c[0] <= angleToGroundDegrees <= c[1] for c in slopeAngles}:
-        return True
-
-    return False
-
+    return any(c[0] <= angleToGroundDegrees <= c[1] for c in slopeAngles)
 
 # **************************************************************************************
 def createMesh(name, meshName, geometry):
@@ -4329,7 +4325,7 @@ def createBlenderObjectsFromNode(node,
                 emission_node.inputs['Color'].default_value = globalLightBricks[name]
                 emission_node.inputs['Strength'].default_value = 100.0
             lamp_object = bpy.data.objects.new(name="LightLamp", object_data=lamp_data)
-            lamp_object.location = (-0.27, 0.18, 0.0)
+            lamp_object.location = (-0.27, 0.0, -0.18)
 
             addNodeToParentWithGroups(blenderNodeParent, [], lamp_object)
 
@@ -4502,7 +4498,7 @@ def setupRealisticLook():
         scene.world.use_nodes = True
         nodes = scene.world.node_tree.nodes
         links = scene.world.node_tree.links
-        worldNodeNames = list(map((lambda x: x.name), scene.world.node_tree.nodes))
+        worldNodeNames = [node.name for node in scene.world.node_tree.nodes]
 
         if "LegoEnvMap" in worldNodeNames:
             env_tex = nodes["LegoEnvMap"]
@@ -4584,7 +4580,7 @@ def setupRealisticLook():
         scene.use_nodes = True
 
         # If scene nodes exist for compositing instructions look, remove them
-        nodeNames = list(map((lambda x: x.name), scene.node_tree.nodes))
+        nodeNames = [node.name for node in scene.node_tree.nodes]
         if "Solid" in nodeNames:
             scene.node_tree.nodes.remove(scene.node_tree.nodes["Solid"])
 
@@ -4621,8 +4617,9 @@ def setupInstructionsLook():
     if scene.camera is not None:
         scene.camera.data.type = 'ORTHO'
 
-    # For Blender Render, set transparent background
-    render.alpha_mode = 'TRANSPARENT'
+    # For Blender Render, set transparent background. (Not available in Blender 3.5.1 or higher.)
+    if hasattr(render, "alpha_mode"):
+        render.alpha_mode = 'TRANSPARENT'
 
     # Turn on cycles transparency
     scene.cycles.film_transparent = True
@@ -4686,6 +4683,12 @@ def setupInstructionsLook():
         layers[-1].use = True
         layerNames.append("TransparentBricks")
     transLayer = layerNames.index("TransparentBricks")
+
+    # Use Z layer (defaults to off in Blender 3.5.1)
+    if hasattr(layers[transLayer], "use_pass_z"):
+        layers[transLayer].use_pass_z = True
+    if hasattr(layers[solidLayer], "use_pass_z"):
+        layers[solidLayer].use_pass_z = True
 
     # Disable any render/view layers that are not needed
     for i in range(len(layers)):
@@ -5048,11 +5051,11 @@ def loadFromFile(context, filename, isFullFilepath=True):
     node.load()
     # node.printBFC()
 
-    #  Fix slope material when importing individual parts - See PR https://github.com/TobyLobster/ImportLDraw/pull/50/
     if node.file.isModel:
         # Fix top level rotation from LDraw coordinate space to Blender coordinate space
-        node.file.geometry.points = list(map((lambda p: matvecmul(Math.rotationMatrix, p)), node.file.geometry.points))
-        node.file.geometry.edges = list(map((lambda e: matvecmul(Math.rotationMatrix, e)), node.file.geometry.edges))
+        node.file.geometry.points = [Math.rotationMatrix * p for p in node.file.geometry.points]
+        node.file.geometry.edges  = [(matvecmul(Math.rotationMatrix, e[0]), matvecmul(Math.rotationMatrix, e[1])) for e in node.file.geometry.edges]
+
         for childNode in node.file.childNodes:
             childNode.matrix = matmul(Math.rotationMatrix, childNode.matrix)
 

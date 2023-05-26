@@ -214,7 +214,7 @@ sloped_brick,   30382,  11,      45
 sloped_brick,   30390, -45
 sloped_brick,   30499,  16
 sloped_brick,   32083,  45
-sloped_brick,   43708,  72
+sloped_brick,   43708,  64|72
 sloped_brick,   43710,  72,      45
 sloped_brick,   43711,  72,      45
 sloped_brick,   47759,  40|63
