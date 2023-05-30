@@ -135,11 +135,17 @@ LDrawBlenderRenderAddons.zip
 # Visual Studio Code
 .vscode/
 
-# Notepad++ Session File
+# Development - Notepad++ Session File
 blenderldrawrender_session.xml
 
-# Development config file
-LDrawRendererPreferences.ini
+# Development - config file
+setup/addon_setup/config/LDrawRendererPreferences.ini
 
-# Script error
+# Development - render script
+render_ldraw_model.bat
+
+# Development - standard output
+stdout_blender_render
+
+# Development - script error
 Publish.out
