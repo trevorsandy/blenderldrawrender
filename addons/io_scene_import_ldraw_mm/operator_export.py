@@ -4,6 +4,7 @@ from bpy_extras.io_utils import ExportHelper
 import time
 
 from .export_options import ExportOptions
+from .import_settings import ImportSettings
 from .filesystem import FileSystem
 from .ldraw_colors import LDrawColor
 from . import ldraw_export
@@ -36,15 +37,26 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
 
     ldraw_path: bpy.props.StringProperty(
         name="LDraw path",
-        description="Full filepath to the LDraw Parts Library (download from http://www.ldraw.org)",
-        default=FileSystem.locate_ldraw(),
+        description="Full filepath to the LDraw Parts Library (download from https://www.ldraw.org)",
+        default=ImportSettings.get_setting('ldraw_path'),
     )
 
-    use_colour_scheme: bpy.props.BoolProperty(
-        name="Use alternate colors",
-        # options={'HIDDEN'},
-        description="Use LDCfgalt.ldr",
-        default=True,
+    studio_ldraw_path: bpy.props.StringProperty(
+        name="Stud.io LDraw path",
+        description="Full filepath to the Stud.io LDraw Parts Library (download from https://www.bricklink.com/v3/studio/download.page)",
+        default=ImportSettings.get_setting('studio_ldraw_path'),
+    )
+
+    use_colour_scheme: bpy.props.EnumProperty(
+        name="Colour scheme options",
+        description="Colour scheme options",
+        default=ImportSettings.get_setting('use_colour_scheme'),
+        items=[
+            ("lgeo", "Realistic colours", "Uses the LGEO colour scheme for realistic colours."),
+            ("ldraw", "Original LDraw colours", "Uses the standard LDraw colour scheme (LDConfig.ldr)."),
+            ("alt", "Alternate LDraw colours", "Uses the alternate LDraw colour scheme (LDCfgalt.ldr)."),
+            ("custom", "Custom LDraw colours", "Uses a user specified LDraw colour file.")
+        ],
     )
 
     selection_only: bpy.props.BoolProperty(
@@ -112,6 +124,7 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
         start = time.perf_counter()
 
         FileSystem.ldraw_path = self.ldraw_path
+        FileSystem.studio_ldraw_path = self.studio_ldraw_path
         FileSystem.resolution = self.resolution
         LDrawColor.use_colour_scheme = self.use_colour_scheme
 
@@ -153,7 +166,7 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
         col = layout.column()
         col.label(text="Export Options")
         # col.prop(self, "selection_only")
-        col.prop(self, "use_colour_scheme")
+        col.prop(self, "use_colour_scheme", expand=True)
         col.prop(self, "export_precision")
 
         layout.separator(factor=space_factor)
@@ -167,7 +180,7 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
 
 
 def build_export_menu(self, context):
-    self.layout.operator(EXPORT_OT_do_ldraw_export.bl_idname, text="LPub3D LDraw MM (.ldr/.dat)")
+    self.layout.operator(EXPORT_OT_do_ldraw_export.bl_idname, text="LPub3D Export LDraw MM (.ldr/.dat)")
 
 
 classesToRegister = [

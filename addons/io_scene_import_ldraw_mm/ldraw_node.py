@@ -17,11 +17,13 @@ class LDrawNode:
 
     part_count = 0
     key_map = {}
+    geometry_datas = {}
 
     @classmethod
     def reset_caches(cls):
         cls.part_count = 0
         cls.key_map = {}
+        cls.geometry_datas = {}
 
     @classmethod
     def import_setup(cls):
@@ -55,6 +57,7 @@ class LDrawNode:
         self.subfile_line_index = 0
 
     def load(self,
+             root_node=None,
              parent_node=None,
              color_code="16",
              parent_matrix=None,
@@ -68,7 +71,7 @@ class LDrawNode:
 
         if self.file.is_edge_logo() and not ImportOptions.display_logo:
             return
-        if self.file.is_like_stud() and ImportOptions.no_studs:
+        if self.file.is_stud() and ImportOptions.no_studs:
             return
 
         if parent_matrix is None:
@@ -78,8 +81,10 @@ class LDrawNode:
         self.pe_tex_info = pe_tex_info
 
         # by default, treat this as anything other than a top level part
-        accum_matrix = (parent_matrix @ self.matrix).freeze()
-        matrix = accum_matrix
+        # obj_matrix is the matrix up to the point and used for placement of objects
+        # vertex_matrix is the matrix that gets passed to subparts
+        obj_matrix = (parent_matrix @ self.matrix).freeze()
+        vertex_matrix = obj_matrix
         collection = parent_collection
 
         if group.top_collection is None:
@@ -115,36 +120,43 @@ class LDrawNode:
             # if parent_collection is not None, this is a nested model
             if parent_collection is not None:
                 collection = group.get_filename_collection(self.file.name, parent_collection)
-        elif ImportOptions.preserve_hierarchy or geometry_data is None:  # top-level part
+        elif geometry_data is None or ImportOptions.preserve_hierarchy:  # top-level part
             LDrawNode.part_count += 1
             self.top = True
-            matrix = matrices.identity_matrix
-            geometry_data = GeometryData()
+            vertex_matrix = matrices.identity_matrix
 
-        # when a part is used on its own and also as part of a shortcut, the part will not render in the shortcut
-        # because that part doesn't register as a subpart of the shortcut
-        if parent_node and parent_node.file.is_shortcut():
-            key = LDrawNode.__build_key(self.file.name, color_code, matrix, accum_cull, accum_invert, parent_filename=parent_node.file.name, texmap=texmap, pe_tex_info=pe_tex_info)
-        else:
-            key = LDrawNode.__build_key(self.file.name, color_code, matrix, accum_cull, accum_invert, texmap=texmap, pe_tex_info=pe_tex_info)
+        # parent_is_top
+        # true == the parent node is a part
+        # false == parent node is a model
+        # when a part is used on its own and also treated as a subpart like with a shortcut, the part will not render in the shortcut
+        parent_is_top = (parent_node and parent_node.top)
+        key = LDrawNode.__build_key(self.file.name, color_code, vertex_matrix, accum_cull, accum_invert, parent_is_top=parent_is_top, texmap=texmap, pe_tex_info=pe_tex_info)
 
-        if self.file.is_like_model():
-            if self.file.has_geometry():
-                self.bfc_certified = False
+        # if geometry_data exists, don't process this key again
+        g = LDrawNode.geometry_datas.get(key)
+        if g is None or ImportOptions.preserve_hierarchy:
+            if self.top:
+                # geometry_data is unused if the mesh already exists
+                root_node = self
+                geometry_data = GeometryData()
+
+            if self.file.is_like_model():
+                if self.file.has_geometry():
+                    self.bfc_certified = False
+                else:
+                    self.bfc_certified = True
             else:
-                self.bfc_certified = True
-        else:
-            self.bfc_certified = None
+                self.bfc_certified = None
 
-        local_cull = True
-        winding = "CCW"
-        invert_next = False
+            local_cull = True
+            winding = "CCW"
+            invert_next = False
 
-        mesh = ldraw_mesh.get_mesh(key)
-        if mesh is None or ImportOptions.preserve_hierarchy:
             for child_node in self.file.child_nodes:
+                # self.texmap_fallback will only be true if ImportOptions.meta_texmap == True and you're on a fallback line
+                # if ImportOptions.meta_texmap == False, it will always be False
                 if child_node.meta_command in ["1", "2", "3", "4", "5"] and not self.texmap_fallback:
-                    current_color = LDrawNode.__determine_color(color_code, child_node.color_code)
+                    child_current_color = LDrawNode.__determine_color(color_code, child_node.color_code)
                     if child_node.meta_command == "1":
                         # if we have a pe_tex_info, but no pe_tex meta commands have been parsed
                         # treat the pe_tex_info as the one to use
@@ -158,9 +170,10 @@ class LDrawNode:
                         # may crash based on https://docs.blender.org/api/current/info_gotcha.html#help-my-script-crashes-blender
                         # but testing seems to indicate that adding to bpy.data.meshes does not change hash(mesh) value
                         child_node.load(
+                            root_node=root_node,
                             parent_node=self,
-                            color_code=current_color,
-                            parent_matrix=accum_matrix if ImportOptions.preserve_hierarchy else matrix,
+                            color_code=child_current_color,
+                            parent_matrix=vertex_matrix if not ImportOptions.preserve_hierarchy else obj_matrix,
                             geometry_data=geometry_data,
                             accum_cull=self.bfc_certified and accum_cull and local_cull,
                             accum_invert=(accum_invert ^ invert_next),  # xor
@@ -169,8 +182,8 @@ class LDrawNode:
                             pe_tex_info=pe_tex_info,
                         )
                         # for node in child_node.load(
-                        #         color_code=current_color,
-                        #         parent_matrix=accum_matrix if ImportOptions.preserve_hierarchy else matrix,
+                        #         color_code=child_current_color,
+                        #         parent_matrix=matrix if not ImportOptions.preserve_hierarchy else obj_matrix,
                         #         geometry_data=geometry_data,
                         #         accum_cull=self.bfc_certified and accum_cull and local_cull,
                         #         accum_invert=(accum_invert ^ invert_next),  # xor
@@ -185,8 +198,8 @@ class LDrawNode:
                     elif child_node.meta_command == "2":
                         ldraw_meta.meta_edge(
                             child_node,
-                            current_color,
-                            matrix,
+                            child_current_color,
+                            vertex_matrix,
                             geometry_data,
                         )
                     elif child_node.meta_command in ["3", "4"]:
@@ -197,21 +210,21 @@ class LDrawNode:
                         ldraw_meta.meta_face(
                             self,
                             child_node,
-                            current_color,
-                            matrix,
+                            child_current_color,
+                            vertex_matrix,
                             geometry_data,
                             _winding,
                         )
                     elif child_node.meta_command == "5":
                         ldraw_meta.meta_line(
                             child_node,
-                            current_color,
-                            matrix,
+                            child_current_color,
+                            vertex_matrix,
                             geometry_data,
                         )
                 elif child_node.meta_command == "bfc":
                     if ImportOptions.meta_bfc:
-                        local_cull, winding, invert_next = ldraw_meta.meta_bfc(self, child_node, matrix, local_cull, winding, invert_next, accum_invert)
+                        local_cull, winding, invert_next = ldraw_meta.meta_bfc(self, child_node, vertex_matrix, local_cull, winding, invert_next, accum_invert)
                 elif child_node.meta_command == "step":
                     ldraw_meta.meta_step()
                 elif child_node.meta_command == "save":
@@ -223,17 +236,17 @@ class LDrawNode:
                 elif child_node.meta_command.startswith("group"):
                     ldraw_meta.meta_group(child_node)
                 elif child_node.meta_command == "leocad_camera":
-                    ldraw_meta.meta_lp_lc_camera(self, child_node, matrix)                    
+                    ldraw_meta.meta_lp_lc_camera(self, child_node, vertex_matrix)                    
                 elif child_node.meta_command == "lpub3d_camera":
-                    ldraw_meta.meta_lp_lc_camera(self, child_node, matrix)
+                    ldraw_meta.meta_lp_lc_camera(self, child_node, vertex_matrix)
                 elif child_node.meta_command == "leocad_light":
-                    ldraw_meta.meta_lp_lc_light(self, child_node, matrix)                    
+                    ldraw_meta.meta_lp_lc_light(self, child_node, vertex_matrix)                    
                 elif child_node.meta_command == "lpub3d_light":
-                    ldraw_meta.meta_lp_lc_light(self, child_node, matrix)
+                    ldraw_meta.meta_lp_lc_light(self, child_node, vertex_matrix)
                 elif child_node.meta_command == "texmap":
-                    ldraw_meta.meta_texmap(self, child_node, matrix)
+                    ldraw_meta.meta_texmap(self, child_node, vertex_matrix)
                 elif child_node.meta_command.startswith("pe_tex_"):
-                    ldraw_meta.meta_pe_tex(self, child_node, matrix)
+                    ldraw_meta.meta_pe_tex(self, child_node, vertex_matrix)
 
                 if self.texmap_next:
                     ldraw_meta.set_texmap_end(self)
@@ -244,7 +257,11 @@ class LDrawNode:
                     invert_next = False
 
         if self.top:
-            obj = LDrawNode.__create_obj(self, key, geometry_data, accum_matrix, color_code, collection)
+            _geometry_data = LDrawNode.geometry_datas.setdefault(key, geometry_data)
+
+            # geometry_data will not be None if this is a new mesh
+            # geometry_data will be None if the mesh already exists
+            obj = LDrawNode.__create_obj(self, key, _geometry_data, obj_matrix, color_code, collection)
 
             # if LDrawNode.part_count == 1:
             #     raise BaseException("done")
@@ -253,9 +270,9 @@ class LDrawNode:
             return obj
 
     @staticmethod
-    def __create_obj(ldraw_node, key, geometry_data, accum_matrix, color_code, collection):
+    def __create_obj(ldraw_node, key, geometry_data, obj_matrix, color_code, collection):
         mesh = ldraw_mesh.create_mesh(ldraw_node, key, geometry_data)
-        obj = ldraw_object.process_top_object(ldraw_node, mesh, key, accum_matrix, color_code, collection)
+        obj = ldraw_object.process_top_object(ldraw_node, mesh, key, obj_matrix, color_code, collection)
         return obj
 
     # set the working color code to this file's
@@ -270,8 +287,8 @@ class LDrawNode:
     # must include matrix, so that parts that are just mirrored versions of other parts
     # such as 32527.dat (mirror of 32528.dat) will render
     @staticmethod
-    def __build_key(filename, color_code, matrix, accum_cull, accum_invert, parent_filename=None, texmap=None, pe_tex_info=None):
-        _key = (filename, color_code, matrix, accum_cull, accum_invert, parent_filename,)
+    def __build_key(filename, color_code, matrix, accum_cull, accum_invert, parent_is_top=None, texmap=None, pe_tex_info=None):
+        _key = (filename, color_code, matrix, accum_cull, accum_invert, parent_is_top,)
         if texmap is not None:
             _key += ((texmap.method, texmap.texture, texmap.glossmap),)
         if pe_tex_info is not None:

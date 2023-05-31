@@ -251,6 +251,12 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         default=ImportSettings.get_setting('meta_bfc'),
     )
 
+    meta_texmap: bpy.props.BoolProperty(
+        name="TEXMAP",
+        description="Process TEXMAP and DATA meta commands",
+        default=ImportSettings.get_setting('meta_texmap'),
+    )
+
     meta_print_write: bpy.props.BoolProperty(
         name="PRINT/WRITE",
         description="Process PRINT/WRITE meta command",
@@ -510,6 +516,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         self.triangulate             = IMPORT_OT_do_ldraw_import.prefs.get("triangulate", self.triangulate)
 
         self.meta_bfc                = IMPORT_OT_do_ldraw_import.prefs.get("meta_bfc", self.meta_bfc)
+        self.meta_texmap             = IMPORT_OT_do_ldraw_import.prefs.get("meta_texmap", self.meta_texmap)
         self.meta_group              = IMPORT_OT_do_ldraw_import.prefs.get("meta_group", self.meta_group)
         self.meta_print_write        = IMPORT_OT_do_ldraw_import.prefs.get("meta_print_write", self.meta_print_write)
         self.meta_step               = IMPORT_OT_do_ldraw_import.prefs.get("meta_step", self.meta_step)
@@ -575,6 +582,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
             IMPORT_OT_do_ldraw_import.prefs["triangulate"]             = self.triangulate
 
             IMPORT_OT_do_ldraw_import.prefs["meta_bfc"]                = self.meta_bfc
+            IMPORT_OT_do_ldraw_import.prefs["meta_texmap"]             = self.meta_texmap
             IMPORT_OT_do_ldraw_import.prefs["meta_group"]              = self.meta_group
             IMPORT_OT_do_ldraw_import.prefs["meta_print_write"]        = self.meta_print_write
             IMPORT_OT_do_ldraw_import.prefs["meta_step"]               = self.meta_step
@@ -678,7 +686,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         box.prop(self, "resolution", expand=True)
         box.prop(self, "display_logo")
         box.prop(self, "chosen_logo")
-        col.prop(self, "use_freestyle_edges")
+        box.prop(self, "use_freestyle_edges")
 
         layout.separator(factor=space_factor)
         box.label(text="Scaling Options")
@@ -707,6 +715,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         layout.separator(factor=space_factor)
         box.label(text="Meta Commands")
         box.prop(self, "meta_bfc")
+        box.prop(self, "meta_texmap")
         box.prop(self, "meta_group")
         box.prop(self, "meta_print_write")
         box.prop(self, "meta_step")
@@ -731,7 +740,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
 
 def build_import_menu(self, context):
     self.layout.operator(IMPORT_OT_do_ldraw_import.bl_idname,
-                         text="LPub3D LDraw MM (.mpd/.ldr/.l3b/.dat)")
+                         text="LPub3D Import LDraw MM (.mpd/.ldr/.l3b/.dat)")
 
 
 classesToRegister = [

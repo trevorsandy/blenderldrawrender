@@ -66,7 +66,7 @@ def do_import(filepath):
     obj = root_node.load()
 
     # blen_ld_ren_mod
-    if ImportOptions.add_environment:
+    if ImportOptions.add_environment or ImportOptions.position_camera:
         vertices = []
         mesh_objs = []
         top_obj = None

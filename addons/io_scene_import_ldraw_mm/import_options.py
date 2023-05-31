@@ -37,6 +37,9 @@ class ImportOptions:
     defaults['meta_save'] = False
     meta_save = defaults['meta_save']
 
+    defaults['meta_texmap'] = True
+    meta_texmap = defaults['meta_texmap']
+
     defaults['display_logo'] = False
     display_logo = defaults['display_logo']
 
@@ -100,18 +103,18 @@ class ImportOptions:
     defaults['add_environment'] = True
     add_environment = defaults['add_environment']
 
+    defaults['camera_border_percent'] = True
+    camera_border_percent = defaults['camera_border_percent']
+    
+    defaults['position_camera'] = True
+    position_camera = defaults['position_camera']
+
     defaults['use_freestyle_edges'] = False
     use_freestyle_edges = defaults['use_freestyle_edges']
 
     defaults['import_scale'] = 0.02
     import_scale = defaults['import_scale']
 
-    defaults['camera_border_percent'] = True
-    camera_border_percent = defaults['camera_border_percent']
-    
-    defaults['position_camera'] = True
-    position_camera = defaults['position_camera']
-    
     defaults['parent_to_empty'] = True  # True False
     parent_to_empty = defaults['parent_to_empty']
 

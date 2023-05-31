@@ -5,13 +5,102 @@ from sys import platform
 from pathlib import Path
 from . import helpers
 
+def locate_ldraw():
+    ldraw_folder_name = 'ldraw'
+
+    # home = os.path.expanduser("~")
+    home = str(Path.home())
+    ldraw_path = os.path.join(home, ldraw_folder_name)
+    if os.path.isdir(ldraw_path):
+        return ldraw_path
+
+    # Get list of possible ldraw installation directories for the platform
+    if platform == "win32":
+        ldrawPossibleDirectories = [
+        	os.path.join(os.environ['USERPROFILE'], "LDraw"),
+        	os.path.join(os.environ['USERPROFILE'], os.path.join("Desktop", "LDraw")),
+        	os.path.join(os.environ['USERPROFILE'], os.path.join("Documents", "LDraw")),
+            os.path.join(os.environ["ProgramFiles"], "LDraw"),
+            os.path.join(os.environ["ProgramFiles(x86)"], "LDraw"),
+            "C:\\LDraw",
+        ]
+    elif platform == "darwin":
+        ldrawPossibleDirectories = [
+            "~/ldraw/",
+            "/Applications/LDraw/",
+            "/Applications/ldraw/",
+            "/usr/local/share/ldraw",
+        ]
+    else:  # Default to Linux if not Windows or Mac
+        ldrawPossibleDirectories = [
+            "~/LDraw",
+            "~/ldraw",
+            "~/.LDraw",
+            "~/.ldraw",
+            "/usr/local/share/ldraw",
+        ]
+
+    # Search possible directories
+    ldraw_path = ""
+    for dir in ldrawPossibleDirectories:
+        dir = os.path.expanduser(dir)
+        if platform == "win32":
+            if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
+                ldraw_path = dir
+                break
+            for drive_letter in string.ascii_lowercase:
+                drive, dir_tail = os.path.splitdrive(dir)
+                dir = os.path.join(os.path.join(f"{drive_letter}:\\", dir_tail))
+                if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
+                    ldraw_path = dir
+                    break
+            if ldraw_path != "":
+                break
+        else:
+            if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
+                ldraw_path = dir
+                break
+
+    # Search LDRAW_DIRECTORY environment variable
+    if ldraw_path == "":
+        ldrawDir = os.environ.get('LDRAW_DIRECTORY')
+        if ldrawDir is not None:
+            dir = os.path.expanduser(ldrawDir).rstrip()
+            if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
+                ldraw_path = dir
+
+    return ldraw_path
+
+def locate_studio_ldraw():
+    ldraw_folder_name = 'ldraw'
+
+    if platform == "linux" or platform == "linux2":
+        pass
+        # linux
+    elif platform == "darwin":
+        pass
+        # OS X
+    elif platform == "win32":
+        studio_path = os.path.join(os.environ["ProgramFiles"], 'Studio 2.0', ldraw_folder_name)
+        if os.path.isdir(studio_path):
+            return studio_path
+
+        studio_path = os.path.join(os.environ["ProgramFiles(x86)"], 'Studio 2.0', ldraw_folder_name)
+        if os.path.isdir(studio_path):
+            return studio_path
+
+    return ""
+
 
 class FileSystem:
     defaults = {}
 
-    defaults['ldraw_path'] = ''
+    defaults['ldraw_path'] = locate_ldraw()
     ldraw_path = defaults['ldraw_path']
 
+    defaults['studio_ldraw_path'] = locate_studio_ldraw()
+    studio_ldraw_path = defaults['studio_ldraw_path']
+    
     defaults['environment_file'] = ''
     environment_file = defaults['environment_file']
 
@@ -20,9 +109,6 @@ class FileSystem:
 
     defaults['additional_search_paths'] = ''
     additional_search_paths = defaults['additional_search_paths']
-
-    defaults['studio_ldraw_path'] = ''
-    studio_ldraw_path = defaults['studio_ldraw_path']
 
     defaults['prefer_studio'] = False
     prefer_studio = defaults['prefer_studio']
@@ -46,94 +132,6 @@ class FileSystem:
     def reset_caches(cls):
         cls.search_dirs = []
         cls.lowercase_paths = {}
-
-    @staticmethod
-    def locate_ldraw():
-        ldraw_folder_name = 'ldraw'
-
-        # home = os.path.expanduser("~")
-        home = str(Path.home())
-        ldraw_path = os.path.join(home, ldraw_folder_name)
-        if os.path.isdir(ldraw_path):
-            return ldraw_path
-
-        # Get list of possible ldraw installation directories for the platform
-        if platform == "win32":
-            ldrawPossibleDirectories = [
-            	os.path.join(os.environ['USERPROFILE'], "LDraw"),
-            	os.path.join(os.environ['USERPROFILE'], os.path.join("Desktop", "LDraw")),
-            	os.path.join(os.environ['USERPROFILE'], os.path.join("Documents", "LDraw")),
-                os.path.join(os.environ["ProgramFiles"], "LDraw"),
-                os.path.join(os.environ["ProgramFiles(x86)"], "LDraw"),
-                "C:\\LDraw",
-            ]
-        elif platform == "darwin":
-            ldrawPossibleDirectories = [
-                "~/ldraw/",
-                "/Applications/LDraw/",
-                "/Applications/ldraw/",
-                "/usr/local/share/ldraw",
-            ]
-        else:  # Default to Linux if not Windows or Mac
-            ldrawPossibleDirectories = [
-                "~/LDraw",
-                "~/ldraw",
-                "~/.LDraw",
-                "~/.ldraw",
-                "/usr/local/share/ldraw",
-            ]
-
-        # Search possible directories
-        ldraw_path = ""
-        for dir in ldrawPossibleDirectories:
-            dir = os.path.expanduser(dir)
-            if platform == "win32":
-                if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
-                    ldraw_path = dir
-                    break
-                for drive_letter in string.ascii_lowercase:
-                    drive, dir_tail = os.path.splitdrive(dir)
-                    dir = os.path.join(os.path.join(f"{drive_letter}:\\", dir_tail))
-                    if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
-                        ldraw_path = dir
-                        break
-                if ldraw_path != "":
-                    break
-            else:
-                if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
-                    ldraw_path = dir
-                    break
-
-        # Search LDRAW_DIRECTORY environment variable
-        if ldraw_path == "":
-            ldrawDir = os.environ.get('LDRAW_DIRECTORY')
-            if ldrawDir is not None:
-                dir = os.path.expanduser(ldrawDir).rstrip()
-                if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
-                    ldraw_path = dir
-
-        return ldraw_path
-
-    @staticmethod
-    def locate_studio_ldraw():
-        ldraw_folder_name = 'ldraw'
-
-        if platform == "linux" or platform == "linux2":
-            pass
-            # linux
-        elif platform == "darwin":
-            pass
-            # OS X
-        elif platform == "win32":
-            studio_path = os.path.join(os.environ["ProgramFiles"], 'Studio 2.0', ldraw_folder_name)
-            if os.path.isdir(studio_path):
-                return studio_path
-
-            studio_path = os.path.join(os.environ["ProgramFiles(x86)"], 'Studio 2.0', ldraw_folder_name)
-            if os.path.isdir(studio_path):
-                return studio_path
-
-        return ""
 
     @staticmethod
     def locate_environment_file():
