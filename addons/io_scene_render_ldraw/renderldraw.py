@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update May 26, 2023
+Last Update May 31, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Render LDraw GPLv2 license.
@@ -52,7 +52,6 @@ units = (
     (60, "h", "hour", "hours"),
     (24, "d", "day", "days"),
     (7, "wk", "week", "weeks"))
-
 
 def render_print(message, is_error=False):
     """Print output with identification timestamp."""
@@ -462,17 +461,16 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
                 self.resolution_width        = importldraw.ImportLDrawOps.prefs.get('resolutionwidth',  self.resolution_width)
                 self.resolution_height       = importldraw.ImportLDrawOps.prefs.get('resolutionheight', self.resolution_height)
                 self.render_percentage       = importldraw.ImportLDrawOps.prefs.get('renderpercentage', self.render_percentage)
-                self.search_additional_paths = importldraw.ImportLDrawOps.prefs.get('searchAdditionalPaths', self.search_additional_paths)
-            self.use_look                = importldraw.ImportLDrawOps.prefs.get('useLook',          self.use_look)
-            self.add_environment         = importldraw.ImportLDrawOps.prefs.get('addEnvironment',   self.add_environment)
-            self.overwrite_image         = importldraw.ImportLDrawOps.prefs.get('overwriteImage',   self.overwrite_image)
-            self.transparent_background  = importldraw.ImportLDrawOps.prefs.get('transparentBackground', self.transparent_background)
-            self.crop_image              = importldraw.ImportLDrawOps.prefs.get('cropImage',        self.crop_image)
-            self.render_window           = importldraw.ImportLDrawOps.prefs.get('renderWindow',     self.render_window)
-            self.blendfile_trusted       = importldraw.ImportLDrawOps.prefs.get('blendfileTrusted', self.blendfile_trusted)
-            self.blend_file              = importldraw.ImportLDrawOps.prefs.get('blendFile',        self.blend_file)
+                self.search_additional_paths = importldraw.ImportLDrawOps.prefs.get('searchadditionalpaths', self.search_additional_paths)
+            self.use_look                = importldraw.ImportLDrawOps.prefs.get('uselook',          self.use_look)
+            self.add_environment         = importldraw.ImportLDrawOps.prefs.get('addenvironment',   self.add_environment)
+            self.overwrite_image         = importldraw.ImportLDrawOps.prefs.get('overwriteimage',   self.overwrite_image)
+            self.transparent_background  = importldraw.ImportLDrawOps.prefs.get('transparentbackground', self.transparent_background)
+            self.crop_image              = importldraw.ImportLDrawOps.prefs.get('cropimage',        self.crop_image)
+            self.render_window           = importldraw.ImportLDrawOps.prefs.get('renderwindow',     self.render_window)
+            self.blendfile_trusted       = importldraw.ImportLDrawOps.prefs.get('blendfiletrusted', self.blendfile_trusted)
+            self.blend_file              = importldraw.ImportLDrawOps.prefs.get('blendfile',        self.blend_file)
             self.verbose                 = importldraw.ImportLDrawOps.prefs.get('verbose',          self.verbose)
-
         self.debugPrintPreferences()
 
     def draw(self, context):
@@ -608,14 +606,14 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
         preferences_file = ""
         if self.use_ldraw_import_mm:
             preferences_folder = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                                 '../io_scene_import_ldraw_mm/config'))
+                                                 '..', 'io_scene_import_ldraw_mm', 'config'))
             preferences_file = os.path.join(preferences_folder, 'ImportOptions.json')
             if model_globals.LDRAW_MODEL_LOADED:
                 self.load_ldraw_model = False
                 RenderLDrawOps.prefs  = operator_import.ImportSettings.get_settings()
         elif self.use_ldraw_import:
             preferences_folder = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                                 '../io_scene_import_ldraw/config'))
+                                                 '..', 'io_scene_import_ldraw', 'config'))
             preferences_file = os.path.join(preferences_folder, 'ImportLDrawPreferences.ini')
             if model_globals.LDRAW_MODEL_LOADED:
                 self.load_ldraw_model = False
@@ -656,14 +654,21 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
                 RenderLDrawOps.prefs = importldraw.Preferences(self.preferences_file)
                 self.ldraw_path = RenderLDrawOps.prefs.get('ldrawdirectory', importldraw.loadldraw.Configure.findDefaultLDrawDirectory())
 
-            # Set preference file path to import addon preference file
-            self.preferences_file = preferences_file
-
             assert self.ldraw_path != "", "LDraw library path not specified."
             assert self.image_file != "", "Image file path not specified."
             assert self.model_file != "", "Model file path not specified."
 
-            if not self.cli_render or self.import_only:
+            if self.cli_render:
+                if self.use_ldraw_import_mm:
+                    operator_import.ImportSettings.save_settings(RenderLDrawOps.prefs)
+                    self.add_environment = RenderLDrawOps.prefs.get('add_environment', self.add_environment)
+                    RenderLDrawOps.prefs['search_additional_paths'] = self.search_additional_paths
+                elif self.use_ldraw_import:
+                    RenderLDrawOps.prefs.saveSettings(preferences_file)
+                    self.add_environment = RenderLDrawOps.prefs.get('addenvironment', self.add_environment)
+                    RenderLDrawOps.prefs.set('searchadditionalpaths', self.search_additional_paths)
+                self.debugPrintPreferences()
+            else:
                 if self.use_ldraw_import_mm:
                     RenderLDrawOps.prefs['add_environment']         = self.add_environment
                     RenderLDrawOps.prefs['environment_file']        = self.environment_file
@@ -698,6 +703,8 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
                     RenderLDrawOps.prefs.set('verbose',               self.verbose)
                     RenderLDrawOps.prefs.save()
                 self.debugPrintPreferences()
+
+            self.preferences_file = preferences_file
 
             if self.use_ldraw_import_mm:
                 kwargs = {'preferences_file': self.preferences_file, 'filepath': self.model_file}
