@@ -34,7 +34,7 @@ import datetime
 from bpy_extras.io_utils import ImportHelper
 from io_scene_import_ldraw import importldraw
 from io_scene_import_ldraw_mm import operator_import
-from io_scene_import_ldraw_mm.filesystem import FileSystem
+from io_scene_import_ldraw_mm import filesystem
 from .modelglobals import model_globals
 from bpy.props import (StringProperty,
                        IntProperty,
@@ -523,7 +523,7 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
 
         if self.use_ldraw_import_mm:
             RenderLDrawOps.prefs      = operator_import.ImportSettings.get_settings()
-            self.ldraw_path           = RenderLDrawOps.prefs.get('ldraw_path', FileSystem.locate_ldraw())
+            self.ldraw_path           = RenderLDrawOps.prefs.get('ldraw_path', filesystem.locate_ldraw())
             if model_globals.LDRAW_MODEL_LOADED:
                 self.ldraw_model_loaded = True
                 self.load_ldraw_model = False
@@ -649,7 +649,7 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
 
             if self.use_ldraw_import_mm:
                 RenderLDrawOps.prefs = operator_import.ImportSettings.get_ini_settings(self.preferences_file)
-                self.ldraw_path = RenderLDrawOps.prefs.get('ldraw_path', FileSystem.locate_ldraw())
+                self.ldraw_path = RenderLDrawOps.prefs.get('ldraw_path', filesystem.locate_ldraw())
             elif self.use_ldraw_import:
                 RenderLDrawOps.prefs = importldraw.Preferences(self.preferences_file)
                 self.ldraw_path = RenderLDrawOps.prefs.get('ldrawdirectory', importldraw.loadldraw.Configure.findDefaultLDrawDirectory())

@@ -22,7 +22,7 @@ def locate_ldraw():
         	os.path.join(os.environ['USERPROFILE'], os.path.join("Documents", "LDraw")),
             os.path.join(os.environ["ProgramFiles"], "LDraw"),
             os.path.join(os.environ["ProgramFiles(x86)"], "LDraw"),
-            "C:\\LDraw",
+            os.path.join(f"{Path.home().drive}:{os.path.sep}", "LDraw"),
         ]
     elif platform == "darwin":
         ldrawPossibleDirectories = [
@@ -50,7 +50,7 @@ def locate_ldraw():
                 break
             for drive_letter in string.ascii_lowercase:
                 drive, dir_tail = os.path.splitdrive(dir)
-                dir = os.path.join(os.path.join(f"{drive_letter}:\\", dir_tail))
+                dir = os.path.join(os.path.join(f"{drive_letter}:{os.path.sep}", dir_tail))
                 if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
                     ldraw_path = dir
                     break
@@ -136,7 +136,7 @@ class FileSystem:
     @staticmethod
     def locate_environment_file():
         file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                    '../io_scene_import_ldraw/loadldraw/background.exr'))
+                                    "../io_scene_import_ldraw/loadldraw/background.exr".replace("/", os.path.sep)))
         if os.path.exists(file_path):
             return file_path
         return ""
@@ -144,7 +144,7 @@ class FileSystem:
     @staticmethod
     def locate_parameters_file():
         file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                    '../io_scene_render_ldraw/config/LDrawParameters.lst'))
+                                    "../io_scene_render_ldraw/config/LDrawParameters.lst".replace("/", os.path.sep)))
         if os.path.exists(file_path):
             return file_path
         print(f"DEBUG:  WARNING parameters_file not Found: {file_path}")
