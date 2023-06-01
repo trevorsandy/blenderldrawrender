@@ -68,6 +68,7 @@ class Preferences():
                 'meta_save': self.__config[self.__sectionName]['metasave'],
                 'meta_step': self.__config[self.__sectionName]['metastep'],
                 'meta_step_groups': self.__config[self.__sectionName]['metastepgroups'],
+                'meta_texmap': self.__config[self.__sectionName]['metatexmap'],
                 'no_studs': self.__config[self.__sectionName]['nostuds'],
                 'overwrite_image': self.__config[self.__sectionName]['overwriteimage'],
                 'parent_to_empty': self.__config[self.__sectionName]['parenttoempty'],
