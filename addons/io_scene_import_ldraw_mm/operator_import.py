@@ -458,6 +458,8 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
 
         start = time.perf_counter()
 
+        # bpy.ops.object.mode_set(mode='OBJECT')
+
         use_lpub_settings = False
         if self.preferences_file != "":
             ImportSettings.debugPrint("=====Import MM Settings====")
