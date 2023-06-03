@@ -10,6 +10,7 @@ from .ldraw_colors import LDrawColor
 from .filesystem import FileSystem
 from . import strings
 from .export_options import ExportOptions
+from .import_options import ImportOptions
 from . import helpers
 from . import ldraw_props
 
@@ -186,7 +187,17 @@ def __export_subfiles(obj, lines):
 
     precision = obj.ldraw_props.export_precision
 
-    aa = __reverse_rotation @ obj.matrix_world
+    reverse_rotation = __reverse_rotation @ obj.matrix_world
+    _is = ImportOptions.import_scale
+    reverse_import_scale = mathutils.Matrix([
+            [_is, 0.0, 0.0, 0.0],
+            [0.0, _is, 0.0, 0.0],
+            [0.0, 0.0, _is, 0.0],
+            [0.0, 0.0, 0.0, _is],
+        ])
+    reverse_import_scale.invert()
+
+    aa = reverse_rotation @ reverse_import_scale
 
     a = __fix_round(aa[0][0], precision)
     b = __fix_round(aa[0][1], precision)
