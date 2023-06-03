@@ -36,8 +36,17 @@ def do_export(filepath):
     active_objects = bpy.context.view_layer.objects.active
 
     objects = all_objects
-    if ExportOptions.selection_only:
+    if ExportOptions.selection_only and len(selected_objects) > 0:
         objects = selected_objects
+    else:
+        for collection in bpy.data.collections:
+            for top in collection.all_objects:
+                if top.name == collection.name:
+                    objects = top.children
+                    active_object = top
+                    break
+            if active_object is not None:
+                break
 
     if active_object is None:
         print("No selected objects")

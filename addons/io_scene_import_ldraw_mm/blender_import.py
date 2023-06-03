@@ -25,6 +25,7 @@ from . import ldraw_camera
 from . import matrices
 # blen_ld_ren_mod
 from . import ldraw_light
+from . import ldraw_props
 # mod_end
 
 
@@ -66,8 +67,8 @@ def do_import(filepath):
     obj = root_node.load()
 
     # blen_ld_ren_mod
-    if ImportOptions.add_environment or ImportOptions.position_camera:
-        vertices = []
+    if not ldraw_object.top_empty is None:
+        ldraw_props.set_props(ldraw_object.top_empty, ldraw_file, "16")
         mesh_objs = []
         top_obj = None
 
@@ -80,6 +81,8 @@ def do_import(filepath):
             if mesh_objs and top_obj is not None:
                 break
 
+    if ImportOptions.add_environment or ImportOptions.position_camera:
+        vertices = []
         if mesh_objs:
             bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
             for mesh_obj in mesh_objs:

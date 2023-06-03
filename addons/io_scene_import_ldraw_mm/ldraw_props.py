@@ -40,7 +40,8 @@ def get_header_lines(obj, is_model=False):
         part_type_parts.append(f"UPDATE {obj.ldraw_props.update_date}")
 
     header_lines.append(f"0 !LDRAW_ORG {' '.join(part_type_parts)}")
-    header_lines.append(f"0 !LICENSE {obj.ldraw_props.license}")
+    if not obj.ldraw_props.license == "":
+        header_lines.append(f"0 !LICENSE {obj.ldraw_props.license}")
     if not is_model:  # only include bfc information if the obj is not a model
         header_lines.append(f"\n")
         header_lines.append(f"0 BFC CERTIFY CCW")
@@ -88,6 +89,7 @@ class LDrawProps(bpy.types.PropertyGroup):
         ('Unofficial_Primitive', 'Unofficial Primitive', ''),
         ('Unknown', 'Unknown', ''),
     )
+
     part_type: bpy.props.EnumProperty(
         name="Part type",
         description="LDraw part type",
