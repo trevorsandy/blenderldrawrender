@@ -15,18 +15,18 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
 
     bl_idname = "export_scene.lpub3d_export_ldraw_mm"
     bl_description = "Export LDraw model (.ldr/.dat)"
-    bl_label = "Export LDraw MM"
+    bl_label = "Export LDraw"
     bl_options = {'PRESET'}
 
     filename_ext: bpy.props.EnumProperty(
         name='File extension',
         description='Choose File Format:',
         items=(
+            ('.ldr', 'ldr', 'Export as model'),            
             ('.dat', 'dat', 'Export as part'),
-            ('.ldr', 'ldr', 'Export as model'),
-            # ('.mpd', 'mpd', 'Export as multi-part document'),
+            ('.mpd', 'mpd', 'Export as multi-part document'),
         ),
-        default='.dat',
+        default='.ldr',
     )
 
     filter_glob: bpy.props.StringProperty(
@@ -104,7 +104,7 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
     export_precision: bpy.props.IntProperty(
         name="Export precision",
         description="Round vertex coordinates to this number of places",
-        default=2,
+        default=6,
         min=0,
     )
 
@@ -181,7 +181,7 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
 
 
 def build_export_menu(self, context):
-    self.layout.operator(EXPORT_OT_do_ldraw_export.bl_idname, text="LPub3D Export LDraw MM (.ldr/.dat)")
+    self.layout.operator(EXPORT_OT_do_ldraw_export.bl_idname, text="LPub3D Export LDraw MM (.ldr/.mpd/.dat)")
 
 
 classesToRegister = [
