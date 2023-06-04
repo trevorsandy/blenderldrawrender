@@ -30,6 +30,7 @@ def process_top_object(ldraw_node, mesh, key, obj_matrix, color_code, collection
     ldraw_meta.do_meta_step(obj)
     __link_obj_to_collection(collection, obj)
     ldraw_props.set_props(obj, ldraw_node.file, color_code)
+    ldraw_props.set_step_lines(obj, ldraw_node.step_lines)
     __process_top_edges(ldraw_node, key, obj, color_code, collection)
 
     return obj

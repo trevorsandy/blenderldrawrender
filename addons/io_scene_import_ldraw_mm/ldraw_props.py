@@ -18,6 +18,9 @@ def set_props(obj, ldraw_file, color_code):
     obj.ldraw_props.license = ldraw_file.license or ""
     obj.ldraw_props.color_code = color_code
 
+def set_step_lines(obj, step_lines):
+    for line in step_lines:
+        obj.ldraw_props.step_lines.append(line)
 
 def get_header_lines(obj, is_model=False):
     """
@@ -50,6 +53,11 @@ def get_header_lines(obj, is_model=False):
     # header_text = "\n".join(header_lines)
     # return header_text
 
+def get_step_lines(obj):
+    step_lines = []
+    for line in obj.ldraw_props.step_lines:
+        step_lines.append(line)
+    return step_lines
 
 class LDrawProps(bpy.types.PropertyGroup):
     filename: bpy.props.StringProperty(
@@ -146,6 +154,8 @@ class LDrawProps(bpy.types.PropertyGroup):
         default=2,
         min=0,
     )
+
+    step_lines = []
 
     # color: bpy.props.FloatVectorProperty(
     #     name="Hex Value",

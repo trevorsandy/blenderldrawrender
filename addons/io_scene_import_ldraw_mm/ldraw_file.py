@@ -48,6 +48,8 @@ class LDrawFile:
         self.extra_child_nodes = None
         self.geometry_commands = {}
 
+        self.step_lines = []
+
     def __str__(self):
         return "\n".join([
             f"filename: {self.filename}",
@@ -236,6 +238,7 @@ class LDrawFile:
                 clean_line = helpers.clean_line(line)
                 strip_line = line.strip()
 
+                if self.__line_step_lines(strip_line): continue
                 if self.__line_description(strip_line): continue
                 if self.__line_name(clean_line, strip_line): continue
                 if self.__line_author(clean_line, strip_line): continue
@@ -266,6 +269,11 @@ class LDrawFile:
         self.__handle_extra_geometry()
 
     # always return false so that the rest of the line types are parsed even if this is true
+    def __line_step_lines(self, strip_line):
+        if (strip_line.startswith("0 ")):
+            self.step_lines.append(strip_line)
+        return False
+
     def __line_description(self, strip_line):
         if self.description is None:
             parts = strip_line.split(maxsplit=1)
@@ -593,6 +601,9 @@ class LDrawFile:
                     self.extra_child_nodes.append(ldraw_node)
             else:
                 self.child_nodes.append(ldraw_node)
+            if (self.is_part() or self.is_like_model()):
+                ldraw_node.step_lines = self.step_lines
+                self.step_lines.clear()
             return True
         return False
 

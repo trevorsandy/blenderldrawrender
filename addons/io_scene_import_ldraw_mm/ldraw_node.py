@@ -56,6 +56,8 @@ class LDrawNode:
         self.pe_tex_info = None
         self.subfile_line_index = 0
 
+        self.step_lines = []
+
     def load(self,
              color_code="16",
              parent_matrix=None,

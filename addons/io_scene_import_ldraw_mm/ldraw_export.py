@@ -62,10 +62,10 @@ def do_export(filepath):
 
     ldraw_file = LDrawFile(name)
 
-    is_like_model = ldraw_file.is_model() or ldraw_file.is_shortcut()
-    hlines = ldraw_props.get_header_lines(active_object, is_like_model)
-    for hline in hlines:
-        ldraw_file.lines.append(hline)
+    #is_like_model = ldraw_file.is_model() or ldraw_file.is_shortcut()
+    #hlines = ldraw_props.get_header_lines(active_object, is_like_model)
+    #for hline in hlines:
+    #    ldraw_file.lines.append(hline)
 
     subfile_obj_names = []
     polygon_obj_names = []
@@ -85,6 +85,8 @@ def do_export(filepath):
         ldraw_file.lines.append("\n")
     for name in subfile_obj_names:
         obj = bpy.data.objects.get(name)
+        for line in obj.ldraw_props.step_lines:
+            ldraw_file.lines.append(line)
         __export_subfiles(obj, ldraw_file.lines)
 
     if len(polygon_obj_names) > 0:
@@ -92,6 +94,8 @@ def do_export(filepath):
     part_lines = []
     for name in polygon_obj_names:
         obj = bpy.data.objects.get(name)
+        for line in obj.ldraw_props.step_lines:
+            ldraw_file.lines.append(line)
         __export_polygons(obj, part_lines)
 
     sorted_part_lines = sorted(part_lines, key=lambda pl: (int(pl[1]), int(pl[0])))
