@@ -598,18 +598,23 @@ class Configure:
         return platform.system() == "Linux"
 
     def findDefaultLDrawDirectory():
-        result = ""
+        home = str(os.path.expanduser('~'))
+        result = os.path.join(home, 'ldraw')
+        if os.path.isdir(result):
+            return result
+
         # Get list of possible ldraw installation directories for the platform
         if Configure.isWindows():
             home = os.path.join(os.environ['USERPROFILE'])
+            home_split = os.path.splitdrive(home)
             ldrawPossibleDirectories = [
             	os.path.join(home, "LDraw"),
             	os.path.join(home, os.path.join("Desktop", "LDraw")),
             	os.path.join(home, os.path.join("Documents", "LDraw")),
-                "C:\\LDraw",
-                "C:\\Program Files\\LDraw",
-                "C:\\Program Files (x86)\\LDraw",
-                "C:\\Program Files\\Studio 2.0\\ldraw",
+                os.path.join(os.environ["ProgramFiles"], "LDraw"),
+                os.path.join(os.environ["ProgramFiles(x86)"], "LDraw"),
+                os.path.join(os.environ["ProgramFiles"], "Studio 2.0/ldraw"),
+                os.path.join(f"{home_split[0]}{os.path.sep}", "LDraw"),
             ]
         elif Configure.isMac():
             ldrawPossibleDirectories = [
@@ -628,12 +633,16 @@ class Configure:
             ]
 
         # Search possible directories
+        result = ""
         for dir in ldrawPossibleDirectories:
             dir = os.path.expanduser(dir)
             if Configure.isWindows():
+                if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
+                    result = dir
+                    break
                 for drive_letter in string.ascii_lowercase:
                     drive, dir_tail = os.path.splitdrive(dir)
-                    dir = os.path.join(os.path.join(f"{drive_letter}:\\", dir_tail))
+                    dir = os.path.join(os.path.join(f"{drive_letter}:{os.path.sep}", dir_tail))
                     if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
                         result = dir
                         break
