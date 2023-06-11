@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update May 31, 2023
-Copyright (c) 2020 by Toby Nelson
+Last Update June 11, 2023
+Copyright (c) 2023 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Import LDraw GPLv2 license.
@@ -307,6 +307,12 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         default=prefs.get("flattenHierarchy", False)
     )
 
+    minifigHierarchy: BoolProperty(
+        name="Parent Minifigs",
+        description="Add a parent/child hierarchy (tree) for Minifigs",
+        default=prefs.get("minifigHierarchy", True)
+    )
+
     useUnofficialParts: BoolProperty(
         name="Include unofficial parts",
         description="Additionally searches for parts in the <ldraw-dir>/unofficial/ directory",
@@ -493,6 +499,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         box.prop(self, "useLogoStuds")
         box.prop(self, "logoStudVersion", expand=True)    
         box.prop(self, "numberNodes")
+        box.prop(self, "minifigHierarchy")
 
         layout.separator(factor=space_factor)
         box.label(text="Cleanup Options")
@@ -554,6 +561,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             self.defaultColour           = ImportLDrawOps.prefs.get("defaultColour",        self.defaultColour)
             self.environmentFile         = ImportLDrawOps.prefs.get("environmentFile",      self.environmentFile)
             self.flatten                 = ImportLDrawOps.prefs.get("flattenHierarchy",     self.flatten)
+            self.minifigHierarchy        = ImportLDrawOps.prefs.set("minifigHierarchy",     self.minifigHierarchy)
             self.gapsSize                = ImportLDrawOps.prefs.get("gapWidth",             self.gapsSize)
             self.importCameras           = ImportLDrawOps.prefs.get("importCameras",        self.importCameras)
             self.importLights            = ImportLDrawOps.prefs.get("importLights",         self.importLights)
@@ -599,6 +607,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             ImportLDrawOps.prefs.set("cameraBorderPercentage", self.cameraBorderPercentage)
             ImportLDrawOps.prefs.set("curvedWalls",            self.curvedWalls)
             ImportLDrawOps.prefs.set("flattenHierarchy",       self.flatten)
+            ImportLDrawOps.prefs.set("minifigHierarchy",       self.minifigHierarchy)
             ImportLDrawOps.prefs.set("gaps",                   self.addGaps)
             ImportLDrawOps.prefs.set("gapWidth",               self.gapsSize)
             ImportLDrawOps.prefs.set("importCameras",          self.importCameras)
@@ -642,6 +651,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         loadldraw.Options.defaultColour               = self.defaultColour
         loadldraw.Options.edgeSplit                   = self.smoothParts  # Edge split is appropriate only if we are smoothing
         loadldraw.Options.flattenHierarchy            = self.flatten
+        loadldraw.Options.minifigHierarchy            = self.minifigHierarchy
         loadldraw.Options.gaps                        = self.addGaps
         loadldraw.Options.gapWidth                    = self.gapsSize
         loadldraw.Options.importCameras               = self.importCameras
@@ -667,7 +677,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         loadldraw.Options.useUnofficialParts          = self.useUnofficialParts
         loadldraw.Options.verbose                     = self.verbose
 
-        loadldraw.Options.additionalSearchPaths = self.additionalSearchPaths
+        loadldraw.Options.additionalSearchPaths       = self.additionalSearchPaths
         loadldraw.Options.customLDConfigFile          = self.customLDConfigFile
 
         #assert self.ldrawPath, "LDraw library path not specified."

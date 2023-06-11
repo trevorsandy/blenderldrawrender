@@ -37,6 +37,7 @@ It supports **.mpd**, **.ldr**, **.l3b**, and **.dat** file formats.
 + **Smart face smoothing** - Uses Edge-Split Modifier and Sharp Edges derived from Ldraw lines, for smooth curved surfaces and sharp corners.
 + **Concave walls** - Optionally look as if each brick has very slightly concave walls (with the photorealistic renderer), which affects the look of light reflections.
 + **Light bricks** - Bricks that emit light are supported.
++ **Parenting Minifigs** - Optionally make the parts of a minifig parented to each other, so e.g. rotating an arm also moves the hand with it.
 + **Fast** - even large models can be imported in seconds.
 
 It was inspired by and initially based on code from [LDR-Importer](https://github.com/le717/LDR-Importer) but has since been completely rewritten.

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update May 26, 2023
-Copyright (c) 2020 by Toby Nelson
+Last Update June 11, 2023
+Copyright (c) 2023 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 Load LDraw GPLv2 license.
@@ -294,10 +294,13 @@ class Options:
     importLights       = True           # LPub3D can specify lights within the ldraw file format. Choose to load them or ignore them
     positionObjectOnGroundAtOrigin = True   # Centre the object at the origin, sitting on the z=0 plane
     flattenHierarchy   = False          # All parts are under the root object - no sub-models
+    minifigHierarchy   = True           # Parts of minifigs are automatically parented to each other in a hierarchy
     flattenGroups      = False          # All LeoCAD groups are ignored - no groups
     usePrincipledShaderWhenAvailable = True  # Use the new principled shader
     # Full file path to .exr environment texture file - specify if not using default bundled in addon
     environmentFile    = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'background.exr')
+    # Full file path to .txt minifig parents file
+    parentsFile        = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'parents.txt')
     # We have the option of including the 'LEGO' logo on each stud
     useLogoStuds       = False          # Use the studs with the 'LEGO' logo on them
     logoStudVersion    = "4"            # Which version of the logo to use ("3" (flat), "4" (rounded) or "5" (subtle rounded))
@@ -355,6 +358,7 @@ class Options:
                          str(Options.gapWidth),
                          str(Options.curvedWalls),
                          str(Options.flattenHierarchy),
+                         str(Options.minifigHierarchy),
                          str(Options.useLogoStuds),
                          str(Options.logoStudVersion),
                          str(Options.instanceStuds),
@@ -2966,7 +2970,7 @@ class BlenderMaterials:
         # Direct colours are documented here: http://www.hassings.dk/l3/l3p.html
         linearRGBA = LegoColours.hexStringToLinearRGBA(colourName)
         if linearRGBA is None:
-            printWarningOnce("WARNING: Could not decode {0} to a colour".format(colourName))
+            printWarningOnce("Could not decode {0} to a colour".format(colourName))
             return None
         return {
             "name":         colourName,
@@ -4060,6 +4064,248 @@ def addNodeToParentWithGroups(parentObject, groupNames, newObject):
 
 
 # **************************************************************************************
+parent = None
+attach_points = []
+children = []
+partsHierarchy = {}
+macro_name = None
+macros = {}
+
+def parseParentsFile(file):
+    global parent
+    global attach_points
+    global children
+    global partsHierarchy
+    global macro_name
+    global macros
+
+    # See https://stackoverflow.com/a/53870514
+    number_pattern = "[+-]?((\d+(\.\d*)?)|(\.\d+))"
+    pattern = "(" + number_pattern + ")(.*)"
+    compiled = re.compile(pattern)
+
+    def number_split(s):
+        match = compiled.match(s)
+        if match is None:
+            return None, s
+        groups = match.groups()
+        return groups[0], groups[-1].strip()
+
+    parent = None
+    attach_points = []
+    children = []
+    partsHierarchy = {}
+    macro_name = None
+    macros = {}
+
+    def finishParent():
+        global parent
+        global attach_points
+        global children
+        global partsHierarchy
+        global macro_name
+
+        if macro_name:
+            macros[macro_name] = children
+            # print("Adding macro ", macro_name)
+            parent = None
+            attach_points = []
+            children = []
+            macro_name = None
+
+        if parent:
+            partsHierarchy[parent] = (attach_points, children)
+            parent = None
+            attach_points = []
+            children = []
+            macro_name = None
+
+    with open(file) as f:
+        lines = f.readlines() # list containing lines of file
+
+        line_number = 0
+        for line in lines:
+            line_number += 1
+            line = line.strip() # remove leading/trailing white spaces
+            line = line.split("#")[0]
+            if line:
+                line = line.strip()
+                original_line = line
+                if line.startswith("Group "):
+                    # Found group definition
+                    finishParent()
+                    macro_name = line[6:].strip().strip(":")
+                    # print("Found group definition ", macro_name)
+                    continue
+                if line.startswith("Parent "):
+                    # Found parent definition
+                    finishParent()
+                    parent = line[7:].strip().strip(":")
+                    # print("Found parent definition ", parent)
+                    continue
+                if line in macros:
+                    # found instance of a macro
+                    # add children to definition
+                    children += macros[line]
+                    continue
+
+                # check for three floating point numbers of an attach point
+                number1, line = number_split(line)
+                if number1:
+                    number3 = None
+                    number2, line = number_split(line)
+                    if number2:
+                        number3, line = number_split(line)
+                    if number3:
+                        # Got three numbers for an attach point
+                        try:
+                            attachPoint = (float(number1), float(number2), float(number3))
+                        except:
+                            attachPoint = None
+                        if attachPoint:
+                            # Attach point
+                            attach_points.append(attachPoint)
+                            continue
+                        else:
+                            print("ERROR: Bad attach point found on line %d" % (line_number,))
+                            partsHierarchy = None
+                            return
+
+                # child part number?
+                children.append(original_line)
+
+    finishParent()
+    # print("Macros:")
+    # pprint(macros)
+    # print("End of Macros")
+    return
+
+
+# **************************************************************************************
+def setupImplicitParents():
+    if not Options.minifigHierarchy:
+        return
+
+    parseParentsFile(Options.parentsFile)
+    # print(partsHierarchy)
+    if not partsHierarchy:
+        return
+
+    if isBlender28OrLater:
+        bpy.context.view_layer.update()
+    else:
+        bpy.context.scene.update()
+
+    # create a set of the parent parts and a set of child parts from the partsHierarchy
+    parentParts = set()
+    childParts = set()
+    for parent, childrenData in partsHierarchy.items():
+        parentParts.add(parent)
+        childParts.update(childrenData[1])
+
+    # create a flat set of all interesting parts (parents and children together)
+    interestingParts = set()
+    interestingParts.update(parentParts)
+    interestingParts.update(childParts)
+
+    # print('Parent parts: %s' % (parentParts,))
+    # print('Child parts: %s' % (childParts,))
+    # print('Interesting parts: %s' % (interestingParts,))
+
+    tolerance = Options.scale * 5 # in LDraw units
+    squaredTolerance = tolerance * tolerance
+    # print(" Squared tolerance: %s" % (squaredTolerance,))
+
+    # For each interesting mesh in the scene, remember the bare part number and the children
+    parentMeshParts = {}        # bare part numbers of the parents
+    childMeshParts = {}         # bare part numbers of the children
+    parentableMeshes = {}       # interesting children
+    lego_part_pattern = "([A-Za-z]?\d+)($|\D)"
+
+    # for each object in the scene
+    for obj in bpy.data.objects:
+        if obj.type != 'MESH':
+            continue
+
+        name = obj.data.name
+        if not name.startswith('Mesh_'):
+            continue
+
+        # skip 'Mesh_' and get part of name that is just digits (possibly with a letter in front)
+        test_name = name[5:]
+        if " - " in test_name:
+            test_name = test_name.split(" - ",1)[1]
+
+        partName = ''
+        m = re.match(lego_part_pattern, test_name)
+        if m:
+            partName = m.group(1)
+
+        # For each interesting parent mesh in the scene, remember the bare part number and the children
+        if partName in parentParts:
+            # remember the bare part number for each interesting mesh in the scene
+            parentMeshParts[name] = partName
+
+            # remember possible children of the mesh in the scene
+            children = partsHierarchy.get(partName)
+            if children:
+                parentableMeshes[name] = children
+
+        # For each interesting child mesh in the scene, remember the bare part number
+        if partName in childParts:
+            # remember the bare part number for each interesting mesh in the scene
+            childMeshParts[name] = partName
+
+    # Now, iterate through the objects in the scene and gather the interesting ones
+    parentObjects = []
+    childObjects = []
+    for obj in bpy.data.objects:
+        if obj.type != 'MESH':
+            continue
+        meshName = obj.data.name
+        if meshName in parentMeshParts:
+            parentObjects.append(obj)
+            # print("Possible parent object %s has matrix %s" % (obj.name, obj.matrix_world))
+        if meshName in childMeshParts:
+            childObjects.append(obj)
+
+    # for each interesting parent object
+    for obj in parentObjects:
+        meshName = obj.data.name
+        childrenData = parentableMeshes.get(meshName)
+        if not childrenData:
+            continue
+        # parentLocation = matmul(obj.matrix_world, mathutils.Vector((0, 0, 0)))
+        # parentMatrixInverted = obj.matrix_world.inverted()
+        # print("Looking for children of %s (at %s)" % (obj.name, parentLocation))
+
+        slotLocations = []
+        for slot in childrenData[0]:
+            loc = matmul(obj.matrix_world, (mathutils.Vector(slot) * Options.scale))
+            slotLocations.append(loc)
+        # print(" Slot locations: %s" % (slotLocations,))
+
+        # for each interesting child object
+        for childObj in childObjects:
+            childMeshName = childObj.data.name
+            childPartName = childMeshParts[childMeshName]
+            if childPartName not in childrenData[1]:
+                continue
+            childLocation = childObj.matrix_world.to_translation()
+            # print("  Found possible child %s" % (childObj.name,))
+            for slotLocation in slotLocations:
+                # print("  Slot location:%s   Child Location:%s" % (slotLocation, childLocation))
+                diff = slotLocation - childLocation
+                squaredDistance = diff.length_squared
+                # print("  location: %s (squared distance: %s)" % (childLocation, squaredDistance))
+                if squaredDistance <= squaredTolerance:
+                    temp = childObj.matrix_world
+                    childObj.parent = obj
+                    # childObj.matrix_parent_inverse = parentMatrixInverted
+                    childObj.matrix_world = temp
+                    # print("    Got it! Parent '%s' now has child '%s'" % (obj.name, childObj.name))
+
+# **************************************************************************************
 def slopeAnglesForPart(partName):
     """
     Gets the allowable slope angles for a given part.
@@ -4993,6 +5239,20 @@ def iterateCameraPosition(camera, render, vcentre3d, moveCamera):
         return offset3d.length
     return 0.0
 
+# **************************************************************************************
+def getConvexHull(minPoints = 3):
+    global globalPoints
+
+    if len(globalPoints) >= minPoints:
+        bm = bmesh.new()
+        [bm.verts.new(v) for v in globalPoints]
+        bm.verts.ensure_lookup_table()
+
+        ret = bmesh.ops.convex_hull(bm, input=bm.verts, use_existing_faces=False)
+        globalPoints = [vert.co.copy() for vert in ret["geom"] if isinstance(vert, bmesh.types.BMVert)]
+        del ret
+        bm.clear()
+        bm.free()
 
 # **************************************************************************************
 def loadFromFile(context, filename, isFullFilepath=True):
@@ -5082,7 +5342,8 @@ def loadFromFile(context, filename, isFullFilepath=True):
     rootOb = createBlenderObjectsFromNode(node, node.matrix, name)
 
     if not node.file.isModel:
-        rootOb.data.transform(Math.rotationMatrix)
+        if rootOb.data:
+            rootOb.data.transform(Math.rotationMatrix)
 
     scene  = bpy.context.scene
     camera = scene.camera
@@ -5097,26 +5358,10 @@ def loadFromFile(context, filename, isFullFilepath=True):
 
     # Take the convex hull of all the points in the scene (operation must have at least three vertices)
     # This results in far fewer points to consider when adjusting the object and/or camera position.
-    if len(globalPoints) >= 3:
-        bm = bmesh.new()
-        [bm.verts.new(v) for v in globalPoints]
-        bm.verts.ensure_lookup_table()
+    getConvexHull()
+    debugPrint("Number of convex hull vertices: " + str(len(globalPoints)))
 
-        ret = bmesh.ops.convex_hull(bm, input=bm.verts, use_existing_faces=False)
-        globalPoints = [vert.co.copy() for vert in ret["geom"] if isinstance(vert, bmesh.types.BMVert)]
-        del ret
-        bm.clear()
-        bm.free()
-
-        debugPrint("Number of vertices of convex hull: " + str(len(globalPoints)))
-
-        # Put convex hull back into scene - for testing purposes
-        # mesh_dst = bpy.data.meshes.new(name="convexHull")
-        # bm.to_mesh(mesh_dst)
-        # obj_cell = bpy.data.objects.new(name="convexHull", object_data=mesh_dst)
-        # linkToScene(obj_cell)
-
-    # Centre object only if root node is a model - See PR https://github.com/TobyLobster/ImportLDraw/pull/50/
+    # Centre object only if root node is a model
     if node.file.isModel and globalPoints:
         # Calculate our bounding box in global coordinate space
         boundingBoxMin = mathutils.Vector((0, 0, 0))
@@ -5164,7 +5409,7 @@ def loadFromFile(context, filename, isFullFilepath=True):
                             if (error < 0.001):
                                 break
 
-    # Get existing scene names
+    # Get existing object names
     sceneObjectNames = [x.name for x in scene.objects]
 
     # Remove default objects
@@ -5189,6 +5434,10 @@ def loadFromFile(context, filename, isFullFilepath=True):
     for ob in globalObjectsToAdd:
         linkToScene(ob)
 
+    # Parent only once everything has been added to the scene, otherwise the matrix_world's are
+    # sometimes not updated properly - some are erroneously still the identity matrix.
+    setupImplicitParents()
+
     # Add lights to the scene
     for ob in globalLightsToAdd:
         light = ob.createLightNode()
@@ -5206,7 +5455,7 @@ def loadFromFile(context, filename, isFullFilepath=True):
     # Select the newly created root object
     selectObject(rootOb)
 
-    # Get existing scene names
+    # Get existing object names
     sceneObjectNames = [x.name for x in scene.objects]
 
     # Add ground plane with white material
