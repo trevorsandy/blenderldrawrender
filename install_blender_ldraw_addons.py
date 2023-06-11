@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update May 26, 2023
+Last Update June 11, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Blender LDraw Addon GPLv2 license.
@@ -24,12 +24,21 @@ LPub3D Install Blender LDraw Addon
 
 This file defines the routines to install the Blender LDraw Addon.
 
-To Run:
-- Navigate to script directory:
-<User Directory>/3rdParty/Blender
+To Run (Windows example):
+- Prerequisites
+    - Blender 2.82 or later
+- Open Windows command terminal (cmd.exe) and navigate to this script directory.
+- Update <Path>, copy and paste the following variable commands into the console:
+    - SET ADDONS_TO_LOAD=[{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_import_ldraw","module_name":"io_scene_import_ldraw"},{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_import_ldraw_mm","module_name":"io_scene_import_ldraw_mm"},{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_render_ldraw","module_name":"io_scene_render_ldraw"}]
+    - SET LDRAW_DIRECTORY=<Path>\LDraw (Note: Avoid using an LDraw path that include spaces)
 - Execute command
-<blender path>/blender --background --python install_blender_ldraw_addons.py -- -xi
-
+    - <Blender Path>/blender --background --python install_blender_ldraw_addons.py -- <optional arguments>
+- Optional Arguments
+    -xr, --disable_ldraw_render    Disable the LDraw render addon menu action in Blender
+    -xi, --disable_ldraw_import    Disable the LDraw import addon menu action in Blender
+    -xm, --disable_ldraw_import_mm Disable the LDraw import addon menu action in Blender
+    -xa, --disable_ldraw_addons    Disable the LDraw import and render addon menu actions in Blender
+    -lc, --leocad                  Specify if the Blender LDraw install script caller is LeoCAD
 """
 
 import os

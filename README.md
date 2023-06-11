@@ -1,20 +1,20 @@
 ## LPub3D Render LDraw Models with Blender ##
 
-A [Blender](https://www.blender.org)&trade; add-on for importing and rendering [LDraw](http://www.ldraw.org)&trade; file format models and parts.
+A [Blender](https://www.blender.org)&trade; add-on for importing, exporting and rendering [LDraw](http://www.ldraw.org)&trade; file format models and parts.
 
 ## Purpose ##
-*LPub3D Import LDraw* imports [LEGO](https://www.lego.com/)® models into Blender. This addon is intended to support direct Blender integration with [LPub3D](https://trevorsandy.github.io/lpub3d).
+*LPub3D Import LDraw* imports [LEGO](https://www.lego.com/)® models into Blender, exports models from Blender and renders imported models using the full range of Blender capabilities. This addon is intended to support direct Blender integration with [LPub3D](https://trevorsandy.github.io/lpub3d).
 
-This addon was designed to provide [LPub3D](https://trevorsandy.github.io/lpub3d) an autonomous module enabling the integrated import and render of LDraw [LEGO](https://www.lego.com/)® models using [Blender](https://www.blender.org)&trade;. However, it can be executed directly from the Blender GUI, CLI or your operating system command console.
+This addon was designed to provide [LPub3D](https://trevorsandy.github.io/lpub3d) an autonomous addon enabling the integrated import, export and render of LDraw [LEGO](https://www.lego.com/)® models using [Blender](https://www.blender.org)&trade;. However once installed, this addon's import, export and render modules can be executed directly from the Blender GUI, CLI or your operating system command console just as any other Blender addon.
 
 It supports **.mpd**, **.ldr**, and **.dat** file formats.
 
 Users can select from two available import modules:
 + LDraw import module adapted from [Import LDraw](https://github.com/TobyLobster/ImportLDraw) by Toby Nelson (tobymnelson@gmail.com)
-+ LDraw import module adapted from [Export LDraw](https://github.com/cuddlyogre/ExportLDraw) by Matthew Morrison [cuddlyogre] (cuddlyogre@gmail.com)
++ LDraw import MM module adapted from [Export LDraw](https://github.com/cuddlyogre/ExportLDraw) by Matthew Morrison [cuddlyogre] (cuddlyogre@gmail.com)
 
 ## Render Features ##
-+ Available for Blender 2.80 and later.
++ Available for Blender 2.82 and later.
 + **Mac**, **Windows** and **Linux** supported.
 + **MPD** file compatible.
 + **Render settings configurable** from LPub3D user interface.
@@ -26,7 +26,7 @@ Users can select from two available import modules:
 + **Specify exr 'environment' file** to load custom backdrop and ground plane
 
 ## Import Features ##
-+ Available for Blender 2.80 and later.
++ Available for Blender 2.82 and later.
 + **Mac**, **Windows** and **Linux** supported.
 + **MPD** file compatible.
 + **Import settings configurable** from LPub3D user interface.
@@ -53,6 +53,7 @@ Users can select from two available import modules:
 + **Smart face smoothing** - Uses Edge-Split Modifier and Sharp Edges derived from Ldraw lines, for smooth curved surfaces and sharp corners.
 + **Concave walls** - Optionally look as if each brick has very slightly concave walls (with the photorealistic renderer), which affects the look of light reflections.
 + **Light bricks** - Bricks that emit light are supported.
++ **Parenting Minifigs** - Optionally make the parts of a minifig parented to each other, so e.g. rotating an arm also moves the hand with it.
 + **Fast** - even large models can be imported in seconds.
 
 ### License ###
