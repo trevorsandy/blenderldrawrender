@@ -191,18 +191,17 @@ def do_import(filepath):
 
     if ImportOptions.add_environment:
         __setup_environment()
+    
+    __setup_realistic_look()
     # mod_end
 
     return obj
 
 
 def __scene_setup():
-    # blen_ld_ren_mod
-    if not ImportOptions.add_environment:
-        bpy.context.scene.eevee.use_ssr = True
-        bpy.context.scene.eevee.use_ssr_refraction = True
-        bpy.context.scene.eevee.use_taa_reprojection = True
-    # mod_end
+    bpy.context.scene.eevee.use_ssr = True
+    bpy.context.scene.eevee.use_ssr_refraction = True
+    bpy.context.scene.eevee.use_taa_reprojection = True
 
     # https://blender.stackexchange.com/a/146838
     if ImportOptions.use_freestyle_edges:
@@ -349,7 +348,7 @@ def __setup_realistic_look():
     scene.render.engine = 'CYCLES'
 
     # Add environment texture for world
-    if FileSystem.environment_file != "":
+    if ImportOptions.add_environment and FileSystem.environment_file != "":
         scene.world.use_nodes = True
         nodes = scene.world.node_tree.nodes
         links = scene.world.node_tree.links
@@ -378,10 +377,9 @@ def __setup_realistic_look():
     if (scene.cycles.glossy_bounces < 20):
         scene.cycles.glossy_bounces = 20
 
-    #  See Enable eevee transparency https://github.com/TobyLobster/ImportLDraw/pull/46/
-    scene.eevee.use_ssr = True
-    scene.eevee.use_ssr_refraction = True
-    scene.eevee.use_taa_reprojection = True
+    bpy.context.scene.eevee.use_ssr = True
+    bpy.context.scene.eevee.use_ssr_refraction = True
+    bpy.context.scene.eevee.use_taa_reprojection = True       
 
 # Check layer names to see if we were previously rendering instructions and change settings back.
     layer_names = __get_layer_names(scene)
@@ -475,6 +473,4 @@ def __setup_environment():
             obj.data.materials[0] = material
         else:
             obj.data.materials.append(material)
-
-    __setup_realistic_look()
 # mod_end
