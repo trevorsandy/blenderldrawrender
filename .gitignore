@@ -149,3 +149,9 @@ stdout_blender_render
 
 # Development - script error
 Publish.out
+
+# Location of actual background.exr file used when packaging archive
+background.exr
+
+# Temp location for background.exr LFS link when packaging archive
+exr/background.exr

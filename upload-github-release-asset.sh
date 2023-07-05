@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Author: Trevor SANDY
-# Last Update May 23, 2023
+# Last Update July 05, 2023
 #
 # Adapted from original script by Stefan Buck
 # License: MIT
@@ -11,12 +11,16 @@
 # Example:
 #
 # cd /home/trevorsandy/projects/blenderldrawrender
+# env TAG=v1.4.3 DEV_OPS=1 ./upload-github-release-asset.sh
 #
-# env TAG=v1.3.0 SET_VERSION=True ./upload-github-release-asset.sh
+# env TAG=v1.4.3 SET_VERSION=True ./upload-github-release-asset.sh
 #
-# env TAG=v1.3.7 RELEASE_NOTE="Render LDraw v1.3.7" ./upload-github-release-asset.sh
+# env TAG=v1.4.3 RELEASE_NOTE="Render LDraw v1.4.3" ./upload-github-release-asset.sh
 #
 # This script accepts the following parameters:
+# DEV_OPS         - Publish packaged archive to DevOps
+# DEV_OPS_DEST    - DevOps destination path
+# DEV_OPS_UNZIP   - Unzip the DevOps archive package
 # TAG             - Release tag
 # OWNER           - Repository owner
 # RELEASE         - Release label
@@ -40,7 +44,7 @@ echo && echo $SCRIPT_NAME && echo
 echo
 #set -e
 echo -n "Checking dependencies... "
-for name in zip jq xargs
+for name in zip unzip jq xargs
 do
     [[ $(which $name 2>/dev/null) ]] || { echo -en "\n$name needs to be installed. Use 'sudo apt-get install $name'";deps=1; }
 done
@@ -61,6 +65,10 @@ GH_RELEASE_NOTE=${RELEASE_NOTE:-Initial release}
 GH_ASSET_NAME=${ASSET_NAME:-LDrawBlenderRenderAddons.zip}
 GH_API_TOKEN=${API_TOKEN:-$(git config --global github.token)}
 GH_SET_VERSION=${SET_VERSION:-False}
+
+DEV_OPS_REL=${DEV_OPS:-}
+DEV_OPS_REL_UNZIP=${DEV_OPS_UNZIP:-}
+DEV_OPS_PUBLISH_DEST=${DEV_OPS_DEST:-/home/$GH_USER/projects/build-LPub3D-Desktop_Qt_5_15_2_MSVC2019_32bit-Debug/mainApp/32bit_debug/3rdParty/Blender}
 
 # Define variables.
 GH_API="https://api.github.com"
@@ -91,6 +99,11 @@ function display_arguments
             echo "--RELEASE_NOTE..$GH_RELEASE_NOTE"
             echo "--NEW RELEASE WILL BE CREATED"
         fi
+        if [ -n "$DEV_OPS_REL" ]; then
+            echo "--PUBLISH RELEASE TO DEV OPS"
+            [ -n "$DEV_OPS_REL_UNZIP" ] && echo "--UNZIP DEV OPS RELEASE" || true
+            echo "--DEV_OPS_DEST..$DEV_OPS_PUBLISH_DEST"
+        fi
         echo "--GH_TAGS.......$GH_TAGS"
     fi
     echo
@@ -111,6 +124,16 @@ function generate_release_post_data
 EOF
 }
 
+function mv_exr ()
+{
+    dir="$2" # Include a / at the end to indicate directory (not filename)
+    tmp="$2"; tmp="${tmp: -1}"
+    [ "$tmp" != "/" ] && dir="$(dirname "$2")"
+    [ -a "$dir" ] ||
+    mkdir -p "$dir" &&
+    mv "$@"
+}
+
 # Package the archive
 function package_archive
 {
@@ -119,6 +142,11 @@ function package_archive
         rm $GH_ASSET_NAME
     fi
     cd $GH_REPO_PATH
+
+    mv_exr addons/io_scene_import_ldraw/loadldraw/background.exr exr/ && \
+    mv_exr background.exr addons/io_scene_import_ldraw/loadldraw/ && \
+    echo && echo "  Replaced background.exr LFS link." && echo
+
     zip -r $GH_ASSET_NAME  \
     setup \
     addons/io_scene_import_ldraw/ \
@@ -140,6 +168,12 @@ function package_archive
     "addons/io_scene_render_ldraw/modelglobals/__pycache__/*" \
     "setup/addon_setup/config/LDrawRendererPreferences.ini" \
     "setup/addon_setup/__pycache__/*"
+
+    mv_exr addons/io_scene_import_ldraw/loadldraw/background.exr ./  && \
+    mv_exr exr/background.exr addons/io_scene_import_ldraw/loadldraw/ && \
+    rm -r exr/ && \
+    echo && echo "  Restored background.exr LFS link."
+
     echo && echo "Created release package '$GH_ASSET_NAME'" && echo
 }
 
@@ -229,19 +263,16 @@ fi
 # Package the archive
 package_archive
 
-# Publish the archive to dev env (Set DEV_USE=1 to enable, set DEL_ZIP to delete archive)
-DEV_USE=1
-
-if [[ -n $DEV_USE && -f $GH_ASSET_NAME ]]; then
+if [[ -n $DEV_OPS_REL && -f $GH_ASSET_NAME ]]; then
     declare -r p=Publish
-    PUBLISH_SRC=$PWD
-    PUBLISH_DEST="/home/$GH_USER/projects/build-LPub3D-Desktop_Qt_5_15_2_MSVC2019_32bit-Debug/mainApp/32bit_debug/3rdParty/Blender"
-    echo -n "Publish package '$GH_ASSET_NAME' to Dev Env..." && \
-    ([ -d "$PUBLISH_DEST" ] || mkdir -p "$PUBLISH_DEST"; \
-     cd "$PUBLISH_DEST" && cp -f "$PUBLISH_SRC/$GH_ASSET_NAME" .) >$p.out 2>&1 && rm $p.out
-    [ -f $p.out ] && echo "ERROR - failed to publish $GH_ASSET_NAME to Dev Env" && tail -80 $p.out || echo "Success."
-#   rm "$PUBLISH_SRC/$GH_ASSET_NAME" || true
-    rm "$LOG"
+    DEV_OPS_PUBLISH_SRC=$PWD
+    echo -n "Publish package '$GH_ASSET_NAME' to Dev Ops..." && \
+    ([ -d "$DEV_OPS_PUBLISH_DEST" ] || mkdir -p "$DEV_OPS_PUBLISH_DEST"; \
+     cd "$DEV_OPS_PUBLISH_DEST" && cp -f "$DEV_OPS_PUBLISH_SRC/$GH_ASSET_NAME" .; \
+     [ -n "$DEV_OPS_REL_UNZIP" ] && unzip -o "$GH_ASSET_NAME" || true) >$p.out 2>&1 && rm $p.out
+    [ -f $p.out ] && echo "ERROR - failed to publish $GH_ASSET_NAME to Dev Ops" && tail -80 $p.out || echo "Success." && \
+    echo "Publish Destination: $DEV_OPS_PUBLISH_DEST"
+    #rm "$LOG"
     exit 1
 fi
 
