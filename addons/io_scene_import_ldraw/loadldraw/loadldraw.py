@@ -2158,7 +2158,7 @@ class LDrawFile:
         bfcWindingCCW         = True
         bfcInvertNext         = False
         processingLSynthParts = False
-        processingLPubMeta    = True
+        processingLPubMeta    = False
         camera = LDrawCamera()
         light  = LDrawLight()
 
@@ -2218,7 +2218,9 @@ class LDrawFile:
                         processingLSynthParts = True
                 if parameters[1] == "!LPUB":
                     processingLPubMeta = True
-                if parameters[1] == "!LEOCAD" or processingLPubMeta:
+                if parameters[1] == "!LEOCAD":
+                    processingLPubMeta = False
+                if parameters[1] == "!LEOCAD" or parameters[1] == "!LPUB":
                     if parameters[2] == "GROUP":
                         if parameters[3] == "BEGIN":
                             currentGroupNames.append(" ".join(parameters[4:]))
