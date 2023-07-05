@@ -11,6 +11,7 @@ class LDrawLight:
     """Data about a light"""
 
     def __init__(self):
+        self.hidden           = False
         self.name             = 'Light'
         self.type             = 'POINT'
         self.shape            = 'SQUARE'

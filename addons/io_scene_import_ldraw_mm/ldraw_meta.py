@@ -273,10 +273,8 @@ def meta_lp_lc_camera(ldraw_node, child_node, matrix):
             ldraw_node.camera.hidden = True
             _params = _params[1:]
         elif _params[0] == "name":
-            # "0 !LEOCAD CAMERA NAME Camera  2".split("NAME ")[1] => "Camera  2"
-            # "NAME Camera  2".split("NAME ")[1] => "Camera  2"
             name_args = clean_line.split("NAME ")
-            ldraw_node.camera.name = name_args[1]
+            ldraw_node.camera.name = "Imported {0}".format(name_args[1])
 
             # By definition this is the last of the parameters
             _params = []
@@ -365,9 +363,11 @@ def meta_lp_lc_light(ldraw_node, child_node, matrix):
         elif _params[0] == "name":
             name_args = clean_line.split("NAME ")
             ldraw_node.light.name = "Imported {0}".format(name_args[1])
+
             # By definition this is the last of the light parameters
             _params = []
-            ldraw_node.lights.append(ldraw_node.light)
+
+            ldraw_light.lights.append(ldraw_node.light)
             ldraw_node.light = None
         else:
             _params = _params[1:]

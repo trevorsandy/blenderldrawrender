@@ -178,7 +178,7 @@ def do_import(filepath):
     # blen_ld_ren_mod
     for light in ldraw_light.lights:
         light = blender_light.create_light(light, empty=ldraw_object.top_empty, collection=group.top_collection)
-        light.parent = root_node
+        light.parent = obj
 
     if bpy.context.screen is not None:
         for area in bpy.context.screen.areas:
