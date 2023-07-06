@@ -6,15 +6,18 @@ import re
 from .import_options import ImportOptions
 from .filesystem import FileSystem
 from .ldraw_node import LDrawNode
-from .ldraw_colors import LDrawColor
+from .ldraw_color import LDrawColor
 from . import base64_handler
-
 from . import helpers
 from . import ldraw_part_types
 from . import texmap
 
 
 class LDrawFile:
+    """
+    A file that has been loaded and its lines converted to header data and ldraw_nodes.
+    """
+
     __raw_files = {}
     __file_cache = {}
 
@@ -45,7 +48,6 @@ class LDrawFile:
         self.history = []
 
         self.child_nodes = []
-        self.extra_child_nodes = None
         self.geometry_commands = {}
 
     def __str__(self):
@@ -96,6 +98,14 @@ class LDrawFile:
         # We overwrite the standard LDraw colours if we have better LGEO colours.
         if LDrawColor.use_colour_scheme_value() == "lgeo":
             LDrawColor.set_lgeo_colors(FileSystem.read_lgeo_colors())
+
+        # import all materials
+        # from .blender_materials import BlenderMaterials
+        # for line in ldraw_file.lines:
+        #     clean_line = helpers.clean_line(line)
+        #     if clean_line.startswith("0 !COLOUR "):
+        #         color_code = LDrawColor.parse_color(clean_line)
+        #         material = BlenderMaterials.get_material(color_code, easy_key=True)
 
         return ldraw_file
 

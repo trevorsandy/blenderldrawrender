@@ -1,24 +1,37 @@
 import bpy
 import mathutils
 
-from . import group
 from .import_options import ImportOptions
+from .pe_texmap import PETexInfo, PETexmap
 from .texmap import TexMap
+from .geometry_data import FaceData
+from . import group
 from . import helpers
 from . import ldraw_camera
 from . import ldraw_light
-from .pe_texmap import PETexInfo, PETexmap
 
 current_frame = 0
 current_step = 0
+cameras = []
+lights = []
+camera = None
+light = None
 
 
 def reset_caches():
     global current_frame
     global current_step
+    global cameras
+    global lights
+    global camera
+    global light
 
     current_frame = 0
     current_step = 0
+    cameras.clear()
+    lights.clear()
+    camera = None
+    light = None
 
 
 def meta_bfc(ldraw_node, child_node, matrix, local_cull, winding, invert_next, accum_invert):
@@ -207,35 +220,38 @@ def meta_group_end():
 
 def meta_root_group_nxt(ldraw_node, child_node):
     if ldraw_node.is_root and ImportOptions.meta_group:
-        if child_node.meta_command not in ["group_nxt"]:
+        if child_node.meta_command != "group_nxt":
             if group.end_next_collection:
                 group.next_collection = None
 
 
-def meta_lp_lc_camera(ldraw_node, child_node, matrix):
+def meta_lp_lc_camera(child_node, matrix):
     if not ImportOptions.import_cameras:
         return
+        
+    global cameras
+    global camera
 
     clean_line = child_node.line
     _params = helpers.get_params(clean_line, lowercase=True)[3:]
 
     is_lpub_meta = clean_line.startswith("0 !LPUB ")
 
-    if ldraw_node.camera is None:
-        ldraw_node.camera = ldraw_camera.LDrawCamera()
+    if camera is None:
+        camera = ldraw_camera.LDrawCamera()
 
     # https://www.leocad.org/docs/meta.html
     # "Camera commands can be grouped in the same line"
     # _params = _params[1:] at the end bumps promotes _params[2] to _params[1]
     while len(_params) > 0:
         if _params[0] == "fov":
-            ldraw_node.camera.fov = float(_params[1])
+            camera.fov = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "znear":
-            ldraw_node.camera.z_near = float(_params[1])
+            camera.z_near = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "zfar":
-            ldraw_node.camera.z_far = float(_params[1])
+            camera.z_far = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "position":
             (x, y, z) = map(float, _params[1:4])
@@ -244,7 +260,7 @@ def meta_lp_lc_camera(ldraw_node, child_node, matrix):
                 vector = matrix @ mathutils.Vector((x, z, -y))
             else:
                 vector = matrix @ mathutils.Vector((x, y, z))
-            ldraw_node.camera.position = vector
+            camera.position = vector
             _params = _params[4:]
         elif _params[0] == "target_position":
             (x, y, z) = map(float, _params[1:4])
@@ -253,7 +269,7 @@ def meta_lp_lc_camera(ldraw_node, child_node, matrix):
                 vector = matrix @ mathutils.Vector((x, z, -y))
             else:
                 vector = matrix @ mathutils.Vector((x, y, z))
-            ldraw_node.camera.target_position = vector
+            camera.target_position = vector
             _params = _params[4:]
         elif _params[0] == "up_vector":
             (x, y, z) = map(float, _params[1:4])
@@ -262,39 +278,42 @@ def meta_lp_lc_camera(ldraw_node, child_node, matrix):
                 vector = matrix @ mathutils.Vector((x, z, -y))
             else:
                 vector = matrix @ mathutils.Vector((x, y, z))
-            ldraw_node.camera.up_vector = vector
+            camera.up_vector = vector
             _params = _params[4:]
         elif _params[0] == "orthographic":
-            ldraw_node.camera.orthographic = True
+            camera.orthographic = True
             _params = _params[1:]
         elif _params[0] == "hidden":
-            ldraw_node.camera.hidden = True
+            camera.hidden = True
             _params = _params[1:]
         elif _params[0] == "name":
             # "0 !LEOCAD CAMERA NAME Camera  2".split("NAME ")[1] => "Camera  2"
             # "NAME Camera  2".split("NAME ")[1] => "Camera  2"
             name_args = clean_line.split("NAME ")
-            ldraw_node.camera.name = "Imported {0}".format(name_args[1])
+            camera.name = "Imported {0}".format(name_args[1])
 
             # By definition this is the last of the parameters
             _params = []
 
-            ldraw_camera.cameras.append(ldraw_node.camera)
-            ldraw_node.camera = None
+            cameras.append(camera)
+            camera = None
         else:
             _params = _params[1:]
 
-def meta_lp_lc_light(ldraw_node, child_node, matrix):
+def meta_lp_lc_light(child_node, matrix):
     if not ImportOptions.import_lights:
         return
 
+    global lights
+    global light
+    
     clean_line = child_node.line
     _params = helpers.get_params(clean_line, lowercase=True)[3:]
 
     is_lpub_meta = clean_line.startswith("0 !LPUB ")
 
-    if ldraw_node.light is None:
-        ldraw_node.light = ldraw_light.LDrawLight()
+    if light is None:
+        light = ldraw_light.LDrawLight()
     # "Light commands can be grouped in the same line"
     # _params = _params[1:] at the end bumps promotes _params[2] to _params[1]
     while len(_params) > 0:
@@ -305,7 +324,7 @@ def meta_lp_lc_light(ldraw_node, child_node, matrix):
                 vector = matrix @ mathutils.Vector((x, z, -y))
             else:
                 vector = matrix @ mathutils.Vector((x, y, z))
-            ldraw_node.light.position = vector
+            light.position = vector
             _params = _params[4:]
         elif _params[0] == "target_position":
             (x, y, z) = map(float, _params[1:4])
@@ -314,61 +333,61 @@ def meta_lp_lc_light(ldraw_node, child_node, matrix):
                 vector = matrix @ mathutils.Vector((x, z, -y))
             else:
                 vector = matrix @ mathutils.Vector((x, y, z))
-            ldraw_node.light.target_position = vector
+            light.target_position = vector
             _params = _params[4:]
         elif _params[0] == "color_rgb":
-            ldraw_node.light.color = mathutils.Vector(
+            light.color = mathutils.Vector(
                 (float(_params[1]), float(_params[2]), float(_params[3])))
             _params = _params[4:]
         elif _params[0] == "power":
-            ldraw_node.light.exponent = float(_params[1])
+            light.exponent = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "strength":
-            ldraw_node.light.exponent = float(_params[1])
+            light.exponent = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "angle":
-            ldraw_node.light.factor_a = ImportOptions.import_scale * float(_params[1])
+            light.factor_a = ImportOptions.import_scale * float(_params[1])
             _params = _params[2:]
         elif _params[0] == "radius":
-            ldraw_node.light.factor_a = float(_params[1])
+            light.factor_a = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "size":
-            ldraw_node.light.factor_a = float(_params[1])
+            light.factor_a = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "width":
-            ldraw_node.light.factor_a = float(_params[1])
+            light.factor_a = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "height":
-            ldraw_node.light.factor_b = float(_params[1])
+            light.factor_b = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "spot_blend":
-            ldraw_node.light.factor_b = float(_params[1])
+            light.factor_b = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "spot_size":
-            ldraw_node.light.spot_size = float(_params[1])
+            light.spot_size = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "specular":
-            ldraw_node.light.specular = float(_params[1])
+            light.specular = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "cutoff_distance":
-            ldraw_node.light.use_cutoff = True
-            ldraw_node.light.cutoff_distance = float(_params[1])
+            light.use_cutoff = True
+            light.cutoff_distance = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "type":
-            ldraw_node.light.type = _params[1].upper().strip()
+            light.type = _params[1].upper().strip()
             _params = _params[2:]
         elif _params[0] == "shape":
-            ldraw_node.light.shape = _params[1].upper().strip()
+            light.shape = _params[1].upper().strip()
             _params = _params[2:]
         elif _params[0] == "name":
             name_args = clean_line.split("NAME ")
-            ldraw_node.light.name = "Imported {0}".format(name_args[1])
+            light.name = "Imported {0}".format(name_args[1])
 
             # By definition this is the last of the light parameters
             _params = []
 
-            ldraw_light.lights.append(ldraw_node.light)
-            ldraw_node.light = None
+            lights.append(light)
+            light = None
         else:
             _params = _params[1:]
 
@@ -480,29 +499,30 @@ def meta_pe_tex(ldraw_node, child_node, matrix):
             meta_pe_tex_path(ldraw_node, child_node)
 
 
+# 0 PE_TEX_PATH 5 0
+# 0 PE_TEX_INFO -0.5346 -0.1464 2.2554 3.1670 0.8638 -1.5619 2.4660 -0.0307 -2.4765 12.9236 -0.0535 13.1611 -4.1933 16.2951 8.3761 3.6621 PNGBASE64==
+# 0 PE_TEX_PATH 5 2
+# 0 PE_TEX_INFO 0.3341 0.3594 6.3035 -1.9794 -0.5399 0.9762 3.5733 -0.0208 2.1631 -5.7369 0.0881 9.8519 7.3309 23.9951 19.4351 14.5649 PNGBASE64==
+# 0 PE_TEX_PATH 5 4
+# 0 PE_TEX_NEXT_SHEAR
+# 0 PE_TEX_INFO 0.6682 7.2554 13.4921 -3.9588 -1.0797 1.9523 -40.5715 0.2365 -24.6051 -16.5249 0.2054 16.5954 15.5934 18.4983 19.7776 12.8449 PNGBASE64==
 # -1 is this file
-# >= 0 is the nth geometry line where n = PE_TEX_PATH
-# a second arg is the geometry line for that subfile
-
+# >= 0 is the file at the nth subfile_line_index
+# second arg is the nth subfile_line_index of line of file at that line
+# PE_TEX_PATH 5 4 is self.line_type_1_list[5].line_type_1_list[4]
 def meta_pe_tex_path(ldraw_node, child_node):
     clean_line = child_node.line
     _params = clean_line.split()
 
-    pe_tex_path = int(_params[2])
-
-    try:
-        pe_tex_path_1 = int(_params[2])
-    except IndexError as e:
-        pe_tex_path_1 = None
-
-    ldraw_node.current_pe_tex_path = pe_tex_path
+    ldraw_node.current_pe_tex_path = int(_params[2])
+    if len(_params) == 4:
+        ldraw_node.current_subfile_pe_tex_path = int(_params[3])
 
 
 # PE_TEX_INFO bse64_str uses the file's uvs
 # PE_TEX_INFO x,y,z,a,b,c,d,e,f,g,h,i,bl/tl,tr/br is matrix and plane coordinates for uv calculations
 # if there are multiple PE_TEX_INFO immediately following PE_TEX_PATH, use the last one
 # if no matrix, identity @ rotation?
-
 def meta_pe_tex_info(ldraw_node, child_node, matrix):
     if ldraw_node.current_pe_tex_path is None:
         return
@@ -512,9 +532,13 @@ def meta_pe_tex_info(ldraw_node, child_node, matrix):
 
     pe_tex_info = PETexInfo()
     base64_str = None
-    if len(_params) == 3:  # this tex_info applies to
+    if len(_params) == 3:
+        # current_pe_tex_path should be -1
+        # meaning this pe_tex_info applies to this file
         base64_str = _params[2]
     elif len(_params) == 19:
+        # this pe_tex_info applies to the subfile at current_pe_tex_path or
+        # the subfile's subfile at subfile_pe_tex_infos[current_pe_tex_path][current_subfile_pe_tex_path]
         base64_str = _params[18]
         (x, y, z, a, b, c, d, e, f, g, h, i, bl_x, bl_y, tr_x, tr_y) = map(float, _params[2:18])
         _matrix = mathutils.Matrix((
@@ -538,7 +562,11 @@ def meta_pe_tex_info(ldraw_node, child_node, matrix):
 
     pe_tex_info.image = image.name
 
-    ldraw_node.pe_tex_infos[ldraw_node.current_pe_tex_path] = pe_tex_info
+    if ldraw_node.current_subfile_pe_tex_path is not None:
+        ldraw_node.subfile_pe_tex_infos.setdefault(ldraw_node.current_pe_tex_path, {})
+        ldraw_node.subfile_pe_tex_infos[ldraw_node.current_pe_tex_path][ldraw_node.current_subfile_pe_tex_path] = pe_tex_info
+    else:
+        ldraw_node.pe_tex_infos[ldraw_node.current_pe_tex_path] = pe_tex_info
 
     if ldraw_node.current_pe_tex_path == -1:
         ldraw_node.pe_tex_info = ldraw_node.pe_tex_infos[ldraw_node.current_pe_tex_path]
@@ -548,108 +576,27 @@ def meta_edge(child_node, color_code, matrix, geometry_data):
     vertices = [matrix @ v for v in child_node.vertices]
 
     geometry_data.add_edge_data(
-        color_code=color_code,
         vertices=vertices,
+        color_code=color_code,
     )
 
 
 def meta_face(ldraw_node, child_node, color_code, matrix, geometry_data, winding):
-    vertices = __handle_vertex_winding(child_node, matrix, winding)
-    pe_texmap = __build_pe_texmap(ldraw_node, child_node)
+    vertices = FaceData.handle_vertex_winding(child_node, matrix, winding)
+    pe_texmap = PETexmap.build_pe_texmap(ldraw_node, child_node)
 
     geometry_data.add_face_data(
-        color_code=color_code,
         vertices=vertices,
+        color_code=color_code,
         texmap=ldraw_node.texmap,
         pe_texmap=pe_texmap,
     )
-
-
-# handle bowtie quadrilaterals - 6582.dat
-# https://github.com/TobyLobster/ImportLDraw/pull/65/commits/3d8cebee74bf6d0447b616660cc989e870f00085
-def __fix_bowties(vertices):
-    nA = (vertices[1] - vertices[0]).cross(vertices[2] - vertices[0])
-    nB = (vertices[2] - vertices[1]).cross(vertices[3] - vertices[1])
-    nC = (vertices[3] - vertices[2]).cross(vertices[0] - vertices[2])
-    if nA.dot(nB) < 0:
-        vertices[2], vertices[3] = vertices[3], vertices[2]
-    elif nB.dot(nC) < 0:
-        vertices[2], vertices[1] = vertices[1], vertices[2]
-
-
-# https://github.com/rredford/LdrawToObj/blob/802924fb8d42145c4f07c10824e3a7f2292a6717/LdrawData/LdrawToData.cs#L219
-# https://github.com/rredford/LdrawToObj/blob/802924fb8d42145c4f07c10824e3a7f2292a6717/LdrawData/LdrawToData.cs#L260
-def __handle_vertex_winding(child_node, matrix, winding):
-    vert_count = len(child_node.vertices)
-
-    vertices = []
-    if winding == "CW":
-        if vert_count == 3:
-            vertices = [
-                matrix @ child_node.vertices[0],
-                matrix @ child_node.vertices[2],
-                matrix @ child_node.vertices[1],
-            ]
-        elif vert_count == 4:
-            vertices = [
-                matrix @ child_node.vertices[0],
-                matrix @ child_node.vertices[3],
-                matrix @ child_node.vertices[2],
-                matrix @ child_node.vertices[1],
-            ]
-            __fix_bowties(vertices)
-    else:  # winding == "CCW" or winding is None:
-        if vert_count == 3:
-            vertices = [
-                matrix @ child_node.vertices[0],
-                matrix @ child_node.vertices[1],
-                matrix @ child_node.vertices[2],
-            ]
-        elif vert_count == 4:
-            vertices = [
-                matrix @ child_node.vertices[0],
-                matrix @ child_node.vertices[1],
-                matrix @ child_node.vertices[2],
-                matrix @ child_node.vertices[3],
-            ]
-            __fix_bowties(vertices)
-
-    return vertices
-
-
-def __build_pe_texmap(ldraw_node, child_node):
-    pe_texmap = None
-
-    if ldraw_node.pe_tex_info is not None:
-        clean_line = child_node.line
-        _params = clean_line.split()
-
-        vert_count = len(child_node.vertices)
-
-        # if we have uv data and a pe_tex_info, otherwise pass
-        # # custom minifig head > 3626tex.dat (has no pe_tex) > 3626texpole.dat (has no uv data)
-        if len(_params) > 14:
-            pe_texmap = PETexmap()
-            pe_texmap.texture = ldraw_node.pe_tex_info.image
-            if vert_count == 3:
-                for i in range(vert_count):
-                    x = round(float(_params[i * 2 + 11]), 3)
-                    y = round(float(_params[i * 2 + 12]), 3)
-                    uv = mathutils.Vector((x, y))
-                    pe_texmap.uvs.append(uv)
-            elif vert_count == 4:
-                for i in range(vert_count):
-                    x = round(float(_params[i * 2 + 13]), 3)
-                    y = round(float(_params[i * 2 + 14]), 3)
-                    uv = mathutils.Vector((x, y))
-                    pe_texmap.uvs.append(uv)
-    return pe_texmap
 
 
 def meta_line(child_node, color_code, matrix, geometry_data):
     vertices = [matrix @ v for v in child_node.vertices]
 
     geometry_data.add_line_data(
-        color_code=color_code,
         vertices=vertices,
+        color_code=color_code,
     )

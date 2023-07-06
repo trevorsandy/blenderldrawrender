@@ -8,7 +8,7 @@ from io_scene_render_ldraw.modelglobals import model_globals
 from bpy_extras.io_utils import ImportHelper
 from .import_settings import ImportSettings
 from .import_options import ImportOptions
-from .ldraw_colors import LDrawColor
+from .ldraw_color import LDrawColor
 from .filesystem import FileSystem
 from .ldraw_node import LDrawNode
 from . import blender_import

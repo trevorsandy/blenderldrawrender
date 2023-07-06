@@ -1,6 +1,6 @@
 """
 Trevor SANDY
-Last Update May 23, 2023
+Last Update July 06, 2023
 Copyright (c) 2023 by Matthew Morrison
 Copyright (c) 2023 by Trevor SANDY
 
@@ -56,7 +56,7 @@ _modules = [
     'import_options',
     'import_settings',
     'ldraw_camera',
-    'ldraw_colors',
+    'ldraw_color',
     'ldraw_export',
     'ldraw_file',
     'ldraw_light',

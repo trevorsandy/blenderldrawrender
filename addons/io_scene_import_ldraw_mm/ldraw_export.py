@@ -6,11 +6,10 @@ import math
 
 from .ldraw_file import LDrawFile
 from .ldraw_node import LDrawNode
-from .ldraw_colors import LDrawColor
+from .ldraw_color import LDrawColor
 from .filesystem import FileSystem
-from . import strings
 from .export_options import ExportOptions
-from .import_options import ImportOptions
+from . import strings
 from . import helpers
 from . import ldraw_props
 

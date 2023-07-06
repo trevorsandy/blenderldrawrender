@@ -10,21 +10,19 @@ from .import_options import ImportOptions
 from .ldraw_file import LDrawFile
 from .ldraw_node import LDrawNode
 from .filesystem import FileSystem
+from .ldraw_color import LDrawColor
 from . import blender_camera
 # blen_ld_ren_mod
 from . import blender_light
 # mod_end
-from .ldraw_colors import LDrawColor
+
 from . import helpers
 from . import strings
-
 from . import group
 from . import ldraw_meta
 from . import ldraw_object
-from . import ldraw_camera
 from . import matrices
 # blen_ld_ren_mod
-from . import ldraw_light
 from . import ldraw_props
 # mod_end
 
@@ -41,16 +39,11 @@ def do_import(filepath):
     group.reset_caches()
     ldraw_meta.reset_caches()
     ldraw_object.reset_caches()
-    ldraw_camera.reset_caches()
     matrices.reset_caches()
-    # blen_ld_ren_mod
-    ldraw_light.reset_caches()
-    # mod_end    
 
     FileSystem.build_search_paths(parent_filepath=filepath)
     LDrawFile.read_color_table()
     BlenderMaterials.create_blender_node_groups()
-    LDrawNode.import_setup()
 
     ldraw_file = LDrawFile.get_file(filepath)
     if ldraw_file is None:
@@ -60,11 +53,16 @@ def do_import(filepath):
         __load_materials(ldraw_file)
         return
 
+    ldraw_meta.meta_step()
+
     root_node = LDrawNode()
     root_node.is_root = True
     root_node.file = ldraw_file
     # return root_node.load()
     obj = root_node.load()
+
+    # s = {str(k): v for k, v in sorted(LDrawNode.geometry_datas2.items(), key=lambda ele: ele[1], reverse=True)}
+    # helpers.write_json("gs2.json", s, indent=4)
 
     # blen_ld_ren_mod
     if not ldraw_object.top_empty is None:
@@ -112,8 +110,8 @@ def do_import(filepath):
             
     if ImportOptions.position_camera:
         camera = bpy.context.scene.camera
-        if ldraw_camera.cameras:
-            imported_camera_name = ldraw_camera.cameras[0].name
+        if ldraw_meta.cameras:
+            imported_camera_name = ldraw_meta.cameras[0].name
             helpers.render_print(f"Positioning Camera: {imported_camera_name}")
         elif camera is not None:
             helpers.render_print(f"Positioning Camera: {camera.data.name}")
@@ -152,13 +150,13 @@ def do_import(filepath):
             __unlink_from_scene(cube)
 
     # Remove default camera
-    if ldraw_camera.cameras:
+    if ldraw_meta.cameras:
         camera = bpy.context.scene.camera
         if camera is not None:
             __unlink_from_scene(camera)
 
     # Remove default light
-    if ldraw_light.lights:
+    if ldraw_meta.lights:
         light_object = 'Light'
         if light_object in scene_object_names:
             light = bpy.context.scene.objects[light_object]
@@ -168,7 +166,7 @@ def do_import(filepath):
     # mod_end
 
     max_clip_end = 0
-    for camera in ldraw_camera.cameras:
+    for camera in ldraw_meta.cameras:
         camera = blender_camera.create_camera(camera, empty=ldraw_object.top_empty, collection=group.top_collection)
         if bpy.context.scene.camera is None:
             if camera.data.clip_end > max_clip_end:
@@ -176,7 +174,7 @@ def do_import(filepath):
             bpy.context.scene.camera = camera
 
     # blen_ld_ren_mod
-    for light in ldraw_light.lights:
+    for light in ldraw_meta.lights:
         light = blender_light.create_light(light, empty=ldraw_object.top_empty, collection=group.top_collection)
         light.parent = obj
 

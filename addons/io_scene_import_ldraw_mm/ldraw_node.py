@@ -1,8 +1,8 @@
 import uuid
 
-from . import group
 from .geometry_data import GeometryData
 from .import_options import ImportOptions
+from . import group
 from . import helpers
 from . import ldraw_mesh
 from . import ldraw_object
@@ -12,7 +12,7 @@ from . import matrices
 
 class LDrawNode:
     """
-    All of the data that makes up a part.
+    A line of a file that has been processed into something usable.
     """
 
     part_count = 0
@@ -25,10 +25,6 @@ class LDrawNode:
         cls.key_map.clear()
         cls.geometry_datas.clear()
 
-    @classmethod
-    def import_setup(cls):
-        ldraw_meta.meta_step()
-
     def __init__(self):
         self.is_root = False
         self.file = None
@@ -40,9 +36,6 @@ class LDrawNode:
         self.meta_command = None
         self.meta_args = {}
 
-        self.camera = None
-        self.light  = None
-
         self.texmap_start = False
         self.texmap_next = False
         self.texmap_fallback = False
@@ -51,9 +44,10 @@ class LDrawNode:
         self.texmap = None
 
         self.current_pe_tex_path = None
+        self.current_subfile_pe_tex_path = None
         self.pe_tex_infos = {}
+        self.subfile_pe_tex_infos = {}
         self.pe_tex_info = None
-        self.subfile_line_index = 0
 
     def load(self,
              color_code="16",
@@ -63,7 +57,6 @@ class LDrawNode:
              accum_invert=False,
              parent_collection=None,
              texmap=None,
-             pe_tex_info=None,
              ):
 
         if self.file.is_edge_logo() and not ImportOptions.display_logo:
@@ -75,7 +68,6 @@ class LDrawNode:
             parent_matrix = matrices.identity_matrix
 
         self.texmap = texmap
-        self.pe_tex_info = pe_tex_info
 
         collection = parent_collection
 
@@ -119,7 +111,7 @@ class LDrawNode:
         # texmap parts are defined as parts so it should be safe to exclude that from the key
         # pe_tex_info is defined like an mpd so mutliple instances sharing the same part name will share the same texture unless it is included in the key
         # the only thing unique about a geometry_data object is its filename and whether it has pe_tex_info
-        geometry_data_key = LDrawNode.__build_key(self.file.name, pe_tex_info)
+        geometry_data_key = LDrawNode.__build_key(self.file.name, self.pe_tex_info)
         # blender mesh data is unique also based on color
         # this means a geometry_data for a file is created only once, but a mesh is created for every color that uses that geometry_data
         obj_key = f"{geometry_data_key}_{color_code}"
@@ -165,19 +157,24 @@ class LDrawNode:
             winding = "CCW"
             invert_next = False
 
+            subfile_line_index = 0
             for child_node in self.file.child_nodes:
                 # self.texmap_fallback will only be true if ImportOptions.meta_texmap == True and you're on a fallback line
                 # if ImportOptions.meta_texmap == False, it will always be False
                 if child_node.meta_command in ["1", "2", "3", "4", "5"] and not self.texmap_fallback:
                     child_current_color = LDrawNode.__determine_color(color_code, child_node.color_code)
                     if child_node.meta_command == "1":
-                        # if we have a pe_tex_info, but no pe_tex meta commands have been parsed
-                        # treat the pe_tex_info as the one to use
+                        # if we have no pe_tex_info, try to get one from pe_tex_infos otherwise keep using the one we have
                         # custom minifig head > 3626tex.dat (has no pe_tex) > 3626texshell.dat
-                        if len(self.pe_tex_infos) < 1 and self.pe_tex_info is not None:
-                            pe_tex_info = self.pe_tex_info
+                        if self.pe_tex_info is None:
+                            child_node.pe_tex_info = self.pe_tex_infos.get(subfile_line_index)
                         else:
-                            pe_tex_info = self.pe_tex_infos.get(self.subfile_line_index)
+                            child_node.pe_tex_info = self.pe_tex_info
+
+                        subfile_pe_tex_infos = self.subfile_pe_tex_infos.get(subfile_line_index, {})
+                        # don't replace the collection in case this file already has pe_tex_infos
+                        for k, v in subfile_pe_tex_infos.items():
+                            child_node.pe_tex_infos.setdefault(k, v)
 
                         child_node.load(
                             color_code=child_current_color,
@@ -187,7 +184,6 @@ class LDrawNode:
                             accum_invert=(accum_invert ^ invert_next),  # xor
                             parent_collection=collection,
                             texmap=self.texmap,
-                            pe_tex_info=pe_tex_info,
                         )
                         # for node in child_node.load(
                         #         color_code=child_current_color,
@@ -197,11 +193,10 @@ class LDrawNode:
                         #         accum_invert=(accum_invert ^ invert_next),  # xor
                         #         parent_collection=collection,
                         #         texmap=self.texmap,
-                        #         pe_tex_info=pe_tex_info,
                         # ):
                         #     yield node
 
-                        self.subfile_line_index += 1
+                        subfile_line_index += 1
                         ldraw_meta.meta_root_group_nxt(self, child_node)
                     elif child_node.meta_command == "2":
                         ldraw_meta.meta_edge(
@@ -253,13 +248,13 @@ class LDrawNode:
                     elif child_node.meta_command.startswith("group"):
                         ldraw_meta.meta_group(child_node)
                     elif child_node.meta_command == "leocad_camera":
-                        ldraw_meta.meta_lp_lc_camera(self, child_node, vertex_matrix)
+                        ldraw_meta.meta_lp_lc_camera(child_node, vertex_matrix)
                     elif child_node.meta_command == "lpub3d_camera":
-                        ldraw_meta.meta_lp_lc_camera(self, child_node, vertex_matrix)
+                        ldraw_meta.meta_lp_lc_camera(child_node, vertex_matrix)
                     elif child_node.meta_command == "leocad_light":
-                        ldraw_meta.meta_lp_lc_light(self, child_node, vertex_matrix)
+                        ldraw_meta.meta_lp_lc_light(child_node, vertex_matrix)
                     elif child_node.meta_command == "lpub3d_light":
-                        ldraw_meta.meta_lp_lc_light(self, child_node, vertex_matrix)
+                        ldraw_meta.meta_lp_lc_light(child_node, vertex_matrix)
 
                 if self.texmap_next:
                     ldraw_meta.set_texmap_end(self)
@@ -303,7 +298,7 @@ class LDrawNode:
         _key = (filename, color_code,)
 
         if pe_tex_info is not None:
-            _key += ((pe_tex_info.image, pe_tex_info.matrix, pe_tex_info.v1, pe_tex_info.v1),)
+            _key += ((pe_tex_info.image, pe_tex_info.matrix, pe_tex_info.v1, pe_tex_info.v2),)
         else:
             _key += (None,)
 
