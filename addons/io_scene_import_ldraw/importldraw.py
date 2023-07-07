@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update June 11, 2023
+Last Update July 07, 2023
 Copyright (c) 2023 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
@@ -322,7 +322,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     useLogoStuds: BoolProperty(
         name="Show 'LEGO' logo on studs",
         description="Shows the LEGO logo on each stud (at the expense of some extra geometry and import time)",
-        default=prefs.get("useLogoStuds", False)
+        default=prefs.get("useLogoStuds", True)
     )
 
     instanceStuds: BoolProperty(
@@ -478,12 +478,14 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
 
         box = layout.box()
         box.label(text="LDraw Import Options", icon='PREFERENCES')
-        box.label(text="Import filepaths:", icon='FILEBROWSER')
+        box.label(text="LDraw Parts Folder:", icon='FILEBROWSER')
         box.prop(self, "ldrawPath")
+        box.label(text="Custom LDConfig:", icon='FILEBROWSER')
         box.prop(self, "customLDConfigFile")
-        box.prop(self, "searchAdditionalPaths")
         if not self.ldraw_model_file_loaded:
+            box.label(text="Environment File:", icon='FILEBROWSER')
             box.prop(self, "environmentFile")
+        box.prop(self, "searchAdditionalPaths")
 
         layout.separator(factor=space_factor)
         box.label(text="Import Options")    
@@ -516,7 +518,6 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         box.prop(self, "linkParts")
 
         layout.separator(factor=space_factor)
-        box.label(text="Resolve Ambiguous Normals:", icon='ORIENTATION_NORMAL')
         box.prop(self, "resolveNormals", expand=True)          
 
         layout.separator(factor=space_factor)

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update May 31, 2023
+Last Update July 07, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Render LDraw GPLv2 license.
@@ -482,14 +482,14 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
         box = layout.box()
         box.label(text="LDraw Render Options", icon='PREFERENCES')
         if not self.ldraw_model_loaded and self.ldraw_path == "":
-            box.label(text="LDraw file:", icon='FILEBROWSER')
+            box.label(text="LDraw Parts Folder:", icon='FILEBROWSER')
             box.prop(self, "ldraw_path")
-        box.label(text="Model file:", icon='FILEBROWSER')
+        box.label(text="Model File:", icon='FILEBROWSER')
         box.prop(self, "model_file")
         if not self.ldraw_model_loaded:
-            box.label(text="Environment file:", icon='FILEBROWSER')
+            box.label(text="Environment File:", icon='FILEBROWSER')
             box.prop(self, "environment_file")
-        box.label(text="Blend file:", icon='FILEBROWSER')
+        box.label(text="Supplemental Blend File:", icon='FILEBROWSER')
         box.prop(self, "blend_file")
 
         box.prop(self, "resolution_width")

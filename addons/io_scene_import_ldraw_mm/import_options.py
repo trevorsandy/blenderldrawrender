@@ -40,7 +40,7 @@ class ImportOptions:
     defaults['meta_texmap'] = True
     meta_texmap = defaults['meta_texmap']
 
-    defaults['display_logo'] = False
+    defaults['display_logo'] = True
     display_logo = defaults['display_logo']
 
     defaults['chosen_logo'] = "logo3"

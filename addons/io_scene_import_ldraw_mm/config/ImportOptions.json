@@ -11,7 +11,7 @@
   "chosen_logo": "logo3",
   "crop_image": false,
   "custom_ldconfig_file": "",
-  "display_logo": false,
+  "display_logo": true,
   "environment_file": "",
   "frames_per_step": 3,
   "gap_scale": 0.997,
