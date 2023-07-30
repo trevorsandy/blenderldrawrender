@@ -50,13 +50,8 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
     use_colour_scheme: bpy.props.EnumProperty(
         name="Colour scheme options",
         description="Colour scheme options",
-        default=ImportSettings.get_setting('use_colour_scheme'),
-        items=[
-            ("lgeo", "Realistic colours", "Uses the LGEO colour scheme for realistic colours."),
-            ("ldraw", "Original LDraw colours", "Uses the standard LDraw colour scheme (LDConfig.ldr)."),
-            ("alt", "Alternate LDraw colours", "Uses the alternate LDraw colour scheme (LDCfgalt.ldr)."),
-            ("custom", "Custom LDraw colours", "Uses a user specified LDraw colour file.")
-        ],
+        **ImportSettings.settings_dict('use_colour_scheme'),
+        items=LDrawColor.use_colour_scheme_choices,
     )
 
     selection_only: bpy.props.BoolProperty(
@@ -108,25 +103,26 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
         min=0,
     )
 
-    resolution: bpy.props.EnumProperty(
-        name="Part resolution",
-        options={'HIDDEN'},
-        description="Resolution of part primitives, ie. how much geometry they have",
-        default="Standard",
-        items=(
-            ("Low", "Low resolution primitives", "Import using low resolution primitives."),
-            ("Standard", "Standard primitives", "Import using standard resolution primitives."),
-            ("High", "High resolution primitives", "Import using high resolution primitives."),
-        ),
-    )
+    # resolution: bpy.props.EnumProperty(
+    #     name="Part resolution",
+    #     options={'HIDDEN'},
+    #     description="Resolution of part primitives, ie. how much geometry they have",
+    #     default="Standard",
+    #     items=(
+    #         ("Low", "Low resolution primitives", "Import using low resolution primitives."),
+    #         ("Standard", "Standard primitives", "Import using standard resolution primitives."),
+    #         ("High", "High resolution primitives", "Import using high resolution primitives."),
+    #     ),
+    # )
 
     def execute(self, context):
         start = time.perf_counter()
 
         # bpy.ops.object.mode_set(mode='OBJECT')
+
         FileSystem.ldraw_path = self.ldraw_path
         FileSystem.studio_ldraw_path = self.studio_ldraw_path
-        FileSystem.resolution = self.resolution
+        # FileSystem.resolution = self.resolution
         LDrawColor.use_colour_scheme = self.use_colour_scheme
 
         ExportOptions.selection_only = self.selection_only

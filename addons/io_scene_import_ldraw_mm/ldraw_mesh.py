@@ -14,14 +14,14 @@ def get_mesh(key):
     return bpy.data.meshes.get(key)
 
 
-def create_mesh(ldraw_node, key, geometry_data):
+def create_mesh(ldraw_node, key, geometry_data, color_code):
     mesh = get_mesh(key)
     if mesh is None:
         mesh = bpy.data.meshes.new(key)
         mesh.name = key
         mesh[strings.ldraw_filename_key] = ldraw_node.file.name
 
-        __process_bmesh(ldraw_node, mesh, geometry_data)
+        __process_bmesh(ldraw_node, mesh, geometry_data, color_code)
         __process_mesh_edges(ldraw_node, key, geometry_data)
         __process_mesh_sharp_edges(mesh, geometry_data)
         __process_mesh(mesh)
@@ -33,8 +33,8 @@ def create_mesh(ldraw_node, key, geometry_data):
 # https://blender.stackexchange.com/questions/50160/scripting-low-level-join-meshes-elements-hopefully-with-bmesh
 # https://blender.stackexchange.com/questions/188039/how-to-join-only-two-objects-to-create-a-new-object-using-python
 # https://blender.stackexchange.com/questions/23905/select-faces-depending-on-material
-def __process_bmesh(ldraw_node, mesh, geometry_data):
-    bm = __process_bmesh_faces(ldraw_node, geometry_data, mesh)
+def __process_bmesh(ldraw_node, mesh, geometry_data, color_code):
+    bm = __process_bmesh_faces(ldraw_node, geometry_data, mesh, color_code)
     helpers.ensure_bmesh(bm)
     __clean_bmesh(bm)
     __process_bmesh_edges(bm, geometry_data)
@@ -78,7 +78,7 @@ def __get_edge_indices(verts, geometry_data):
 
 
 def __process_bmesh_edges(bm, geometry_data):
-    if ImportOptions.smooth_type == "bmesh_split":
+    if ImportOptions.smooth_type_value() == "bmesh_split":
         edge_indices = __get_edge_indices(bm.verts, geometry_data)
 
         # Find the appropriate mesh edges and make them sharp (i.e. not smooth)
@@ -95,7 +95,7 @@ def __process_bmesh_edges(bm, geometry_data):
         bmesh.ops.split_edges(bm, edges=list(edges))
 
 
-def __process_bmesh_faces(ldraw_node, geometry_data, mesh):
+def __process_bmesh_faces(ldraw_node, geometry_data, mesh, color_code):
     bm = bmesh.new()
 
     for face_data in geometry_data.face_data:
@@ -105,7 +105,7 @@ def __process_bmesh_faces(ldraw_node, geometry_data, mesh):
         part_slopes = special_bricks.get_part_slopes(ldraw_node.file.name)
         parts_cloth = special_bricks.get_parts_cloth(ldraw_node.file.name)
         material = BlenderMaterials.get_material(
-            color_code=face_data.color_code,
+            color_code=color_code if face_data.color_code == "16" else face_data.color_code,
             part_slopes=part_slopes,
             parts_cloth=parts_cloth,
             texmap=face_data.texmap,
@@ -130,6 +130,7 @@ def __process_bmesh_faces(ldraw_node, geometry_data, mesh):
 
     return bm
 
+
 def __clean_bmesh(bm):
     if ImportOptions.remove_doubles:
         bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=ImportOptions.merge_distance)
@@ -148,11 +149,9 @@ def __process_mesh_edges(ldraw_node, key, geometry_data):
 
     i = 0
     for edge_data in geometry_data.edge_data:
-        edge_verts = []
         face_indices = []
         for vertex in edge_data.vertices:
             e_verts.append(vertex)
-            edge_verts.append(vertex)
             face_indices.append(i)
             i += 1
         e_faces.append(face_indices)
@@ -161,14 +160,14 @@ def __process_mesh_edges(ldraw_node, key, geometry_data):
 
 
 def __process_mesh_sharp_edges(mesh, geometry_data):
-    if ImportOptions.smooth_type == "edge_split" or ImportOptions.use_freestyle_edges or ImportOptions.bevel_edges:
+    if ImportOptions.smooth_type_value() == "edge_split" or ImportOptions.use_freestyle_edges or ImportOptions.bevel_edges:
         edge_indices = __get_edge_indices(mesh.vertices, geometry_data)
 
         for edge in mesh.edges:
             v0 = edge.vertices[0]
             v1 = edge.vertices[1]
             if (v0, v1) in edge_indices:
-                if ImportOptions.smooth_type == "edge_split":
+                if ImportOptions.smooth_type_value() == "edge_split":
                     edge.use_edge_sharp = True
                 if ImportOptions.use_freestyle_edges:
                     edge.use_freestyle_mark = True
@@ -177,11 +176,11 @@ def __process_mesh_sharp_edges(mesh, geometry_data):
 
 
 def __process_mesh(mesh):
-    if ImportOptions.smooth_type == "auto_smooth" or ImportOptions.smooth_type == "bmesh_split":
+    if ImportOptions.smooth_type_value() == "auto_smooth" or ImportOptions.smooth_type_value() == "bmesh_split":
         mesh.use_auto_smooth = ImportOptions.shade_smooth
         mesh.auto_smooth_angle = matrices.auto_smooth_angle
 
-    if ImportOptions.make_gaps and ImportOptions.gap_target == "mesh":
+    if ImportOptions.make_gaps and ImportOptions.gap_target_value() == "mesh":
         mesh.transform(matrices.gap_scale_matrix)
 
 
@@ -195,5 +194,5 @@ def __create_edge_mesh(ldraw_node, key, e_edges, e_faces, e_verts):
         edge_mesh.from_pydata(e_verts, e_edges, e_faces)
         helpers.finish_mesh(edge_mesh)
 
-        if ImportOptions.make_gaps and ImportOptions.gap_target == "mesh":
+        if ImportOptions.make_gaps and ImportOptions.gap_target_value() == "mesh":
             edge_mesh.transform(matrices.gap_scale_matrix)

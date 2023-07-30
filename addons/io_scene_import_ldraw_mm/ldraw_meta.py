@@ -217,11 +217,9 @@ def meta_lp_lc_camera(ldraw_node, child_node, matrix):
         return
 
     clean_line = child_node.line
-    meta = "!LPUB"
-    is_lpub_meta = clean_line.startswith(f"0 {meta} ")
-    if not is_lpub_meta:
-        meta = "!LEOCAD"
-    _params = helpers.get_params(clean_line, f"0 {meta} CAMERA ", lowercase=True)
+    _params = helpers.get_params(clean_line, lowercase=True)[3:]
+
+    is_lpub_meta = clean_line.startswith("0 !LPUB ")
 
     if ldraw_node.camera is None:
         ldraw_node.camera = ldraw_camera.LDrawCamera()
@@ -273,6 +271,8 @@ def meta_lp_lc_camera(ldraw_node, child_node, matrix):
             ldraw_node.camera.hidden = True
             _params = _params[1:]
         elif _params[0] == "name":
+            # "0 !LEOCAD CAMERA NAME Camera  2".split("NAME ")[1] => "Camera  2"
+            # "NAME Camera  2".split("NAME ")[1] => "Camera  2"
             name_args = clean_line.split("NAME ")
             ldraw_node.camera.name = "Imported {0}".format(name_args[1])
 
@@ -287,12 +287,12 @@ def meta_lp_lc_camera(ldraw_node, child_node, matrix):
 def meta_lp_lc_light(ldraw_node, child_node, matrix):
     if not ImportOptions.import_lights:
         return
+
     clean_line = child_node.line
-    meta = "!LPUB"
-    is_lpub_meta = clean_line.startswith(f"0 {meta} ")
-    if not is_lpub_meta:
-        meta = "!LEOCAD"
-    _params = helpers.get_params(clean_line, f"0 {meta} LIGHT ", lowercase=True)
+    _params = helpers.get_params(clean_line, lowercase=True)[3:]
+
+    is_lpub_meta = clean_line.startswith("0 !LPUB ")
+
     if ldraw_node.light is None:
         ldraw_node.light = ldraw_light.LDrawLight()
     # "Light commands can be grouped in the same line"
@@ -565,35 +565,54 @@ def meta_face(ldraw_node, child_node, color_code, matrix, geometry_data, winding
     )
 
 
+# handle bowtie quadrilaterals - 6582.dat
+# https://github.com/TobyLobster/ImportLDraw/pull/65/commits/3d8cebee74bf6d0447b616660cc989e870f00085
+def __fix_bowties(vertices):
+    nA = (vertices[1] - vertices[0]).cross(vertices[2] - vertices[0])
+    nB = (vertices[2] - vertices[1]).cross(vertices[3] - vertices[1])
+    nC = (vertices[3] - vertices[2]).cross(vertices[0] - vertices[2])
+    if nA.dot(nB) < 0:
+        vertices[2], vertices[3] = vertices[3], vertices[2]
+    elif nB.dot(nC) < 0:
+        vertices[2], vertices[1] = vertices[1], vertices[2]
+
+
 # https://github.com/rredford/LdrawToObj/blob/802924fb8d42145c4f07c10824e3a7f2292a6717/LdrawData/LdrawToData.cs#L219
 # https://github.com/rredford/LdrawToObj/blob/802924fb8d42145c4f07c10824e3a7f2292a6717/LdrawData/LdrawToData.cs#L260
-
 def __handle_vertex_winding(child_node, matrix, winding):
     vert_count = len(child_node.vertices)
 
-    vertices = child_node.vertices
+    vertices = []
     if winding == "CW":
         if vert_count == 3:
-            verts = [vertices[0], vertices[2], vertices[1]]
-            vertices = [matrix @ m for m in verts]
+            vertices = [
+                matrix @ child_node.vertices[0],
+                matrix @ child_node.vertices[2],
+                matrix @ child_node.vertices[1],
+            ]
         elif vert_count == 4:
-            verts = [vertices[0], vertices[3], vertices[2], vertices[1]]
-            vertices = [matrix @ m for m in verts]
-
-            # handle bowtie quadrilaterals - 6582.dat
-            # https://github.com/TobyLobster/ImportLDraw/pull/65/commits/3d8cebee74bf6d0447b616660cc989e870f00085
-            nA = (vertices[1] - vertices[0]).cross(vertices[2] - vertices[0])
-            nB = (vertices[2] - vertices[1]).cross(vertices[3] - vertices[1])
-            nC = (vertices[3] - vertices[2]).cross(vertices[0] - vertices[2])
-            if nA.dot(nB) < 0:
-                vertices[2], vertices[3] = vertices[3], vertices[2]
-            elif nB.dot(nC) < 0:
-                vertices[2], vertices[1] = vertices[1], vertices[2]
-
+            vertices = [
+                matrix @ child_node.vertices[0],
+                matrix @ child_node.vertices[3],
+                matrix @ child_node.vertices[2],
+                matrix @ child_node.vertices[1],
+            ]
+            __fix_bowties(vertices)
     else:  # winding == "CCW" or winding is None:
-        # this is the default vertex order so don't do anything
-        verts = vertices
-        vertices = [matrix @ m for m in verts]
+        if vert_count == 3:
+            vertices = [
+                matrix @ child_node.vertices[0],
+                matrix @ child_node.vertices[1],
+                matrix @ child_node.vertices[2],
+            ]
+        elif vert_count == 4:
+            vertices = [
+                matrix @ child_node.vertices[0],
+                matrix @ child_node.vertices[1],
+                matrix @ child_node.vertices[2],
+                matrix @ child_node.vertices[3],
+            ]
+            __fix_bowties(vertices)
 
     return vertices
 

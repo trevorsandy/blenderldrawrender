@@ -22,8 +22,8 @@ class LDrawNode:
     @classmethod
     def reset_caches(cls):
         cls.part_count = 0
-        cls.key_map = {}
-        cls.geometry_datas = {}
+        cls.key_map.clear()
+        cls.geometry_datas.clear()
 
     @classmethod
     def import_setup(cls):
@@ -31,7 +31,6 @@ class LDrawNode:
 
     def __init__(self):
         self.is_root = False
-        self.top = False
         self.file = None
         self.line = ""
         self.color_code = "16"
@@ -78,11 +77,6 @@ class LDrawNode:
         self.texmap = texmap
         self.pe_tex_info = pe_tex_info
 
-        # by default, treat this as anything other than a top level part
-        # obj_matrix is the matrix up to the point and used for placement of objects
-        # vertex_matrix is the matrix that gets passed to subparts
-        obj_matrix = (parent_matrix @ self.matrix).freeze()
-        vertex_matrix = obj_matrix
         collection = parent_collection
 
         if group.top_collection is None:
@@ -109,40 +103,63 @@ class LDrawNode:
             group.ungrouped_collection = _collection
             helpers.hide_obj(group.ungrouped_collection)
 
-        # if it's a model, don't start collecting geometry
-        # else if there's no geometry, start collecting geometry
+        # by default, treat this as anything other than a top level part
+        # keep track of the matrix and color up to this point
+        # if it's a top level part, obj_matrix is its global transformation
+        # if it's anything else, vertex_matrix is what is used to tranform the vertices
+        # obj_matrix is the matrix up to the point and used for placement of objects
+        # vertex_matrix is the matrix that gets passed to subparts
+        top = False
+        vertex_matrix = (parent_matrix @ self.matrix).freeze()
+        obj_matrix = vertex_matrix
+        obj_color_code = color_code
 
-        # if a file has geometry, treat it like a part
-        # otherwise that geometry won't be rendered
-        if self.file.is_like_model() and not self.file.has_geometry():
-            # if parent_collection is not None, this is a nested model
-            if parent_collection is not None:
-                collection = group.get_filename_collection(self.file.name, parent_collection)
-        elif geometry_data is None or ImportOptions.preserve_hierarchy:  # top-level part
-            LDrawNode.part_count += 1
-            self.top = True
-            vertex_matrix = matrices.identity_matrix
-
-        # parent_is_top
-        # true == the parent node is a part
-        # false == parent node is a model
         # when a part is used on its own and also treated as a subpart like with a shortcut, the part will not render in the shortcut
-        key = LDrawNode.__build_key(self.file.name, color_code, vertex_matrix, accum_cull, accum_invert, texmap=texmap, pe_tex_info=pe_tex_info)
+        # obj_key is essentially a list of attributes that are unique to parts that share the same file
+        # texmap parts are defined as parts so it should be safe to exclude that from the key
+        # pe_tex_info is defined like an mpd so mutliple instances sharing the same part name will share the same texture unless it is included in the key
+        # the only thing unique about a geometry_data object is its filename and whether it has pe_tex_info
+        geometry_data_key = LDrawNode.__build_key(self.file.name, pe_tex_info)
+        # blender mesh data is unique also based on color
+        # this means a geometry_data for a file is created only once, but a mesh is created for every color that uses that geometry_data
+        obj_key = f"{geometry_data_key}_{color_code}"
 
-        # always process geometry_data if this is a subpart
-        # if geometry_data exists, this is a top level part that has already been processed so don't process this key again
-        if not self.top or LDrawNode.geometry_datas.get(key) is None or ImportOptions.preserve_hierarchy:
-            if self.top:
-                # geometry_data is unused if the mesh already exists
-                geometry_data = GeometryData()
-
+        # if there's no geometry, it's a top level part so start collecting geometry
+        # there are occasions where files with part_type of model have geometry so you can't rely on its part_type
+        # example: 10252 - 10252_towel.dat in 10252-1 - Volkswagen Beetle.mpd
+        # the only way to be sure is if a file has geometry, always treat it like a part otherwise that geometry won't be rendered
+        # geometry_data is always None if the geometry_data with this key has already been processed
+        # if is_shortcut_part, always treat like top level part, otherwise shortcuts that
+        # are children of other shortcuts will be treated as top level parts won't be treated as top level parts
+        # this allows the button on part u9158.dat to be its own separate object
+        # this allows the horse's head on part 4493c04.dat to be its own object, as well as both halves of its body
+        # TODO: force special parts to always be a top level part - such as the horse head or button
+        #  in cases where they aren't part of a shortcut
+        # TODO: is_shortcut_model splits 99141c01.dat and u9158.dat into its subparts -
+        #  u9158.dat - ensure the battery contacts are correct
+        cached_geometry_data = None
+        if geometry_data is None and (self.file.has_geometry() or self.file.is_part() or self.file.is_shortcut_part()):
+            # top-level part
+            LDrawNode.part_count += 1
+            top = True
+            vertex_matrix = matrices.identity_matrix
+            cached_geometry_data = LDrawNode.geometry_datas.get(geometry_data_key)
+            # set top level parts to 16 so that geometry_data is only created once per filename
+            # then change their 16 faces to obj_color_code
+            # TODO: replace material of 16 faces with geometry nodes
+            color_code = "16"
+        else:
             if self.file.is_like_model():
-                if self.file.has_geometry():
-                    self.bfc_certified = False
-                else:
-                    self.bfc_certified = True
-            else:
-                self.bfc_certified = None
+                self.bfc_certified = True  # or else accum_cull will be false, which turns off bfc processing
+                if parent_collection is not None:
+                    # if parent_collection is not None, this is a nested model
+                    collection = group.get_filename_collection(self.file.name, parent_collection)
+
+        # always process geometry_data if this is a subpart or there is no cached_geometry_data
+        # if geometry_data exists, this is a top level part that has already been processed so don't process this key again
+        if not top or cached_geometry_data is None:
+            if top:
+                geometry_data = GeometryData()
 
             local_cull = True
             winding = "CCW"
@@ -162,12 +179,9 @@ class LDrawNode:
                         else:
                             pe_tex_info = self.pe_tex_infos.get(self.subfile_line_index)
 
-                        # TODO: preload file, return mesh.name and get mesh and merge that mesh with the current mesh
-                        # may crash based on https://docs.blender.org/api/current/info_gotcha.html#help-my-script-crashes-blender
-                        # but testing seems to indicate that adding to bpy.data.meshes does not change hash(mesh) value
                         child_node.load(
                             color_code=child_current_color,
-                            parent_matrix=vertex_matrix if not ImportOptions.preserve_hierarchy else obj_matrix,
+                            parent_matrix=vertex_matrix,
                             geometry_data=geometry_data,
                             accum_cull=self.bfc_certified and accum_cull and local_cull,
                             accum_invert=(accum_invert ^ invert_next),  # xor
@@ -177,7 +191,7 @@ class LDrawNode:
                         )
                         # for node in child_node.load(
                         #         color_code=child_current_color,
-                        #         parent_matrix=matrix if not ImportOptions.preserve_hierarchy else obj_matrix,
+                        #         parent_matrix=vertex_matrix,
                         #         geometry_data=geometry_data,
                         #         accum_cull=self.bfc_certified and accum_cull and local_cull,
                         #         accum_invert=(accum_invert ^ invert_next),  # xor
@@ -255,12 +269,11 @@ class LDrawNode:
                 elif child_node.meta_command == "bfc" and child_node.meta_args["command"] != "INVERTNEXT":
                     invert_next = False
 
-        if self.top:
-            _geometry_data = LDrawNode.geometry_datas.setdefault(key, geometry_data)
-
+        if top:
             # geometry_data will not be None if this is a new mesh
             # geometry_data will be None if the mesh already exists
-            obj = LDrawNode.__create_obj(self, key, _geometry_data, obj_matrix, color_code, collection)
+            cached_geometry_data = LDrawNode.geometry_datas.setdefault(geometry_data_key, geometry_data)
+            obj = LDrawNode.__create_obj(self, obj_key, cached_geometry_data, obj_matrix, obj_color_code, collection)
 
             # if LDrawNode.part_count == 1:
             #     raise BaseException("done")
@@ -269,9 +282,9 @@ class LDrawNode:
             return obj
 
     @staticmethod
-    def __create_obj(ldraw_node, key, geometry_data, obj_matrix, color_code, collection):
-        mesh = ldraw_mesh.create_mesh(ldraw_node, key, geometry_data)
-        obj = ldraw_object.process_top_object(ldraw_node, mesh, key, obj_matrix, color_code, collection)
+    def __create_obj(ldraw_node, key, geometry_data, matrix, color_code, collection):
+        mesh = ldraw_mesh.create_mesh(ldraw_node, key, geometry_data, color_code)
+        obj = ldraw_object.process_top_object(ldraw_node, mesh, key, matrix, color_code, collection)
         return obj
 
     # set the working color code to this file's
@@ -286,12 +299,15 @@ class LDrawNode:
     # must include matrix, so that parts that are just mirrored versions of other parts
     # such as 32527.dat (mirror of 32528.dat) will render
     @staticmethod
-    def __build_key(filename, color_code, matrix, accum_cull, accum_invert, texmap=None, pe_tex_info=None):
-        _key = (filename, color_code, matrix, accum_cull, accum_invert,)
-        if texmap is not None:
-            _key += ((texmap.method, texmap.texture, texmap.glossmap),)
+    def __build_key(filename, color_code=None, pe_tex_info=None, matrix=None):
+        _key = (filename, color_code,)
+
         if pe_tex_info is not None:
             _key += ((pe_tex_info.image, pe_tex_info.matrix, pe_tex_info.v1, pe_tex_info.v1),)
+        else:
+            _key += (None,)
+
+        _key += (matrix,)
 
         key = LDrawNode.key_map.get(_key)
         if key is None:

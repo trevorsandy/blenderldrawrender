@@ -20,8 +20,8 @@ class LDrawFile:
 
     @classmethod
     def reset_caches(cls):
-        cls.__raw_files = {}
-        cls.__file_cache = {}
+        cls.__raw_files.clear()
+        cls.__file_cache.clear()
 
     def __init__(self, filename):
         self.filename = filename
@@ -54,6 +54,7 @@ class LDrawFile:
             f"description: {self.description}",
             f"name: {self.name}",
             f"author: {self.author}",
+            f"part_type: {self.part_type}",
         ])
 
     @classmethod
@@ -65,17 +66,17 @@ class LDrawFile:
 
         # if there is no LDCfgalt.ldr, look for LDConfig.ldr
         # the Stud.io library doesn't have LDCfgalt.ldr,
-        # so if use_colour_scheme == alt and prefer_studio set filename to default_ldconfig
+        # so if use_colour_scheme_value() == alt and prefer_studio set filename to default_ldconfig
         # might trip up the user because they'll get a bunch of invalid color errors
         alt_ldconfig = "LDCfgalt.ldr"
         default_ldconfig = "LDConfig.ldr"
 
-        if LDrawColor.use_colour_scheme == "custom":
+        if LDrawColor.use_colour_scheme_value() == "custom":
             filename = os.path.expanduser(FileSystem.custom_ldconfig_file)
             if not os.path.exists(filename):
                 print(f"Custom colour file not found -using {default_ldconfig}")
                 filename = default_ldconfig
-        elif LDrawColor.use_colour_scheme == "alt":
+        elif LDrawColor.use_colour_scheme_value() == "alt":
             if FileSystem.prefer_studio:
                 print(f"Stud.io library doesn't have LDCfgalt.ldr -using {default_ldconfig}")
                 filename = default_ldconfig
@@ -93,7 +94,7 @@ class LDrawFile:
         # I've extracted the following colours from the LGEO file: lg_color.inc
         # LGEO is downloadable from http://ldraw.org/downloads-2/downloads.html
         # We overwrite the standard LDraw colours if we have better LGEO colours.
-        if LDrawColor.use_colour_scheme == "lgeo":
+        if LDrawColor.use_colour_scheme_value() == "lgeo":
             LDrawColor.set_lgeo_colors(FileSystem.read_lgeo_colors())
 
         return ldraw_file
@@ -263,8 +264,6 @@ class LDrawFile:
                 print(e)
                 continue
 
-        self.__handle_extra_geometry()
-
     # always return false so that the rest of the line types are parsed even if this is true
     def __line_description(self, strip_line):
         if self.description is None:
@@ -361,15 +360,14 @@ class LDrawFile:
     # TODO: add collection of colors specific to this file
     def __line_color(self, clean_line):
         if clean_line.startswith("0 !COLOUR "):
-            _params = helpers.get_params(clean_line, "0 !COLOUR ")
-
             if self.is_configuration():
-                LDrawColor.parse_color(_params)
+                LDrawColor.parse_color(clean_line)
             else:
-                color = LDrawColor()
-                color.parse_color_params(_params)
+                # TODO: add this color to this file's colors
+                # color = LDrawColor()
+                # color.parse_color_params(clean_line)
                 #  self.__colors[color.code] = color
-                """add this color to this file's colors"""
+                ...
             return True
         return False
 
@@ -560,7 +558,7 @@ class LDrawFile:
                 name = parts[0]
                 name_parts = name.split('-')
                 stud_name = name_parts[0]
-                chosen_logo = ImportOptions.chosen_logo
+                chosen_logo = ImportOptions.chosen_logo_value()
                 ext = parts[1]
                 filename = f"{stud_name}-{chosen_logo}.{ext}"
 
@@ -574,25 +572,12 @@ class LDrawFile:
             ldraw_node.meta_command = "1"
             ldraw_node.color_code = color_code
             ldraw_node.matrix = matrix
+            self.child_nodes.append(ldraw_node)
 
-            # if any line in a model file is a subpart, treat that model as a part,
-            # otherwise subparts are not parsed correctly
-            # 10252 - 10252_towel.dat in 10252-1 - Volkswagen Beetle.mpd
-            if self.is_like_model() and (ldraw_file.is_subpart() or ldraw_file.is_primitive()):
-                # if False, if subpart found, create new LDrawNode with those subparts and add that to child_nodes
-                # this has the effect of splitting shortcuts into their constituent parts
-                # parts like u9158.dat and 99141c01.dat are split into several smaller parts
-                # if True, combines models that have subparts and primitives into a single part
-                if ImportOptions.treat_models_with_subparts_as_parts:
-                    self.actual_part_type = 'Unofficial_Part'
-                    self.part_type = self.determine_part_type(self.actual_part_type)
-                    self.child_nodes.append(ldraw_node)
-                else:
-                    if self.extra_child_nodes is None:
-                        self.extra_child_nodes = []
-                    self.extra_child_nodes.append(ldraw_node)
-            else:
-                self.child_nodes.append(ldraw_node)
+            if ldraw_file.is_geometry():
+                self.geometry_commands.setdefault(_params[0], 0)
+                self.geometry_commands[_params[0]] += 1
+
             return True
         return False
 
@@ -603,8 +588,7 @@ class LDrawFile:
                 clean_line.startswith("5 ")):
             _params = clean_line.split()
 
-            if self.geometry_commands.get(_params[0]) is None:
-                self.geometry_commands[_params[0]] = 0
+            self.geometry_commands.setdefault(_params[0], 0)
             self.geometry_commands[_params[0]] += 1
 
             ldraw_node = LDrawNode()
@@ -642,22 +626,6 @@ class LDrawFile:
             verts.append(vertex)
         return verts
 
-    def __handle_extra_geometry(self):
-        if self.extra_child_nodes is not None:
-            filename = f"{self.name}_extra"
-            ldraw_file = LDrawFile.__file_cache.get(filename)
-            if ldraw_file is None:
-                ldraw_file = LDrawFile(filename)
-                ldraw_file.actual_part_type = "Extra_Data_Part"
-                ldraw_file.part_type = self.determine_part_type(ldraw_file.actual_part_type)
-                ldraw_file.child_nodes = self.extra_child_nodes
-                LDrawFile.__file_cache[filename] = ldraw_file
-            ldraw_node = LDrawNode()
-            ldraw_node.file = ldraw_file
-            ldraw_node.line = ""
-            ldraw_node.meta_command = "1"
-            self.child_nodes.append(ldraw_node)
-
     # if there's a line type specified, determine what that type is
     @staticmethod
     def determine_part_type(actual_part_type):
@@ -676,18 +644,25 @@ class LDrawFile:
             return "configuration"
         return "part"
 
+    # TODO: move to varaibles to prevent list lookups
     def is_configuration(self):
         return self.part_type in ldraw_part_types.configuration_types
 
     # this allows shortcuts to be split into their individual parts if desired
     def is_like_model(self):
-        return self.is_model() or (ImportOptions.treat_shortcut_as_model and self.is_shortcut())
+        return self.is_model() or self.is_shortcut_model()
 
     def is_model(self):
         return self.part_type in ldraw_part_types.model_types
 
     def is_shortcut(self):
         return self.part_type in ldraw_part_types.shortcut_types
+
+    def is_shortcut_model(self):
+        return self.is_shortcut() and ImportOptions.treat_shortcut_as_model
+
+    def is_shortcut_part(self):
+        return self.is_shortcut() and not ImportOptions.treat_shortcut_as_model
 
     def is_part(self):
         return self.part_type in ldraw_part_types.part_types
@@ -709,6 +684,9 @@ class LDrawFile:
 
     def is_logo(self):
         return self.name in ldraw_part_types.logo_names
+
+    def is_geometry(self):
+        return self.is_subpart() or self.is_primitive()
 
     def has_geometry(self):
         return sum(self.geometry_commands.values()) > 0

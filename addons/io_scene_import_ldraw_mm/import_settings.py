@@ -1,3 +1,5 @@
+import os.path
+
 from .import_options import ImportOptions
 from .filesystem import FileSystem
 from .ldraw_colors import LDrawColor
@@ -5,12 +7,12 @@ from . import helpers
 
 
 class ImportSettings:
+    settings_path = os.path.join('config', 'ImportOptions.json')
     settings = None
 
     filesystem_defaults = FileSystem.defaults
     ldraw_color_defaults = LDrawColor.defaults
     import_options_defaults = ImportOptions.defaults
-
     lpub3d_defaults = {
         'overwrite_image': True,
         'transparent_background': False,
@@ -25,10 +27,19 @@ class ImportSettings:
         'blend_file': ''
     }
 
-    default_settings = {**filesystem_defaults,
-                        **ldraw_color_defaults,
-                        **import_options_defaults,
-                        **lpub3d_defaults}
+    default_settings = {
+        **filesystem_defaults,
+        **ldraw_color_defaults,
+        **import_options_defaults,
+        **lpub3d_defaults
+    }
+
+    @classmethod
+    def settings_dict(cls, key):
+        return {
+            "get": lambda self: cls.get_setting(key),
+            "set": lambda self, value: cls.set_setting(key, value),
+        }
 
     @classmethod
     def get_setting(cls, key):
@@ -45,15 +56,23 @@ class ImportSettings:
             return default
 
     @classmethod
+    def __setattr__(cls, key, value):
+        cls.settings[key] = value
+
+    @classmethod
+    def set_setting(cls, k, v):
+        cls.settings[k] = v
+
+    @classmethod
     def load_settings(cls):
-        cls.settings = helpers.read_json('config', 'ImportOptions.json', cls.default_settings)
+        cls.settings = helpers.read_json(cls.settings_path, cls.default_settings)
 
     @classmethod
     def save_settings(cls, has_settings):
         cls.settings = {}
         for k, v in cls.default_settings.items():
             cls.settings[k] = has_settings.get(k,v)
-        helpers.write_json('config', 'ImportOptions.json', cls.settings)
+        helpers.write_json('config', cls.settings)
 
     @classmethod
     def apply_settings(cls):

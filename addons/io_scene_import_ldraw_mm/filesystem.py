@@ -122,16 +122,26 @@ class FileSystem:
     defaults['use_archive_library'] = False
     use_archive_library = defaults['use_archive_library']
 
-    defaults['resolution'] = 'Standard'
+    resolution_choices = (
+        ("Low", "Low resolution primitives", "Import using low resolution primitives."),
+        ("Standard", "Standard primitives", "Import using standard resolution primitives."),
+        ("High", "High resolution primitives", "Import using high resolution primitives."),
+    )
+
+    defaults['resolution'] = 1
     resolution = defaults['resolution']
+
+    @staticmethod
+    def resolution_value():
+        return FileSystem.resolution_choices[FileSystem.resolution][0]
 
     search_dirs = []
     lowercase_paths = {}
 
     @classmethod
     def reset_caches(cls):
-        cls.search_dirs = []
-        cls.lowercase_paths = {}
+        cls.search_dirs.clear()
+        cls.lowercase_paths.clear()
 
     @staticmethod
     def locate_environment_file():
@@ -227,10 +237,10 @@ class FileSystem:
             path = os.path.join(root, "p")
             cls.append_search_path(path)
 
-            if cls.resolution == "High":
+            if cls.resolution_value() == "High":
                 path = os.path.join(root, "p", "48")
                 cls.append_search_path(path)
-            elif cls.resolution == "Low":
+            elif cls.resolution_value() == "Low":
                 path = os.path.join(root, "p", "8")
                 cls.append_search_path(path)
 
@@ -270,7 +280,10 @@ class FileSystem:
 
         for dir in cls.search_dirs:
             full_path = os.path.join(dir, part_path)
-            full_path = cls.lowercase_paths.get(full_path.lower()) or full_path
+            lc_path = full_path.lower()
+            if lc_path in cls.lowercase_paths:
+                full_path = cls.lowercase_paths.get(lc_path)
+
             if os.path.isfile(full_path):
                 return full_path
 

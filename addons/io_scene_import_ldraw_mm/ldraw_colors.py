@@ -9,39 +9,50 @@ try:
 except ImportError as e:
     import helpers
 
-Color = namedtuple("Color", "r g b")
-colors = [
-    Color(51, 51, 51),
-    Color(0, 51, 178),
-    Color(0, 127, 51),
-    Color(0, 181, 166),
-    Color(204, 0, 0),
-    Color(255, 51, 153),
-    Color(102, 51, 0),
-    Color(153, 153, 153),
-    Color(102, 102, 88),
-    Color(0, 128, 255),
-    Color(51, 255, 102),
-    Color(171, 253, 249),
-    Color(255, 0, 0),
-    Color(255, 176, 204),
-    Color(255, 229, 0),
-    Color(255, 255, 255),
+BlendColor = namedtuple("Color", "r g b")
+blend_colors = [
+    BlendColor(51, 51, 51),
+    BlendColor(0, 51, 178),
+    BlendColor(0, 127, 51),
+    BlendColor(0, 181, 166),
+    BlendColor(204, 0, 0),
+    BlendColor(255, 51, 153),
+    BlendColor(102, 51, 0),
+    BlendColor(153, 153, 153),
+    BlendColor(102, 102, 88),
+    BlendColor(0, 128, 255),
+    BlendColor(51, 255, 102),
+    BlendColor(171, 253, 249),
+    BlendColor(255, 0, 0),
+    BlendColor(255, 176, 204),
+    BlendColor(255, 229, 0),
+    BlendColor(255, 255, 255),
 ]
 
 
 class LDrawColor:
     defaults = {}
 
-    defaults['use_colour_scheme'] = 'lgeo'
+    use_colour_scheme_choices = (
+        ("lgeo", "Realistic colours", "Uses the LGEO colour scheme for realistic colours."),
+        ("ldraw", "Original LDraw colours", "Uses the standard LDraw colour scheme (LDConfig.ldr)."),
+        ("alt", "Alternate LDraw colours", "Uses the alternate LDraw colour scheme (LDCfgalt.ldr)."),
+        ("custom", "Custom LDraw colours", "Uses a user specified LDraw colour file.")
+    )
+
+    defaults['use_colour_scheme'] = 0
     use_colour_scheme = defaults['use_colour_scheme']
+
+    @staticmethod
+    def  use_colour_scheme_value():
+        return LDrawColor.use_colour_scheme_choices[LDrawColor.use_colour_scheme][0]
 
     __colors = {}
     __bad_color = None
 
     @classmethod
     def reset_caches(cls):
-        cls.__colors = {}
+        cls.__colors.clear()
         cls.__bad_color = None
 
     def __init__(self):
@@ -71,11 +82,122 @@ class LDrawColor:
         self.material_maxsize = None
 
     @classmethod
-    def parse_color(cls, _params):
+    def parse_color(cls, clean_line):
         color = LDrawColor()
-        color.parse_color_params(_params)
+        color.parse_color_params(clean_line)
         cls.__colors[color.code] = color
         return color.code
+
+    def parse_color_params(self, clean_line, linear=True):
+        # name CODE x VALUE v EDGE e required
+        # 0 !COLOUR Black CODE 0 VALUE #1B2A34 EDGE #2B4354
+
+        _params = helpers.get_params(clean_line)[2:]
+
+        name = _params[0]
+        self.name = name
+
+        # Tags are case-insensitive.
+        # https://www.ldraw.org/article/299
+        lparams = [x.lower() for x in _params]
+
+        i = lparams.index("code")
+        code = lparams[i + 1]
+        self.code = code
+
+        i = lparams.index("value")
+        value = lparams[i + 1]
+        rgb = self.__get_rgb_color_value(value, linear)
+        self.color = rgb
+        self.color_i = tuple(round(i * 255) for i in rgb)
+        self.color_hex = value
+        self.color_d = rgb + (1.0,)
+
+        i = lparams.index("edge")
+        edge = lparams[i + 1]
+        e_rgb = self.__get_rgb_color_value(edge, linear)
+        self.edge_color = e_rgb
+        self.edge_color_i = tuple(round(i * 255) for i in e_rgb)
+        self.edge_color_hex = edge
+        self.edge_color_d = e_rgb + (1.0,)
+
+        # [ALPHA a] [LUMINANCE l] [ CHROME | PEARLESCENT | RUBBER | MATTE_METALLIC | METAL | MATERIAL <params> ]
+        alpha = 255
+        if "alpha" in lparams:
+            i = lparams.index("alpha")
+            alpha = int(lparams[i + 1])
+        self.alpha = alpha / 255
+        self.color_a = rgb + (self.alpha,)
+
+        luminance = 0
+        if "luminance" in lparams:
+            i = lparams.index("luminance")
+            luminance = int(lparams[i + 1])
+        self.luminance = luminance
+
+        material_name = None
+        for _material in ["chrome", "pearlescent", "rubber", "matte_metallic", "metal"]:
+            if _material in lparams:
+                material_name = _material
+                break
+        self.material_name = material_name
+
+        # MATERIAL SPECKLE VALUE #898788 FRACTION 0.4               MINSIZE 1    MAXSIZE 3
+        # MATERIAL GLITTER VALUE #FFFFFF FRACTION 0.8 VFRACTION 0.6 MINSIZE 0.02 MAXSIZE 0.1
+        if "material" in lparams:
+            i = lparams.index("material")
+            material_parts = lparams[i:]
+
+            material_name = material_parts[1]
+            self.material_name = material_name
+
+            i = lparams.index("value")
+            material_value = lparams[i + 1]
+            material_rgba = self.__get_rgb_color_value(material_value, linear)
+            self.material_color = material_rgba
+            self.material_color_i = tuple(round(i * 255) for i in material_rgba)
+            self.material_color_hex = material_value
+
+            material_alpha = 255
+            if "alpha" in material_parts:
+                i = material_parts.index("alpha")
+                material_alpha = int(material_parts[i + 1])
+            self.material_alpha = material_alpha / 255
+
+            material_luminance = 0
+            if "luminance" in material_parts:
+                i = material_parts.index("luminance")
+                material_luminance = int(material_parts[i + 1])
+            self.material_luminance = material_luminance
+
+            material_minsize = 0.0
+            material_maxsize = 0.0
+            if "size" in material_parts:
+                i = material_parts.index("size")
+                material_minsize = float(material_parts[i + 1])
+                material_maxsize = float(material_parts[i + 1])
+
+            if "minsize" in material_parts:
+                i = material_parts.index("minsize")
+                material_minsize = float(material_parts[i + 1])
+
+            if "maxsize" in material_parts:
+                i = material_parts.index("maxsize")
+                material_maxsize = float(material_parts[i + 1])
+            self.material_minsize = material_minsize
+            self.material_maxsize = material_maxsize
+
+            material_fraction = 0.0
+            if "fraction" in material_parts:
+                i = material_parts.index("fraction")
+                material_fraction = float(material_parts[i + 1])
+            self.material_fraction = material_fraction
+
+            material_vfraction = 0.0
+            if "vfraction" in material_parts:
+                i = material_parts.index("vfraction")
+                material_vfraction = float(material_parts[i + 1])
+            self.material_vfraction = material_vfraction
 
     # get colors loaded from ldconfig if they exist
     # otherwise convert the color code to a usable color and return that
@@ -131,8 +253,8 @@ class LDrawColor:
             # A = (nb - 256) >> 4
             # B = (nb - 256) & 0x0F
 
-            c1 = colors[n1]
-            c2 = colors[n2]
+            c1 = blend_colors[n1]
+            c2 = blend_colors[n2]
 
             # fc1 = Color(c1.r / 255, c1.g / 255, c1.b / 255)
             # fc2 = Color(c2.r / 255, c2.g / 255, c2.b / 255)
@@ -162,7 +284,7 @@ class LDrawColor:
             gb = (g1 + g2) // 2
             bb = (b1 + b2) // 2
 
-            bcolor = Color(rb, gb, bb)
+            bcolor = BlendColor(rb, gb, bb)
             # bicolor = Color(rb / 255, gb / 255, bb / 255)
             hbcolor = f"0x{hex(bcolor.r)[2:]}{hex(bcolor.g)[2:]}{hex(bcolor.b)[2:]}"
             hex_digits = cls.__extract_hex_digits(hbcolor)
@@ -211,8 +333,7 @@ class LDrawColor:
                 alpha = f"ALPHA {alpha_val}"
 
             clean_line = f"0 !COLOUR {color_code} CODE {color_code} VALUE #{hex_digits} EDGE #333333 {alpha}"
-            _params = helpers.get_params(clean_line, "0 !COLOUR ")
-            color_code = cls.parse_color(_params)
+            color_code = cls.parse_color(clean_line)
             new_color = cls.__colors[color_code]
         except Exception as e:
             print(e)
@@ -223,8 +344,7 @@ class LDrawColor:
     def get_bad_color(cls, color_code):
         if cls.__bad_color is None:
             clean_line = f"0 !COLOUR Bad_Color CODE {color_code} VALUE #FF0000 EDGE #00FF00"
-            _params = helpers.get_params(clean_line, "0 !COLOUR ")
-            color_code = cls.parse_color(_params)
+            color_code = cls.parse_color(clean_line)
             cls.__bad_color = cls.__colors[color_code]
         print(f"Bad color code: {color_code}")
         return cls.__colors[cls.__bad_color.code]
@@ -355,161 +475,12 @@ class LDrawColor:
             cls.__overwrite_color(496, (163 / 255, 162 / 255, 164 / 255))
             cls.__overwrite_color(503, (199 / 255, 193 / 255, 183 / 255))
             cls.__overwrite_color(504, (137 / 255, 135 / 255, 136 / 255))
-            cls.__overwrite_color(511, (250 / 255, 250 / 255, 250 / 255))         
+            cls.__overwrite_color(511, (250 / 255, 250 / 255, 250 / 255))
 
-
-    @classmethod
-    def lighten_rgba(cls, color, scale):
-        # Moves the linear RGB values closer to white
-        # scale = 0 means full white
-        # scale = 1 means color stays same
-        color = (
-            (1.0 - color[0]) * scale,
-            (1.0 - color[1]) * scale,
-            (1.0 - color[2]) * scale,
-            color[3]
-        )
-        return (
-            helpers.clamp(1.0 - color[0], 0.0, 1.0),
-            helpers.clamp(1.0 - color[1], 0.0, 1.0),
-            helpers.clamp(1.0 - color[2], 0.0, 1.0),
-            color[3]
-        )
-
-    def parse_color_params(self, _params, linear=True):
-        # name CODE x VALUE v EDGE e required
-        # 0 !COLOUR Black CODE 0 VALUE #1B2A34 EDGE #2B4354
-
-        name = _params[0]
-        self.name = name
-
-        # Tags are case-insensitive.
-        # https://www.ldraw.org/article/299
-        lparams = [x.lower() for x in _params]
-
-        i = lparams.index("code")
-        code = lparams[i + 1]
-        self.code = code
-
-        i = lparams.index("value")
-        value = lparams[i + 1]
-        rgb = self.__get_rgb_color_value(value, linear)
-        self.color = rgb
-        self.color_i = tuple(round(i * 255) for i in rgb)
-        self.color_hex = value
-        self.color_d = rgb + (1.0,)
-
-        i = lparams.index("edge")
-        edge = lparams[i + 1]
-        e_rgb = self.__get_rgb_color_value(edge, linear)
-        self.edge_color = e_rgb
-        self.edge_color_i = tuple(round(i * 255) for i in e_rgb)
-        self.edge_color_hex = edge
-        self.edge_color_d = e_rgb + (1.0,)
-
-        # [ALPHA a] [LUMINANCE l] [ CHROME | PEARLESCENT | RUBBER | MATTE_METALLIC | METAL | MATERIAL <params> ]
-        alpha = 255
-        if "alpha" in lparams:
-            i = lparams.index("alpha")
-            alpha = int(lparams[i + 1])
-        self.alpha = alpha / 255
-        self.color_a = rgb + (self.alpha,)
-
-        luminance = 0
-        if "luminance" in lparams:
-            i = lparams.index("luminance")
-            luminance = int(lparams[i + 1])
-        self.luminance = luminance
-
-        material_name = None
-        for _material in ["chrome", "pearlescent", "rubber", "matte_metallic", "metal"]:
-            if _material in lparams:
-                material_name = _material
-                break
-        self.material_name = material_name
-
-        # MATERIAL SPECKLE VALUE #898788 FRACTION 0.4               MINSIZE 1    MAXSIZE 3
-        # MATERIAL GLITTER VALUE #FFFFFF FRACTION 0.8 VFRACTION 0.6 MINSIZE 0.02 MAXSIZE 0.1
-        if "material" in lparams:
-            i = lparams.index("material")
-            material_parts = lparams[i:]
-
-            material_name = material_parts[1]
-            self.material_name = material_name
-
-            i = lparams.index("value")
-            material_value = lparams[i + 1]
-            material_rgba = self.__get_rgb_color_value(material_value, linear)
-            self.material_color = material_rgba
-            self.material_color_i = tuple(round(i * 255) for i in material_rgba)
-            self.material_color_hex = material_value
-
-            material_alpha = 255
-            if "alpha" in material_parts:
-                i = material_parts.index("alpha")
-                material_alpha = int(material_parts[i + 1])
-            self.material_alpha = material_alpha / 255
-
-            material_luminance = 0
-            if "luminance" in material_parts:
-                i = material_parts.index("luminance")
-                material_luminance = int(material_parts[i + 1])
-            self.material_luminance = material_luminance
-
-            material_minsize = 0.0
-            material_maxsize = 0.0
-            if "size" in material_parts:
-                i = material_parts.index("size")
-                material_minsize = float(material_parts[i + 1])
-                material_maxsize = float(material_parts[i + 1])
-
-            if "minsize" in material_parts:
-                i = material_parts.index("minsize")
-                material_minsize = float(material_parts[i + 1])
-
-            if "maxsize" in material_parts:
-                i = material_parts.index("maxsize")
-                material_maxsize = float(material_parts[i + 1])
-            self.material_minsize = material_minsize
-            self.material_maxsize = material_maxsize
-
-            material_fraction = 0.0
-            if "fraction" in material_parts:
-                i = material_parts.index("fraction")
-                material_fraction = float(material_parts[i + 1])
-            self.material_fraction = material_fraction
-
-            material_vfraction = 0.0
-            if "vfraction" in material_parts:
-                i = material_parts.index("vfraction")
-                material_vfraction = float(material_parts[i + 1])
-            self.material_vfraction = material_vfraction
-
-    # wp-content/plugins/woocommerce/includes/wc-formatting-functions.php
-    # line 779
-    @staticmethod
-    def __is_dark(color):
-        r = color[0]
-        g = color[1]
-        b = color[2]
-
-        # Measure the perceived brightness of color
-        brightness = math.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b)
-
-        # Dark colors have white lines
-        return brightness < 0.02
-
-    @staticmethod
-    def __is_int(s):
-        try:
-            int(s)
-            return True
-        except ValueError:
-            return False
 
     @classmethod
     def __get_rgb_color_value(cls, value, linear=True):
-        hex_digits = cls.__extract_hex_digits(value)[0:6]
+        hex_digits = cls.__extract_hex_digits(value)[0:6]  # skip alpha value if hex_digits length == 8
         if linear:
             return cls.__hex_digits_to_linear_rgb(hex_digits)
         else:
@@ -537,6 +508,12 @@ class LDrawColor:
         linear_rgb = cls.__srgb_to_linear_rgb(srgb)
         return linear_rgb[0], linear_rgb[1], linear_rgb[2]
 
+    @classmethod
+    def __hex_digits_to_srgb(cls, hex_digits):
+        # String is "RRGGBB" format
+        int_tuple = cls.__hex_to_rgb(hex_digits)
+        return cls.__rgb_to_srgb(int_tuple)
+
     @staticmethod
     def __hex_to_rgb(hex_digits):
         return struct.unpack("BBB", bytes.fromhex(hex_digits))
@@ -545,12 +522,6 @@ class LDrawColor:
     def __rgb_to_srgb(ints):
         srgb = tuple([val / 255 for val in ints])
         return srgb
-
-    @classmethod
-    def __hex_digits_to_srgb(cls, hex_digits):
-        # String is "RRGGBB" format
-        int_tuple = cls.__hex_to_rgb(hex_digits)
-        return cls.__rgb_to_srgb(int_tuple)
 
     @classmethod
     def __srgb_to_linear_rgb(cls, srgb_color):
@@ -566,6 +537,38 @@ class LDrawColor:
         if value < 0.04045:
             return value / 12.92
         return ((value + 0.055) / 1.055) ** 2.4
+
+    @staticmethod
+    def lighten_rgba(color, scale):
+        # Moves the linear RGB values closer to white
+        # scale = 0 means full white
+        # scale = 1 means color stays same
+        color = (
+            (1.0 - color[0]) * scale,
+            (1.0 - color[1]) * scale,
+            (1.0 - color[2]) * scale,
+            color[3]
+        )
+        return (
+            helpers.clamp(1.0 - color[0], 0.0, 1.0),
+            helpers.clamp(1.0 - color[1], 0.0, 1.0),
+            helpers.clamp(1.0 - color[2], 0.0, 1.0),
+            color[3]
+        )
+
+    # wp-content/plugins/woocommerce/includes/wc-formatting-functions.php
+    # line 779
+    @staticmethod
+    def __is_dark(color):
+        r = color[0]
+        g = color[1]
+        b = color[2]
+
+        # Measure the perceived brightness of color
+        brightness = math.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b)
+
+        # Dark colors have white lines
+        return brightness < 0.02
 
 
 # https://stackoverflow.com/a/74601731

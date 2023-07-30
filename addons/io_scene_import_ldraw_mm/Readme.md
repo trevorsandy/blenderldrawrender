@@ -20,8 +20,15 @@ well. If you have LSynth parts installed, it will import those as well.
 BFC meta commands are processed by default. Don't recalculate normals, as this will undo all BFC processing that might 
 be done. CERTIFY and NOCERTIFY parts are both handled properly.
 
-Materials were taken almost wholesale from TobyLobster's plugin. I added my own glass material that was taken from [a 
-BlenderArtists thread](https://blenderartists.org/t/realistic-glass-in-eevee/1149937/19).
+Materials were originally taken from from TobyLobster's plugin, but I've since made my changes and tweaks. 
+One such addition is a glass material that was taken from [a BlenderArtists thread](https://blenderartists.org/t/realistic-glass-in-eevee/1149937/19).  
+
+**A note on materials**  
+Occasionally, a shader node will be removed from one version of Blender to the next, breaking materials that rely on them.
+In those cases, I will do my best to keep a working collection of materials up to that point for the old version, but I won't focus on them for 
+updates and tweaks unless something needs to be fixed.  
+Blender's built-in glTF exporter doesn't export the materials correctly because of how complex the material node setup is. I am exploring other ways
+to handle the materials. I'm leaning toward creating a simplified version of them for this task, but I haven't settled on anything just yet.
 
 You are able to choose the logo you want to show on studs, or no logo or stud at all.
 
@@ -157,7 +164,8 @@ be scaled to adjust to gaps between parts.
 **Smooth type:** Use an edge split modifier to smooth part faces, split edges during mesh processing, or use auto smooth.  
 **Shade smooth:**  Use flat or smooth shading for part faces.  
 **Recalculate normals:** Recalculate normals during import to ensure all normals face outside. Completely overwrites any 
-BFC processing. It is recommended to keep unchecked if processing BFC commands is checked
+BFC processing. It is recommended to keep unchecked if processing BFC commands is checked  
+**Triangulate faces:** Triangulate the mesh during import. Turns quads and ngons into tris.  
 
 **Extras**
 
@@ -165,14 +173,6 @@ BFC processing. It is recommended to keep unchecked if processing BFC commands i
 **Treat shortcut parts as models:** Treat shortcut parts as if they were models by splitting them into their constituent
 parts instead of merging them.  
 **No studs:** Don't import studs. Not particularly useful but is neat to see.  
-**Preserve file structure:** Don't merge the constituent subfiles into the top level part. This is helpful when you want
-to see how a part is made.
-
-**Notes about Preserve file structure**  
-It is my understanding that LDraw uses a shear matrix to transform vertex data. When transforming the actual vertices, 
-Blender has no problem with this. But it appears that a shear matrix can't be applied on the object level in the same 
-way, so some parts that use that technique won't render properly. There may be something that can be done to mitigate 
-this, but I haven't been unable to figure it out.
 
 Properly rendered
 ![Examples of correct render](examples/import/preserve_file_structure_3623.jpg)
