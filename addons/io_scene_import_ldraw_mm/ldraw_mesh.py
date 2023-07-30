@@ -4,6 +4,7 @@ import mathutils
 
 from .blender_materials import BlenderMaterials
 from .import_options import ImportOptions
+from .ldraw_color import LDrawColor
 from . import special_bricks
 from . import strings
 from . import helpers
@@ -14,15 +15,15 @@ def get_mesh(key):
     return bpy.data.meshes.get(key)
 
 
-def create_mesh(ldraw_node, key, geometry_data, color_code):
+def create_mesh(key, geometry_data, color_code):
     mesh = get_mesh(key)
     if mesh is None:
         mesh = bpy.data.meshes.new(key)
         mesh.name = key
-        mesh[strings.ldraw_filename_key] = ldraw_node.file.name
+        mesh[strings.ldraw_filename_key] = geometry_data.file.name
 
-        __process_bmesh(ldraw_node, mesh, geometry_data, color_code)
-        __process_mesh_edges(ldraw_node, key, geometry_data)
+        __process_bmesh(mesh, geometry_data, color_code)
+        __process_mesh_edges(key, geometry_data)
         __process_mesh_sharp_edges(mesh, geometry_data)
         __process_mesh(mesh)
 
@@ -33,8 +34,8 @@ def create_mesh(ldraw_node, key, geometry_data, color_code):
 # https://blender.stackexchange.com/questions/50160/scripting-low-level-join-meshes-elements-hopefully-with-bmesh
 # https://blender.stackexchange.com/questions/188039/how-to-join-only-two-objects-to-create-a-new-object-using-python
 # https://blender.stackexchange.com/questions/23905/select-faces-depending-on-material
-def __process_bmesh(ldraw_node, mesh, geometry_data, color_code):
-    bm = __process_bmesh_faces(ldraw_node, geometry_data, mesh, color_code)
+def __process_bmesh(mesh, geometry_data, color_code):
+    bm = __process_bmesh_faces(mesh, geometry_data, color_code)
     helpers.ensure_bmesh(bm)
     __clean_bmesh(bm)
     __process_bmesh_edges(bm, geometry_data)
@@ -95,22 +96,48 @@ def __process_bmesh_edges(bm, geometry_data):
         bmesh.ops.split_edges(bm, edges=list(edges))
 
 
-def __process_bmesh_faces(ldraw_node, geometry_data, mesh, color_code):
+def __process_bmesh_faces(mesh, geometry_data, color_code):
     bm = bmesh.new()
+
+    vertex_colors = None
+    if ImportOptions.color_strategy_value() == "vertex_colors":
+        # https://blender.stackexchange.com/a/280720
+        """
+        Vertex        Byte Color    bm.verts.layers.color
+        Vertex        Float Color   bm.verts.layers.float_color
+        Face Corner   Byte Color    bm.loops.layers.color
+        Face Corner   Float Color   bm.loops.layers.float_color
+        """
+        vertex_colors = bm.loops.layers.color.new("LDraw Colors")
+
+        if bpy.app.version < (3, 4):
+            ...
+            # seems to pick them without having to set them as active
+            # mesh.attributes.active = mesh.attributes[vertex_colors.name]
+        else:
+            mesh.attributes.active_color_name = vertex_colors.name
 
     for face_data in geometry_data.face_data:
         verts = [bm.verts.new(vertex) for vertex in face_data.vertices]
         face = bm.faces.new(verts)
 
-        part_slopes = special_bricks.get_part_slopes(ldraw_node.file.name)
-        parts_cloth = special_bricks.get_parts_cloth(ldraw_node.file.name)
+        c = color_code if face_data.color_code == "16" else face_data.color_code
+
+        if ImportOptions.color_strategy_value() == "vertex_colors":
+            color = LDrawColor.get_color(c)
+            for loop in face.loops:
+                loop[vertex_colors] = color.color_a
+
+        part_slopes = special_bricks.get_part_slopes(geometry_data.file.name)
+        parts_cloth = special_bricks.get_parts_cloth(geometry_data.file.name)
         material = BlenderMaterials.get_material(
-            color_code=color_code if face_data.color_code == "16" else face_data.color_code,
+            color_code=c,
+            vertex_colors=vertex_colors,
+            use_backface_culling=geometry_data.bfc_certified,
             part_slopes=part_slopes,
             parts_cloth=parts_cloth,
             texmap=face_data.texmap,
             pe_texmap=face_data.pe_texmap,
-            use_backface_culling=ldraw_node.bfc_certified
         )
 
         material_index = mesh.materials.find(material.name)
@@ -142,7 +169,7 @@ def __clean_bmesh(bm):
 
 # for edge_data in geometry_data.line_data:
 # for vertex in edge_data.vertices[0:2]:  # in case line_data is being used since it has 4 verts
-def __process_mesh_edges(ldraw_node, key, geometry_data):
+def __process_mesh_edges(key, geometry_data):
     e_verts = []
     e_edges = []
     e_faces = []
@@ -156,7 +183,7 @@ def __process_mesh_edges(ldraw_node, key, geometry_data):
             i += 1
         e_faces.append(face_indices)
 
-    __create_edge_mesh(ldraw_node, key, e_edges, e_faces, e_verts)
+    __create_edge_mesh(key, geometry_data, e_edges, e_faces, e_verts)
 
 
 def __process_mesh_sharp_edges(mesh, geometry_data):
@@ -184,12 +211,12 @@ def __process_mesh(mesh):
         mesh.transform(matrices.gap_scale_matrix)
 
 
-def __create_edge_mesh(ldraw_node, key, e_edges, e_faces, e_verts):
+def __create_edge_mesh(key, geometry_data, e_edges, e_faces, e_verts):
     if ImportOptions.import_edges:
         edge_key = f"e_{key}"
         edge_mesh = bpy.data.meshes.new(edge_key)
         edge_mesh.name = edge_key
-        edge_mesh[strings.ldraw_filename_key] = ldraw_node.file.name
+        edge_mesh[strings.ldraw_filename_key] = geometry_data.file.name
 
         edge_mesh.from_pydata(e_verts, e_edges, e_faces)
         helpers.finish_mesh(edge_mesh)

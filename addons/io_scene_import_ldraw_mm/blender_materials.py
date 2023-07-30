@@ -6,6 +6,7 @@ import uuid
 from .definitions import APP_ROOT
 from .ldraw_color import LDrawColor
 from .filesystem import FileSystem
+from .import_options import ImportOptions
 from . import strings
 
 
@@ -43,14 +44,14 @@ class BlenderMaterials:
             node_group.use_fake_user = True
 
     @classmethod
-    def get_material(cls, color_code, use_edge_color=False, part_slopes=None, parts_cloth=False, texmap=None, pe_texmap=None, use_backface_culling=True, easy_key=False):
+    def get_material(cls, color_code, vertex_colors=None, use_backface_culling=True, part_slopes=None, parts_cloth=False, texmap=None, pe_texmap=None, easy_key=False):
         color = LDrawColor.get_color(color_code)
         use_backface_culling = use_backface_culling is True
 
         if easy_key:
             key = color_code
         else:
-            key = cls.__build_key(color, use_edge_color, part_slopes, parts_cloth, texmap, pe_texmap, use_backface_culling)
+            key = cls.__build_key(color, use_backface_culling, part_slopes, parts_cloth, texmap, pe_texmap)
 
         # Reuse current material if it exists, otherwise create a new material
         material = bpy.data.materials.get(key)
@@ -60,29 +61,52 @@ class BlenderMaterials:
         material = cls.__create_node_based_material(
             key,
             color,
-            use_edge_color=use_edge_color,
+            vertex_colors,
+            use_backface_culling=use_backface_culling,
             part_slopes=part_slopes,
             parts_cloth=parts_cloth,
             texmap=texmap,
             pe_texmap=pe_texmap,
-            use_backface_culling=use_backface_culling,
         )
         return material
 
     @classmethod
-    def __build_key(cls, color, use_edge_color, part_slopes, parts_cloth, texmap, pe_texmap, use_backface_culling):
-        _key = (color.name, color.code, use_backface_culling,)
+    def __build_key(cls, color, use_backface_culling, part_slopes, parts_cloth, texmap, pe_texmap):
+        _key = ()
 
-        if LDrawColor.use_colour_scheme:
-            _key += ("alt",)
-        if use_edge_color:
-            _key += ("edge",)
+        if ImportOptions.color_strategy_value() == "vertex_colors":
+            # key is everything but the color
+            _key += (
+                color.alpha,
+                color.luminance,
+                color.material_name,
+                color.material_color,
+                color.material_color_i,
+                color.material_color_hex,
+                color.material_alpha,
+                color.material_luminance,
+                color.material_fraction,
+                color.material_vfraction,
+                color.material_size,
+                color.material_minsize,
+                color.material_maxsize,
+            )
+        else:
+            _key += (color.name, color.code,)
+
+        _key += (use_backface_culling,)
+
+        _key += (LDrawColor.use_colour_scheme_value(),)
+
         if part_slopes is not None:
             _key += (part_slopes,)
+
         if parts_cloth:
             _key += ("cloth",)
+
         if texmap is not None:
             _key += (texmap.method, texmap.texture, texmap.glossmap,)
+
         if pe_texmap is not None:
             _key += (pe_texmap.texture,)
 
@@ -94,7 +118,7 @@ class BlenderMaterials:
         return key
 
     @classmethod
-    def __create_node_based_material(cls, key, color, use_edge_color=False, part_slopes=None, parts_cloth=False, texmap=None, pe_texmap=None, use_backface_culling=True):
+    def __create_node_based_material(cls, key, color, vertex_colors, use_backface_culling=True, part_slopes=None, parts_cloth=False, texmap=None, pe_texmap=None):
         material = bpy.data.materials.new(key)
         material.use_fake_user = True
         material.use_nodes = True
@@ -107,43 +131,33 @@ class BlenderMaterials:
 
         out = cls.__node_output_material(nodes, 200, 0)
 
-        new_way = True  # slower but color codes are encompassed in their own node groups
-        new_way = False  # faster but color codes are directly created within the material
-        if new_way:
-            group_name = cls.__node_group_color_code(color, 200, 0, use_edge_color)
-            node = cls.__node_group(group_name, nodes, 0, 0)
+        if ImportOptions.color_strategy_value() == "vertex_colors":
+            node, vertex_color_node, mix_rgb_node = cls.__node_group_vertex_color_code(color, vertex_colors, nodes, links, 200, 0)
         else:
-            node, rgb_node, mix_rgb_node = cls.__node_group_color_code_old(color, nodes, links, 200, 0, use_edge_color)
-        links.new(node.outputs["Shader"], out.inputs["Surface"])
-
-        # https://wiki.ldraw.org/wiki/Color_24
-        if use_edge_color:
-            diff_color = color.edge_color_d
-            material.diffuse_color = diff_color
-            material[strings.ldraw_color_code_key] = "24"
-            material[strings.ldraw_color_name_key] = color.name
-        else:
-            diff_color = color.color_a
+            node, rgb_node, mix_rgb_node = cls.__node_group_color_code(color, nodes, links, 200, 0)
+            diff_color = color.linear_color_a
             material.diffuse_color = diff_color
             material[strings.ldraw_color_code_key] = color.code
             material[strings.ldraw_color_name_key] = color.name
 
-            is_transparent = color.alpha < 1.0
-            if is_transparent:
-                material.use_screen_refraction = True
-                material.refraction_depth = 0.5
+        links.new(node.outputs["Shader"], out.inputs["Surface"])
 
-            if part_slopes is not None and len(part_slopes) > 0:
-                cls.__create_slope(nodes, links, node, -200, -220, part_slopes)
+        is_transparent = color.alpha < 1.0
+        if is_transparent:
+            material.use_screen_refraction = True
+            material.refraction_depth = 0.5
 
-            if texmap is not None or pe_texmap is not None:
-                if new_way:
-                    cls.__create_texmap(nodes, links, -460, 180, texmap, pe_texmap, node.inputs["Texture Color"], node.inputs["Texture Alpha"], node.inputs["Specular"])
-                else:
-                    cls.__create_texmap(nodes, links, -500, -140, texmap, pe_texmap, mix_rgb_node.inputs["Color2"], mix_rgb_node.inputs["Fac"], node.inputs["Specular"])
+        if part_slopes is not None and len(part_slopes) > 0:
+            cls.__create_slope(nodes, links, node, -200, -220, part_slopes)
 
-            if parts_cloth:
-                cls.__create_cloth(nodes, links, node, -200, -100)
+        if parts_cloth:
+            cls.__create_cloth(nodes, links, node, -200, -100)
+
+        if texmap is not None:
+            cls.__create_texmap(nodes, links, -500, -140, texmap, mix_rgb_node.inputs["Color2"], mix_rgb_node.inputs["Fac"], node.inputs["Specular"])
+
+        if pe_texmap is not None:
+            cls.__create_texture(nodes, links, -500, -140, pe_texmap, mix_rgb_node.inputs["Color2"], mix_rgb_node.inputs["Fac"])
 
         return material
 
@@ -192,18 +206,21 @@ class BlenderMaterials:
         return node
 
     @classmethod
-    def __node_group_color_code_old(cls, color, nodes, links, x, y, use_edge_color=False):
-        if use_edge_color:
-            diff_color = color.edge_color_d
-        else:
-            diff_color = color.color_d
+    def __node_vertex_color(cls, nodes, x, y):
+        node = nodes.new("ShaderNodeVertexColor")
+        node.location = x, y
+        return node
+
+    @classmethod
+    def __node_group_color_code(cls, color, nodes, links, x, y):
+        diff_color = color.linear_color_d
         rgb_node = cls.__node_rgb(nodes, x + -600, y + 60)
         rgb_node.outputs["Color"].default_value = diff_color
 
         mix_rgb_node = cls.__node_mix_rgb(nodes, x + -400, y + 0)
         mix_rgb_node.inputs["Fac"].default_value = 0
 
-        node = cls.__node_color_code_material(nodes, color, x + -200, y + 0, use_edge_color)
+        node = cls.__node_color_code_material(nodes, color, x + -200, y + 0)
 
         links.new(rgb_node.outputs["Color"], mix_rgb_node.inputs["Color1"])
         links.new(mix_rgb_node.outputs["Color"], node.inputs["Color"])
@@ -211,61 +228,23 @@ class BlenderMaterials:
         return node, rgb_node, mix_rgb_node
 
     @classmethod
-    def __node_group_color_code(cls, color, x, y, use_edge_color=False):
-        group_name = color.code
-        if group_name not in bpy.data.node_groups:
-            node_group = cls.__node_tree(group_name)
+    def __node_group_vertex_color_code(cls, color, vertex_colors, nodes, links, x, y):
+        vertex_color_node = cls.__node_vertex_color(nodes, x + -600, y + 60)
+        vertex_color_node.layer_name = vertex_colors.name
 
-            node_tree_input = cls.__node_group_input(node_group.nodes, x + -600, y + -200)
-            node_tree_output = cls.__node_group_output(node_group.nodes, x, y)
+        mix_rgb_node = cls.__node_mix_rgb(nodes, x + -400, y + 0)
+        mix_rgb_node.inputs["Fac"].default_value = 0
 
-            node_group.inputs.new("NodeSocketColor", "Texture Color")
+        node = cls.__node_color_code_material(nodes, color, x + -200, y + 0)
 
-            node_group.inputs.new("NodeSocketFloatFactor", "Texture Alpha")
-            node_group.inputs["Texture Alpha"].default_value = 0.0
-            node_group.inputs["Texture Alpha"].min_value = 0.0
-            node_group.inputs["Texture Alpha"].max_value = 1.0
+        links.new(vertex_color_node.outputs["Color"], mix_rgb_node.inputs["Color1"])
+        links.new(mix_rgb_node.outputs["Color"], node.inputs["Color"])
 
-            node_group.inputs.new("NodeSocketFloatFactor", "Specular")
-            node_group.inputs["Specular"].default_value = 0.5
-            node_group.inputs["Specular"].min_value = 0.0
-            node_group.inputs["Specular"].max_value = 1.0
-
-            node_group.inputs.new("NodeSocketVectorDirection", "Normal")
-            node_group.inputs["Normal"].min_value = 0.0
-            node_group.inputs["Normal"].max_value = 1.0
-
-            node_group.outputs.new("NodeSocketShader", "Shader")
-
-            if use_edge_color:
-                diff_color = color.edge_color_d
-            else:
-                diff_color = color.color_d
-            rgb_node = cls.__node_rgb(node_group.nodes, x + -600, y + 60)
-            rgb_node.outputs["Color"].default_value = diff_color
-
-            mix_rgb_node = cls.__node_mix_rgb(node_group.nodes, x + -400, y + 0)
-            mix_rgb_node.inputs["Fac"].default_value = 0
-
-            color_code_node = cls.__node_color_code_material(node_group.nodes, color, x + -200, y + 0, use_edge_color)
-
-            node_group.links.new(rgb_node.outputs["Color"], mix_rgb_node.inputs["Color1"])
-            node_group.links.new(node_tree_input.outputs["Texture Color"], mix_rgb_node.inputs["Color2"])
-            node_group.links.new(node_tree_input.outputs["Texture Alpha"], mix_rgb_node.inputs["Fac"])
-            node_group.links.new(mix_rgb_node.outputs["Color"], color_code_node.inputs["Color"])
-            node_group.links.new(node_tree_input.outputs["Specular"], color_code_node.inputs["Specular"])
-            node_group.links.new(node_tree_input.outputs["Normal"], color_code_node.inputs["Normal"])
-            node_group.links.new(color_code_node.outputs["Shader"], node_tree_output.inputs["Shader"])
-
-            group_name = node_group.name
-        return group_name
+        return node, vertex_color_node, mix_rgb_node
 
     @classmethod
-    def __node_color_code_material(cls, nodes, color, x, y, use_edge_color=False):
-        if use_edge_color:
-            is_transparent = False
-        else:
-            is_transparent = color.alpha < 1.0
+    def __node_color_code_material(cls, nodes, color, x, y):
+        is_transparent = color.alpha < 1.0
 
         if color.name == "Milky_White":
             node = cls.__node_lego_milky_white(nodes, x, y)
@@ -324,20 +303,18 @@ class BlenderMaterials:
         return node
 
     @classmethod
-    def __create_texmap(cls, nodes, links, x, y, texmap, pe_texmap, color_input, alpha_input, specular_input):
-        image_name = None
-        if texmap is not None:
-            image_name = texmap.texture
-        elif pe_texmap is not None:
-            image_name = pe_texmap.texture
+    def __create_texture(cls, nodes, links, x, y, texmap, color_input, alpha_input):
+        image_name = texmap.texture
         if image_name is not None:
             texmap_image = cls.__node_tex_image_closest_clip(nodes, x, y, image_name, "sRGB")
             links.new(texmap_image.outputs["Color"], color_input)
             links.new(texmap_image.outputs["Alpha"], alpha_input)
 
-        image_name = None
-        if texmap is not None:
-            image_name = texmap.glossmap
+    @classmethod
+    def __create_texmap(cls, nodes, links, x, y, texmap, color_input, alpha_input, specular_input):
+        cls.__create_texture(nodes, links, x, y, texmap, color_input, alpha_input)
+
+        image_name = texmap.glossmap
         if image_name is not None:
             glossmap_image = cls.__node_tex_image_closest_clip(nodes, x, y - 280, image_name, "Non-Color")
             links.new(glossmap_image.outputs["Color"], specular_input)

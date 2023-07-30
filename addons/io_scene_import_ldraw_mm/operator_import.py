@@ -184,6 +184,13 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         items=ImportOptions.gap_scale_strategy_choices,
     )
 
+    color_strategy: bpy.props.EnumProperty(
+        name="Color strategy",
+        description="How to color parts",
+        **ImportSettings.settings_dict('color_strategy'),
+        items=ImportOptions.color_strategy_choices,
+    )
+
     no_studs: bpy.props.BoolProperty(
         name="No studs",
         description="Don't import studs",
@@ -461,6 +468,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
             self.display_logo            = IMPORT_OT_do_ldraw_import.prefs.get("display_logo", self.display_logo)
             self.chosen_logo             = IMPORT_OT_do_ldraw_import.prefs.get("chosen_logo", self.chosen_logo)
 
+            self.color_strategy          = IMPORT_OT_do_ldraw_import.prefs.get("color_strategy", self.color_strategy)
             self.import_scale            = IMPORT_OT_do_ldraw_import.prefs.get("import_scale", self.import_scale)
             self.parent_to_empty         = IMPORT_OT_do_ldraw_import.prefs.get("parent_to_empty", self.parent_to_empty)
             self.make_gaps               = IMPORT_OT_do_ldraw_import.prefs.get("make_gaps", self.make_gaps)
@@ -525,6 +533,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
             IMPORT_OT_do_ldraw_import.prefs["display_logo"]            = self.display_logo
             IMPORT_OT_do_ldraw_import.prefs["chosen_logo"]             = self.chosen_logo
 
+            IMPORT_OT_do_ldraw_import.prefs["color_strategy"]          = self.color_strategy
             IMPORT_OT_do_ldraw_import.prefs["import_scale"]            = self.import_scale
             IMPORT_OT_do_ldraw_import.prefs["parent_to_empty"]         = self.parent_to_empty
             IMPORT_OT_do_ldraw_import.prefs["make_gaps"]               = self.make_gaps
@@ -645,6 +654,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         box.prop(self, "prefer_unofficial")
         box.prop(self, "use_colour_scheme", expand=True)
         box.prop(self, "resolution", expand=True)
+        box.prop(self, "color_strategy", expand=True)
         box.prop(self, "display_logo")
         box.prop(self, "chosen_logo")
         box.prop(self, "use_freestyle_edges")

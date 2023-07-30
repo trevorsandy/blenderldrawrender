@@ -1,6 +1,6 @@
 import bpy
 import bmesh
-# blen_ld_ren_mod
+# lpub3d_mod
 from mathutils import Vector
 from mathutils import Euler
 # mod_end
@@ -12,7 +12,7 @@ from .ldraw_node import LDrawNode
 from .filesystem import FileSystem
 from .ldraw_color import LDrawColor
 from . import blender_camera
-# blen_ld_ren_mod
+# lpub3d_mod
 from . import blender_light
 # mod_end
 
@@ -22,13 +22,13 @@ from . import group
 from . import ldraw_meta
 from . import ldraw_object
 from . import matrices
-# blen_ld_ren_mod
+# lpub3d_mod
 from . import ldraw_props
 # mod_end
 
 
 def do_import(filepath):
-    # blen_ld_ren_mod
+    # lpub3d_mod
     #print(filepath)  # TODO: multiple filepaths?
     # mod_end
 
@@ -58,13 +58,16 @@ def do_import(filepath):
     root_node = LDrawNode()
     root_node.is_root = True
     root_node.file = ldraw_file
+
+    group.groups_setup(root_node)
+
     # return root_node.load()
     obj = root_node.load()
 
     # s = {str(k): v for k, v in sorted(LDrawNode.geometry_datas2.items(), key=lambda ele: ele[1], reverse=True)}
     # helpers.write_json("gs2.json", s, indent=4)
 
-    # blen_ld_ren_mod
+    # lpub3d_mod
     if not ldraw_object.top_empty is None:
         ldraw_props.set_props(ldraw_object.top_empty, ldraw_file, "16")
         mesh_objs = []
@@ -138,7 +141,7 @@ def do_import(filepath):
             bpy.context.scene.frame_end = ldraw_meta.current_frame + ImportOptions.frames_per_step
             bpy.context.scene.frame_set(bpy.context.scene.frame_end)
 
-    # blen_ld_ren_mod
+    # lpub3d_mod
     # Get existing scene names
     scene_object_names = [x.name for x in bpy.context.scene.objects]
 
@@ -173,7 +176,7 @@ def do_import(filepath):
                 max_clip_end = camera.data.clip_end
             bpy.context.scene.camera = camera
 
-    # blen_ld_ren_mod
+    # lpub3d_mod
     for light in ldraw_meta.lights:
         light = blender_light.create_light(light, empty=ldraw_object.top_empty, collection=group.top_collection)
         light.parent = obj
@@ -200,6 +203,21 @@ def __scene_setup():
     bpy.context.scene.eevee.use_ssr = True
     bpy.context.scene.eevee.use_ssr_refraction = True
     bpy.context.scene.eevee.use_taa_reprojection = True
+
+    if ImportOptions.color_strategy_value() == "vertex_colors":
+        # view vertex colors in solid view
+        for window in bpy.context.window_manager.windows:
+            for area in window.screen.areas:
+                if area.type == 'VIEW_3D':
+                    for space in area.spaces:
+                        if space.type == 'VIEW_3D':
+                            if ImportOptions.meta_bfc:
+                                space.shading.show_backface_culling = True
+                            space.shading.type = 'SOLID'
+                            # Shading > Color > Object to see object colors
+                            space.shading.color_type = 'VERTEX'
+                            # space.shading.color_type = 'MATERIAL'
+                            # space.shading.color_type = 'OBJECT'
 
     # https://blender.stackexchange.com/a/146838
     # TODO: use line art modifier with grease pencil object
@@ -232,7 +250,7 @@ def __scene_setup():
         lineset.select_external_contour = False
         lineset.select_material_boundary = False
 
-# blen_ld_ren_mod
+# lpub3d_mod
 def __unlink_from_scene(obj):
     if bpy.context.collection.objects.find(obj.name) >= 0:
         bpy.context.collection.objects.unlink(obj)
@@ -321,12 +339,12 @@ def __load_materials(file):
             obj.location.y = -j * 3
 
             color = LDrawColor.get_color(color_code)
-            obj.color = color.color_a
+            obj.color = color.linear_color_a
 
             group.link_obj(collection, obj)
         j += 1
 
-# blen_ld_ren_mod
+# lpub3d_mod
 def __get_layers(scene):
     return scene.view_layers
 

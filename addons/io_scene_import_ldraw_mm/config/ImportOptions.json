@@ -9,6 +9,7 @@
   "blendfile_trusted": false,
   "camera_border_percent": 5,
   "chosen_logo": "logo3",
+  "color_strategy": "material",
   "crop_image": false,
   "custom_ldconfig_file": "",
   "display_logo": true,
