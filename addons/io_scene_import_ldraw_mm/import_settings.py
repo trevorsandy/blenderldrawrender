@@ -71,7 +71,26 @@ class ImportSettings:
     def save_settings(cls, has_settings):
         cls.settings = {}
         for k, v in cls.default_settings.items():
-            cls.settings[k] = has_settings.get(k,v)
+            _lst = None
+            _v = has_settings.get(k,v)
+            if k == 'chosen_logo':
+                _lst = ImportOptions.chosen_logo_choices
+            elif k == 'gap_scale_strategy':
+                _lst = ImportOptions.gap_scale_strategy_choices
+            elif k == 'gap_target':
+                _lst = ImportOptions.gap_target_choices
+            elif k == 'smooth_type':
+                _lst = ImportOptions.smooth_type_choices
+            elif k == 'use_colour_scheme':
+                _lst = LDrawColor.use_colour_scheme_choices
+            elif k == 'resolution':
+                _lst = FileSystem.resolution_choices
+            if _lst is not None:
+                for i, tp in enumerate(_lst):
+                    if tp[0] == _v:
+                        _v = i
+                        break
+            cls.settings[k] = _v
         helpers.write_json('config', cls.settings)
 
     @classmethod
