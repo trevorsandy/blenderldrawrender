@@ -75,6 +75,8 @@ class ImportSettings:
             _v = has_settings.get(k,v)
             if k == 'chosen_logo':
                 _lst = ImportOptions.chosen_logo_choices
+            elif k == 'color_strategy':
+                _lst = ImportOptions.color_strategy_choices
             elif k == 'gap_scale_strategy':
                 _lst = ImportOptions.gap_scale_strategy_choices
             elif k == 'gap_target':

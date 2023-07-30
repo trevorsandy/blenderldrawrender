@@ -72,6 +72,7 @@ class Preferences():
                 'blendfile_trusted': self.__config[self.__sectionName]['blendfiletrusted'],
                 'camera_border_percent': self.__config[self.__sectionName]['cameraborderpercent'],
                 'chosen_logo': self.__config[self.__sectionName]['chosenlogo'],
+                'color_strategy': self.__config[self.__sectionName]['colorstrategy'],
                 'crop_image': self.__config[self.__sectionName]['cropimage'],
                 'custom_ldconfig_file': self.__config[self.__sectionName]['customldconfigfile'],
                 'display_logo': self.__config[self.__sectionName]['displaylogo'],
