@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update July 07, 2023
+Last Update August 01, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Render LDraw GPLv2 license.
@@ -653,6 +653,7 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
             elif self.use_ldraw_import:
                 RenderLDrawOps.prefs = importldraw.Preferences(self.preferences_file)
                 self.ldraw_path = RenderLDrawOps.prefs.get('ldrawdirectory', importldraw.loadldraw.Configure.findDefaultLDrawDirectory())
+                RenderLDrawOps.prefs.save_config_ini()
 
             assert self.ldraw_path != "", "LDraw library path not specified."
             assert self.image_file != "", "Image file path not specified."

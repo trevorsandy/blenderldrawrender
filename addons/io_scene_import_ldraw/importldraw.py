@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update July 07, 2023
+Last Update August 01, 2023
 Copyright (c) 2023 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
@@ -104,6 +104,7 @@ class Preferences():
     """Import LDraw - Preferences"""
 
     __sectionName = 'ImportLDraw'
+    __updateIni = False   
 
     def __init__(self, preferencesfile):
         if preferencesfile.__ne__(""):
@@ -118,6 +119,33 @@ class Preferences():
         self.__prefsRead = self.__config.read(self.__prefsFilepath)
         if self.__prefsRead and not self.__config[Preferences.__sectionName]:
             self.__prefsRead = False
+
+        # If the ImportLDrawPreferences.ini includes attributes from an older version that
+        # has been changed or removed, or if the Python addon version is newer than the version
+        # defined in the calling application, the following attributes are updated.
+        # Version 1.5 and later attribute updates:
+        for section in self.__config.sections():
+            if section == "ImportLDraw":
+                addList = ['realgapwidth,0.0002', 'realscale,0.02']
+                for addItem in addList:
+                    pair = addItem.split(",")
+                    if not self.__config.has_option(section, pair[0]):
+                        self.__config.set(section, pair[0], str(pair[1]))
+                        self.__updateIni = True
+                popList = ['gapwidth', 'scale']
+                for popItem in popList:
+                    if self.__config.has_option(section, popItem):
+                        self.__config[section].pop(popItem)
+                        self.__updateIni = True
+            elif section == "ImportLDrawMM":
+                if not self.__config.has_option(section, 'colorstrategy'):
+                    self.__config.set(section, 'colorstrategy', 'material')
+                    self.__updateIni = True
+                popList = ['preservehierarchy', 'treatmodelswithsubpartsasparts']
+                for popItem in popList:
+                    if self.__config.has_option(section, popItem):
+                        self.__config[section].pop(popItem)
+                        self.__updateIni = True           
 
     def get(self, option, default):
         if not self.__prefsRead:
@@ -137,12 +165,13 @@ class Preferences():
             self.__config[Preferences.__sectionName] = {}
         self.__config[Preferences.__sectionName][option] = str(value)
 
-    def save(self):
+    def save(self, configini=False):
         try:
             config = copy.deepcopy(self.__config)
-            for section in config.sections():
-                if section != self.__sectionName:
-                    config.remove_section(section)            
+            if not configini:
+                for section in config.sections():
+                    if section != self.__sectionName:
+                        config.remove_section(section)
             with open(self.__prefsFilepath, 'w') as configfile:
                 config.write(configfile)
             return True
@@ -152,6 +181,10 @@ class Preferences():
             loadldraw.debugPrint(f"WARNING: Could not save preferences. Unexpected error: {sys.exc_info()[0]}")
         return False
     
+    def save_config_ini(self):
+        if self.__updateIni:
+            self.save(True)
+
     def saveSettings(self, preferencesfile):
         try:
             config = copy.deepcopy(self.__config)

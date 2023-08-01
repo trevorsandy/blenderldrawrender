@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update June 11, 2023
+Last Update July 30, 2023
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Blender LDraw Addon GPLv2 license.
@@ -132,6 +132,8 @@ def install_ldraw_addon(argv):
     if ldraw_path != "":
         prefs.set('ldrawpath', ldraw_path)
     prefs.save()
+
+    prefs.save_config_ini()
 
     # Save LDraw parameters to ImportLDraw
     addon_ldraw_parameters_file = os.path.join(

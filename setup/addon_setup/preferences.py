@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import copy
 import configparser
 from pathlib import Path
 from shutil import copyfile
@@ -10,30 +11,55 @@ from . import handle_fatal_error
 class Preferences():
     """Marshall LDraw Blender settings."""
 
-    __sectionkey = "TN"
+    __sectionKey = "TN"
     __sectionName = "ImportLDraw"
+    __updateIni = False
+    __configFile = None
 
-    def __init__(self, lpubpreferencesfile, preferencesfile, sectionkey):
+    def __init__(self, configfile, prefsfile, sectionkey):
 
-        self.__sectionkey = sectionkey
-        if self.__sectionkey == "MM":
+        self.__sectionKey = sectionkey
+        if self.__sectionKey == "MM":
             self.__sectionName = "ImportLDrawMM"
-        assert preferencesfile != "", "Preferences file path was not specified."
-        self.__prefsFilepath = lpubpreferencesfile
+        assert prefsfile != "", "Preferences file path was not specified."
+        self.__configFile = configfile
 
         self.__config = configparser.RawConfigParser()
-        self.__prefsRead = self.__config.read(self.__prefsFilepath)
+        self.__prefsRead = self.__config.read(self.__configFile)
         if self.__prefsRead and not self.__config[self.__sectionName]:
             self.__prefsRead = False
 
+        # If the ImportLDrawPreferences.ini includes attributes from an older version that
+        # has been changed or removed, or if the Python addon version is newer than the version
+        # defined in the calling application, the following attributes are updated.
+        # Version 1.5 and later attribute updates:
         for section in self.__config.sections():
-            if section != self.__sectionName:
-                self.__config.remove_section(section)
+            if section == "ImportLDraw":
+                addList = ['realgapwidth,0.0002', 'realscale,0.02']
+                for addItem in addList:
+                    pair = addItem.split(",")
+                    if not self.__config.has_option(section, pair[0]):
+                        self.__config.set(section, pair[0], str(pair[1]))
+                        self.__updateIni = True
+                popList = ['gapwidth', 'scale']
+                for popItem in popList:
+                    if self.__config.has_option(section, popItem):
+                        self.__config[section].pop(popItem)
+                        self.__updateIni = True
+            elif section == "ImportLDrawMM":
+                if not self.__config.has_option(section, 'colorstrategy'):
+                    self.__config.set(section, 'colorstrategy', 'material')
+                    self.__updateIni = True
+                popList = ['preservehierarchy', 'treatmodelswithsubpartsasparts']
+                for popItem in popList:
+                    if self.__config.has_option(section, popItem):
+                        self.__config[section].pop(popItem)
+                        self.__updateIni = True
 
-        self.__prefsFilepath = preferencesfile
+        self.__prefsFilepath = prefsfile
 
         self.__default_settings = {}
-        if self.__sectionkey == "MM":
+        if self.__sectionKey == "MM":
             self.__settings = dict()
             self.__default_settings = {
                 'add_environment': self.__config[self.__sectionName]['addenvironment'],
@@ -107,7 +133,7 @@ class Preferences():
         self.__config[self.__sectionName][option] = str(value)
 
     def save(self):
-        if self.__sectionkey == "MM":
+        if self.__sectionKey == "MM":
             self.__settings = {}
             for k, v in self.__default_settings.items():
                 value = self.__config[self.__sectionName][k.replace("_", "").lower()]
@@ -116,12 +142,22 @@ class Preferences():
         else:
             self.write_ini()
 
-    def write_ini(self):
+    def save_config_ini(self):
+        if self.__updateIni:
+            self.__prefsFilepath = self.__configFile
+            self.write_ini(True)
+
+    def write_ini(self, configini=False):
         try:
             folder = os.path.dirname(self.__prefsFilepath)
             Path(folder).mkdir(parents=True, exist_ok=True)
-            with open(self.__prefsFilepath, 'w', encoding='utf-8', newline="\n") as configfile:
-                self.__config.write(configfile)
+            config = copy.deepcopy(self.__config)
+            if not configini:
+                for section in config.sections():
+                    if section != self.__sectionName:
+                        config.remove_section(section)
+            with open(self.__prefsFilepath, 'w', encoding='utf-8', newline="\n") as configFile:
+                config.write(configFile)
             return True
         except OSError as e:
             handle_fatal_error(f"Could not save INI preferences. I/O error({e.errno}): {e.strerror}")
@@ -133,8 +169,8 @@ class Preferences():
         try:
             folder = os.path.dirname(self.__prefsFilepath)
             Path(folder).mkdir(parents=True, exist_ok=True)
-            with open(self.__prefsFilepath, 'w', encoding='utf-8', newline="\n") as configfile:
-                configfile.write(json.dumps(self.__settings, indent=2))
+            with open(self.__prefsFilepath, 'w', encoding='utf-8', newline="\n") as configFile:
+                configFile.write(json.dumps(self.__settings, indent=2))
             return True
         except OSError as e:
             print(f"Could not save JSON preferences. I/O error({e.errno}): {e.strerror}")
