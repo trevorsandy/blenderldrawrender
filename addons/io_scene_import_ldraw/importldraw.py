@@ -42,6 +42,7 @@ else:
 import configparser
 import sys
 import os
+import copy
 import bpy
 from bpy.props import (StringProperty,
                        FloatProperty,
@@ -138,8 +139,12 @@ class Preferences():
 
     def save(self):
         try:
+            config = copy.deepcopy(self.__config)
+            for section in config.sections():
+                if section != self.__sectionName:
+                    config.remove_section(section)            
             with open(self.__prefsFilepath, 'w') as configfile:
-                self.__config.write(configfile)
+                config.write(configfile)
             return True
         except OSError as e:
             loadldraw.debugPrint(f"WARNING: Could not save preferences. I/O error({e.errno}): {e.strerror}")
@@ -149,8 +154,12 @@ class Preferences():
     
     def saveSettings(self, preferencesfile):
         try:
+            config = copy.deepcopy(self.__config)
+            for section in config.sections():
+                if section != self.__sectionName:
+                    config.remove_section(section)            
             with open(preferencesfile, 'w') as configfile:
-                self.__config.write(configfile)
+                config.write(configfile)
             return True
         except OSError as e:
             loadldraw.debugPrint(f"WARNING: Could not save preferences. I/O error({e.errno}): {e.strerror}")
