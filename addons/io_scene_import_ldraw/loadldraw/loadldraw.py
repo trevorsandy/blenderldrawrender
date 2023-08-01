@@ -1958,10 +1958,7 @@ class LDrawLight:
         self.up_vector        = mathutils.Vector((0.0, 1.0, 0.0))
 
     def createLightNode(self):
-        if isBlender28OrLater:
-            lightData = bpy.data.lights.new(name=self.name, type=self.type)
-        else:
-            lightData = bpy.data.lamps.new(name=self.name, type=self.type)
+        lightData = bpy.data.lights.new(name=self.name, type=self.type)
         light = bpy.data.objects.new(self.name, lightData)
 
         # Add to scene
