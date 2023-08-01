@@ -88,7 +88,7 @@ removeDoubles                 = True
 renderWindow                  = False
 resolution                    = Standard
 resolveNormals                = guess
-realScale                     = 1.0
+realScale                     = 0.02    # rollback realScale: 1.0
 smoothShading                 = True
 transparentBackground         = True
 useColourScheme               = lego
@@ -235,8 +235,8 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
 
     realScale: FloatProperty(
         name="Scale",
-        description="Sets a scale for the model (1.0 = real life scale)",
-        default=prefs.get("realScale", 1.0)
+        description="Sets a scale for the model (range: .01 and 1.0, 0.04 is LeoCAD scale, 1.0 = real LEOG scale)",
+        default=prefs.get("realScale", 0.01)     # rollback realScale: 1.0
     )
 
     resPrims: EnumProperty(
