@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update June 11, 2023
+Last Update July 06, 2023
 Copyright (c) 2023 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
@@ -100,119 +100,6 @@ def printError(message):
     if globalContext is not None:
         globalContext.report({'ERROR'}, message)
 
-
-# **************************************************************************************
-def matmul(a, b):
-    """Perform matrix multiplication in a blender 2.7 and 2.8 safe way"""
-    if isBlender28OrLater:
-        return operator.matmul(a, b)  # the same as writing a @ b, but parses ok in 2.7
-    else:
-        return a * b
-
-
-# **************************************************************************************
-def matvecmul(a, b):
-    """Perform matrix multiplication in a blender 2.7 and 2.8 safe way"""
-    if isBlender28OrLater:
-        return operator.matmul(a, b)  # the same as writing a @ b, but parses ok in 2.7
-    else:
-        return a * b
-
-
-# **************************************************************************************
-def linkToScene(ob):
-    if isBlender28OrLater:
-        if bpy.context.collection.objects.find(ob.name) < 0:
-            bpy.context.collection.objects.link(ob)
-    else:
-        if bpy.context.scene.objects.find(ob.name) < 0:
-            bpy.context.scene.objects.link(ob)
-
-
-# **************************************************************************************
-def linkToCollection(collectionName, ob):
-    # Add object to the appropriate collection
-    if hasCollections:
-        if bpy.data.collections[collectionName].objects.find(ob.name) < 0:
-            bpy.data.collections[collectionName].objects.link(ob)
-    else:
-        bpy.data.groups[collectionName].objects.link(ob)
-
-
-# **************************************************************************************
-def unlinkFromScene(ob):
-    if isBlender28OrLater:
-        if bpy.context.collection.objects.find(ob.name) >= 0:
-            bpy.context.collection.objects.unlink(ob)
-    else:
-        if bpy.context.scene.objects.find(ob.name) >= 0:
-            bpy.context.scene.objects.unlink(ob)
-
-
-# **************************************************************************************
-def selectObject(ob):
-    if isBlender28OrLater:
-        ob.select_set(state=True)
-        bpy.context.view_layer.objects.active = ob
-    else:
-        ob.select = True
-        bpy.context.scene.objects.active = ob
-
-
-# **************************************************************************************
-def deselectObject(ob):
-    if isBlender28OrLater:
-        ob.select_set(state=False)
-        bpy.context.view_layer.objects.active = None
-    else:
-        ob.select = False
-        bpy.context.scene.objects.active = None
-
-
-# **************************************************************************************
-def addPlane(location, size):
-    if isBlender28OrLater:
-        bpy.ops.mesh.primitive_plane_add(size=size, enter_editmode=False, location=location)
-    else:
-        bpy.ops.mesh.primitive_plane_add(radius=size, view_align=False, enter_editmode=False, location=location)
-
-
-# **************************************************************************************
-def useDenoising(scene, useDenoising):
-    if hasattr(getLayers(scene)[0], "cycles"):
-        getLayers(scene)[0].cycles.use_denoising = useDenoising
-
-
-# **************************************************************************************
-def getLayerNames(scene):
-    return list(map((lambda x: x.name), getLayers(scene)))
-
-
-# **************************************************************************************
-def deleteEdge(bm, edge):
-    if isBlender28OrLater:
-        bmesh.ops.delete(bm, geom=edge, context='EDGES')
-    else:
-        bmesh.ops.delete(bm, geom=[edge], context=2)
-
-
-# **************************************************************************************
-def getLayers(scene):
-    # Get the render/view layers we are interested in:
-    if isBlender28OrLater:
-        return scene.view_layers
-    else:
-        return scene.render.layers
-
-
-# **************************************************************************************
-def getDiffuseColor(color):
-    if isBlender28OrLater:
-        return color + (1.0,)
-    else:
-        return color
-
-
 # **************************************************************************************
 units = (
     # sequence of quadruples, first element is multiplier to apply to
@@ -267,6 +154,61 @@ def formatElapsed(interval, long_form=False, seconds_places=3):
     # end while
     return result
 
+# **************************************************************************************
+# **************************************************************************************
+def linkToScene(ob):
+    if bpy.context.collection.objects.find(ob.name) < 0:
+        bpy.context.collection.objects.link(ob)
+
+# **************************************************************************************
+def linkToCollection(collectionName, ob):
+    # Add object to the appropriate collection
+    if hasCollections:
+        if bpy.data.collections[collectionName].objects.find(ob.name) < 0:
+            bpy.data.collections[collectionName].objects.link(ob)
+    else:
+        bpy.data.groups[collectionName].objects.link(ob)
+
+# **************************************************************************************
+def unlinkFromScene(ob):
+    if bpy.context.collection.objects.find(ob.name) >= 0:
+        bpy.context.collection.objects.unlink(ob)
+
+# **************************************************************************************
+def selectObject(ob):
+    ob.select_set(state=True)
+    bpy.context.view_layer.objects.active = ob
+
+# **************************************************************************************
+def deselectObject(ob):
+    ob.select_set(state=False)
+    bpy.context.view_layer.objects.active = None
+
+# **************************************************************************************
+def addPlane(location, size):
+    bpy.ops.mesh.primitive_plane_add(size=size, enter_editmode=False, location=location)
+
+# **************************************************************************************
+def useDenoising(scene, useDenoising):
+    if hasattr(getLayers(scene)[0], "cycles"):
+        getLayers(scene)[0].cycles.use_denoising = useDenoising
+
+# **************************************************************************************
+def getLayerNames(scene):
+    return list(map((lambda x: x.name), getLayers(scene)))
+
+# **************************************************************************************
+def deleteEdge(bm, edge):
+    bmesh.ops.delete(bm, geom=edge, context='EDGES')
+
+# **************************************************************************************
+def getLayers(scene):
+    # Get the render/view layers we are interested in:
+    return scene.view_layers
+
+# **************************************************************************************
+def getDiffuseColor(color):
+    return color + (1.0,)
 
 # **************************************************************************************
 # **************************************************************************************
@@ -276,7 +218,8 @@ class Options:
     # Full filepath to ldraw folder. If empty, some standard locations are attempted
     ldrawDirectory     = r""            # Full filepath to the ldraw parts library (searches some standard locations if left blank)
     instructionsLook   = False          # Set up scene to look like Lego Instruction booklets
-    scale              = 0.01           # Size of the lego model to create. (0.04 is LeoCAD scale)
+    #scale              = 0.01           # Size of the lego model to create. (0.04 is LeoCAD scale)
+    realScale          = 1              # Scale of lego model to create (1 represents real Lego scale)
     useUnofficialParts = True           # Additionally searches <ldraw-dir>/unofficial/parts and /p for files
     resolution         = "Standard"     # Choose from "High", "Standard", or "Low"
     defaultColour      = "4"            # Default colour ("4" = red)
@@ -287,7 +230,7 @@ class Options:
     smoothShading      = True           # Smooth the surface normals (recommended)
     edgeSplit          = True           # Edge split modifier (recommended if you use smoothShading)
     gaps               = True           # Introduces a tiny space between each brick
-    gapWidth           = 0.01           # Width of gap between bricks (in Blender units)
+    realGapWidth       = 0.0002         # Width of gap between bricks (in metres)
     curvedWalls        = True           # Manipulate normals to make surfaces look slightly concave
     addSubsurface      = True           # Adds subsurface to principled shader
     importCameras      = True           # LeoCAD can specify cameras within the ldraw file format. Choose to load them or ignore them.
@@ -340,7 +283,7 @@ class Options:
     def meshOptionsString():
         """These options change the mesh, so if they change, a new mesh needs to be cached"""
 
-        return "_".join([str(Options.scale),
+        return "_".join([str(Options.realScale),
                          str(Options.useUnofficialParts),
                          str(Options.instructionsLook),
                          str(Options.useArchiveLibrary),
@@ -355,7 +298,7 @@ class Options:
                          str(Options.removeDoubles),
                          str(Options.smoothShading),
                          str(Options.gaps),
-                         str(Options.gapWidth),
+                         str(Options.realGapWidth),
                          str(Options.curvedWalls),
                          str(Options.flattenHierarchy),
                          str(Options.minifigHierarchy),
@@ -369,7 +312,6 @@ class Options:
                          str(Options.addBevelModifier),
                          str(Options.bevelWidth)])
 
-
 # **************************************************************************************
 # Globals
 globalBrickCount = 0
@@ -377,15 +319,16 @@ globalObjectsToAdd = []         # Blender objects to add to the scene
 globalCamerasToAdd = []         # Camera data to add to the scene
 globalLightsToAdd  = []         # Light data to add to the scene
 globalContext = None
-globalWeldDistance = 0.0005
 globalPoints = []
+globalScaleFactor = 0.0004
+globalWeldDistance = 0.0005
 
 globalLgeoColours = {}
 globalSlopeBricks = {}
 globalLightBricks = {}
 globalSlopeAngles = {}
 
-isBlender28OrLater = None
+
 hasCollections = None
 
 haveArchiveLibraries = False
@@ -414,13 +357,15 @@ class Math:
         return max(min(value, 1.0), 0.0)
 
     def __init__(self):
+        global globalScaleFactor
+
         # Rotation and scale matrices that convert LDraw coordinate space to Blender coordinate space
         Math.scaleMatrix = mathutils.Matrix((
-                (Options.scale, 0.0,            0.0,            0.0),
-                (0.0,           Options.scale,  0.0,            0.0),
-                (0.0,           0.0,            Options.scale,  0.0),
-                (0.0,           0.0,            0.0,            1.0)
-        ))
+                (globalScaleFactor, 0.0,               0.0,               0.0),
+                (0.0,               globalScaleFactor, 0.0,               0.0),
+                (0.0,               0.0,               globalScaleFactor, 0.0),
+                (0.0,               0.0,               0.0,               1.0)
+            ))
 
 
 # **************************************************************************************
@@ -960,9 +905,10 @@ class LegoColours:
 
         # Measure the perceived brightness of colour
         brightness = math.sqrt(0.299 * R * R + 0.587 * G * G + 0.114 * B * B)
+        print("RGB = {0},{1},{2} Brightness: {3}".format(R, G, B, brightness))
 
         # Dark colours have white lines
-        if brightness < 0.02:
+        if brightness < 0.03:
             return True
         return False
 
@@ -1030,9 +976,10 @@ class LegoColours:
             return LegoColours.hexDigitsToLinearRGBA(rgb_str, alpha)
         return None
 
-    def __overwriteColour(index, colour):
+    def __overwriteColour(index, sRGBColour):
         if index in LegoColours.colours:
-            LegoColours.colours[index]["colour"] = colour
+            # Colour Space Management: Convert sRGB colour values to Blender's linear RGB colour space
+            LegoColours.colours[index]["colour"] = LegoColours.sRGBtoLinearRGB(sRGBColour)
 
     def __readColourTable():
         """Reads the colour values from the LDConfig.ldr file. For details of the
@@ -1248,10 +1195,6 @@ class LegoColours:
                 LegoColours.__overwriteColour(503, (199 / 255, 193 / 255, 183 / 255))
                 LegoColours.__overwriteColour(504, (137 / 255, 135 / 255, 136 / 255))
                 LegoColours.__overwriteColour(511, (250 / 255, 250 / 255, 250 / 255))
-
-        # Colour Space Management: Convert these sRGB colour values to Blender's linear RGB colour space
-        for key in LegoColours.colours:
-            LegoColours.colours[key]["colour"] = LegoColours.sRGBtoLinearRGB(LegoColours.colours[key]["colour"])
 
     def lightenRGBA(colour, scale):
         # Moves the linear RGB values closer to white
@@ -1604,9 +1547,9 @@ class LDrawGeometry:
 
         newPoints = []
         for i in range(num_points):
-            blenderPos = matvecmul(Math.scaleMatrix, mathutils.Vector((float(parameters[i * 3 + 2]),
-                                                                       float(parameters[i * 3 + 3]),
-                                                                       float(parameters[i * 3 + 4]))))
+            blenderPos = Math.scaleMatrix @ mathutils.Vector( (float(parameters[i * 3 + 2]),
+                                                               float(parameters[i * 3 + 3]),
+                                                               float(parameters[i * 3 + 4])) )
             newPoints.append(blenderPos)
 
         # Fix "bowtie" quadrilaterals (see http://wiki.ldraw.org/index.php?title=LDraw_technical_restrictions#Complex_quadrilaterals)
@@ -1618,6 +1561,7 @@ class LDrawGeometry:
                 newPoints[2], newPoints[3] = newPoints[3], newPoints[2]
             elif (nB.dot(nC) < 0):
                 newPoints[2], newPoints[1] = newPoints[1], newPoints[2]
+
         pointCount = len(self.points)
         newFace = list(range(pointCount, pointCount + num_points))
         self.points.extend(newPoints)
@@ -1629,12 +1573,12 @@ class LDrawGeometry:
 
         colourName = parameters[1]
         if colourName == "24":
-            blenderPos1 = matvecmul(Math.scaleMatrix, mathutils.Vector((float(parameters[2]),
-                                                                        float(parameters[3]),
-                                                                        float(parameters[4]))))
-            blenderPos2 = matvecmul(Math.scaleMatrix, mathutils.Vector((float(parameters[5]),
-                                                                        float(parameters[6]),
-                                                                        float(parameters[7]))))
+            blenderPos1 = Math.scaleMatrix @ mathutils.Vector( (float(parameters[2]),
+                                                                float(parameters[3]),
+                                                                float(parameters[4])) )
+            blenderPos2 = Math.scaleMatrix @ mathutils.Vector( (float(parameters[5]),
+                                                                float(parameters[6]),
+                                                                float(parameters[7])) )
             self.edges.append((blenderPos1, blenderPos2))
 
     def verify(self, face, numPoints):
@@ -1643,13 +1587,13 @@ class LDrawGeometry:
             assert i >= 0
 
     def appendGeometry(self, geometry, matrix, isStud, isStudLogo, parentMatrix, cull, invert):
-        combinedMatrix = matmul(parentMatrix, matrix)
+        combinedMatrix = parentMatrix @ matrix
         isReflected = combinedMatrix.determinant() < 0.0
         reflectStudLogo = isStudLogo and isReflected
 
         fixedMatrix = matrix.copy()
         if reflectStudLogo:
-            fixedMatrix = matmul(matrix, Math.reflectionMatrix)
+            fixedMatrix = matrix @ Math.reflectionMatrix
             invert = not invert
 
         # Append face information
@@ -1659,7 +1603,7 @@ class LDrawGeometry:
             # Gather points for this face (and transform points)
             newPoints = []
             for i in face:
-                newPoints.append(matvecmul(fixedMatrix, geometry.points[i]))
+                newPoints.append(fixedMatrix @ geometry.points[i])
 
             # Add clockwise and/or anticlockwise sets of points as appropriate
             newFace = face.copy()
@@ -1704,7 +1648,7 @@ class LDrawGeometry:
         # Append edge information
         newEdges = []
         for edge in geometry.edges:
-            newEdges.append((matvecmul(fixedMatrix, edge[0]), matvecmul(fixedMatrix, edge[1])))
+            newEdges.append( (fixedMatrix @ edge[0], fixedMatrix @ edge[1]) )
         self.edges.extend(newEdges)
 
 
@@ -1730,10 +1674,7 @@ class LDrawNode:
         self.groupNames     = groupNames.copy()
 
     def look_at(scene_obj, target, up_vector):
-        if isBlender28OrLater:
-            bpy.context.view_layer.update()
-        else:
-            bpy.context.scene.update()
+        bpy.context.view_layer.update()
 
         loc_scene_obj = scene_obj.matrix_world.to_translation()
 
@@ -1857,7 +1798,7 @@ class LDrawNode:
         key = (self.filename, ourColourName, accumCull, accumInvert, self.bfcCull, self.bfcInverted)
         bakedGeometry = CachedGeometry.getCached(key)
         if bakedGeometry is None:
-            combinedMatrix = matmul(parentMatrix, self.matrix)
+            combinedMatrix = parentMatrix @ self.matrix
 
             # Start with a copy of our file's geometry
             assert len(self.file.geometry.faces) == len(self.file.geometry.faceInfo)
@@ -1894,10 +1835,10 @@ class LDrawCamera:
 
     def __init__(self):
         self.fov_degrees       = 30.0
-        self.near              = 25.0
-        self.far               = 50000.0
-        self.latitude          = 23.0
-        self.longitude         = 45.0
+        self.near              = 0.01
+        self.far               = 100.0
+        self.latitude          = 23.0      # (not used)
+        self.longitude         = 45.0      # (not used)
         self.distance          = 1.0       # LDU factored distance (not used)
         self.position          = mathutils.Vector((0.0, 0.0, 0.0))
         self.target_position   = mathutils.Vector((1.0, 0.0, 0.0))
@@ -1918,9 +1859,10 @@ class LDrawCamera:
         camera.data.angle      = self.fov_radians
         camera.data.clip_end   = self.far
         camera.data.clip_start = self.near
-        camera.data['hide']    = self.hidden
-        camera.data.show_name  = True
+        camera.data.show_name  = True        
+        camera.hide_set(self.hidden)
         self.hidden = False
+
         if self.orthographic:
             dist_target_to_camera = (self.position - self.target_position).length
             camera.data.ortho_scale = dist_target_to_camera / 1.92
@@ -2125,6 +2067,7 @@ class LDrawFile:
 
         global globalCamerasToAdd
         global globalLightsToAdd
+        global globalScaleFactor
 
         self.filename         = filename
         self.lines            = lines
@@ -2240,34 +2183,34 @@ class LDrawFile:
                                     camera.fov_degrees = float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "ZNEAR":
-                                    camera.near = Options.scale * float(parameters[1])
+                                    camera.near = globalScaleFactor * float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "ZFAR":
-                                    camera.far = Options.scale * float(parameters[1])
+                                    camera.far = globalScaleFactor * float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "POSITION":
                                     if processingLPubMeta:
                                         # Convert transform from LDraw to Blender, switch Z and Y axis with -Z in the up direction
-                                        camera.position = matvecmul(Math.scaleMatrix, mathutils.Vector(
-                                            (float(parameters[1]), float(parameters[3]), -float(parameters[2]))))
+                                        camera.position = Math.scaleMatrix @ mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[3]), -float(parameters[2])))
                                     else:
-                                        camera.position = matvecmul(Math.scaleMatrix, mathutils.Vector(
-                                            (float(parameters[1]), float(parameters[2]), float(parameters[3]))))
+                                        camera.position = Math.scaleMatrix @ mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[2]), float(parameters[3])))
                                     parameters = parameters[4:]
                                 elif parameters[0] == "TARGET_POSITION":
                                     if processingLPubMeta:
                                         # Convert transform from LDraw to Blender, switch Z and Y axis with -Z in the up direction
-                                        camera.target_position = matvecmul(Math.scaleMatrix, mathutils.Vector(
-                                            (float(parameters[1]), float(parameters[3]), -float(parameters[2]))))
+                                        camera.target_position = Math.scaleMatrix @ mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[3]), -float(parameters[2])))
                                     else:
-                                        camera.target_position = matvecmul(Math.scaleMatrix, mathutils.Vector(
-                                            (float(parameters[1]), float(parameters[2]), float(parameters[3]))))
+                                        camera.target_position = Math.scaleMatrix @ mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[2]), float(parameters[3])))
                                     parameters = parameters[4:]
                                 elif parameters[0] == "UP_VECTOR":
                                     if processingLPubMeta:
                                         # Convert transform from LDraw to Blender, switch Z and Y axis with -Z in the up direction
-                                        camera.up_vector = matvecmul(Math.scaleMatrix, mathutils.Vector(
-                                            (float(parameters[1]), float(parameters[3]), -float(parameters[2]))))
+                                        camera.up_vector = mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[3]), -float(parameters[2])))     
                                     else:
                                         camera.up_vector = mathutils.Vector(
                                             (float(parameters[1]), float(parameters[2]), float(parameters[3])))
@@ -2295,20 +2238,20 @@ class LDrawFile:
                                 if parameters[0] == "POSITION":
                                     if processingLPubMeta:
                                         # Convert transform from LDraw to Blender, switch Z and Y axis with -Z in the up direction
-                                        light.position = matvecmul(Math.scaleMatrix, mathutils.Vector(
-                                            (float(parameters[1]), float(parameters[3]), -float(parameters[2]))))
+                                        light.position = Math.scaleMatrix @ mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[3]), -float(parameters[2])))
                                     else:
-                                        light.position = matvecmul(Math.scaleMatrix, mathutils.Vector(
-                                            (float(parameters[1]), float(parameters[2]), float(parameters[3]))))
+                                        light.position = Math.scaleMatrix @ mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[2]), float(parameters[3])))
                                     parameters = parameters[4:]
                                 elif parameters[0] == "TARGET_POSITION":
                                     if processingLPubMeta:
                                         # Convert transform from LDraw to Blender, switch Z and Y axis with -Z in the up direction
-                                        light.target_position = matvecmul(Math.scaleMatrix, mathutils.Vector(
-                                            (float(parameters[1]), float(parameters[3]), -float(parameters[2]))))
+                                        light.target_position = Math.scaleMatrix @ mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[3]), -float(parameters[2])))
                                     else:                                    
-                                        light.target_position = matvecmul(Math.scaleMatrix, mathutils.Vector(
-                                            (float(parameters[1]), float(parameters[2]), float(parameters[3]))))
+                                        light.target_position = Math.scaleMatrix @ mathutils.Vector(
+                                            (float(parameters[1]), float(parameters[2]), float(parameters[3])))
                                     parameters = parameters[4:]
                                 elif parameters[0] == "COLOR_RGB":
                                     light.color = mathutils.Vector(
@@ -2321,7 +2264,7 @@ class LDrawFile:
                                     light.exponent = float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "ANGLE":
-                                    light.factorA = Options.scale * float(parameters[1])
+                                    light.factorA = globalScaleFactor * float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "RADIUS":
                                     light.factorA = float(parameters[1])
@@ -2373,8 +2316,8 @@ class LDrawFile:
                 # Parse a File reference
                 if parameters[0] == "1":
                     (x, y, z, a, b, c, d, e, f, g, h, i) = map(float, parameters[2:14])
-                    (x, y, z) = matvecmul(Math.scaleMatrix, mathutils.Vector((x, y, z)))
-                    localMatrix = mathutils.Matrix(((a, b, c, x), (d, e, f, y), (g, h, i, z), (0, 0, 0, 1)))
+                    (x, y, z) = Math.scaleMatrix @ mathutils.Vector((x, y, z))
+                    localMatrix = mathutils.Matrix( ((a, b, c, x), (d, e, f, y), (g, h, i, z), (0, 0, 0, 1)) )
 
                     new_filename = " ".join(parameters[14:])
                     new_colourName = parameters[1]
@@ -2384,10 +2327,11 @@ class LDrawFile:
                         bfcInvertNext = not bfcInvertNext
                     canCullChildNode = (self.bfcCertified or self.isModel) and bfcLocalCull and (det != 0)
 
-                    newNode = LDrawNode(new_filename, False, self.fullFilepath, new_colourName, localMatrix,
-                                        canCullChildNode, bfcInvertNext, processingLSynthParts, not self.isModel, False,
-                                        currentGroupNames)
-                    self.childNodes.append(newNode)
+                    if new_filename != "":
+                        newNode = LDrawNode(new_filename, False, self.fullFilepath, new_colourName, localMatrix, canCullChildNode, bfcInvertNext, processingLSynthParts, not self.isModel, False, currentGroupNames)
+                        self.childNodes.append(newNode)
+                    else:
+                        printWarningOnce("In file '{0}', the line '{1}' is not formatted corectly (ignoring).".format(self.fullFilepath, line))
 
                 # Parse an edge
                 elif parameters[0] == "2":
@@ -2417,79 +2361,12 @@ class BlenderMaterials:
     """Creates and stores a cache of materials for Blender"""
 
     __material_list = {}
-    __hasPrincipledShader = "ShaderNodeBsdfPrincipled" in [node.nodetype for node in getattr(bpy.types,
-                                                                                             "NODE_MT_category_SH_NEW_SHADER").category.items(
-        None)]
+    __hasPrincipledShader = "ShaderNodeBsdfPrincipled" in [node.nodetype for node in getattr(bpy.types, "NODE_MT_category_SH_NEW_SHADER").category.items(None)]
 
     def __getGroupName(name):
         if Options.instructionsLook:
             return name + " Instructions"
         return name
-
-    def __setBlenderRenderProperties(material, nodes, links, col):
-        """Set Blender Internal Material Values."""
-
-        if isBlender28OrLater:
-            return
-
-        material.diffuse_color = col["colour"]
-
-        alpha = col["alpha"]
-        if alpha < 1.0:
-            material.use_transparency = not Options.instructionsLook
-            material.alpha = alpha
-
-        material.emit = col["luminance"] / 100
-
-        if col["material"] == "CHROME":
-            material.specular_intensity = 1.4
-            material.roughness = 0.01
-            material.raytrace_mirror.use = True
-            material.raytrace_mirror.reflect_factor = 0.3
-
-        elif col["material"] == "PEARLESCENT":
-            material.specular_intensity = 0.1
-            material.roughness = 0.32
-            material.raytrace_mirror.use = True
-            material.raytrace_mirror.reflect_factor = 0.07
-
-        elif col["material"] == "RUBBER":
-            material.specular_intensity = 0.19
-
-        elif col["material"] == "METAL":
-            material.specular_intensity = 1.473
-            material.specular_hardness = 292
-            material.diffuse_fresnel = 0.93
-            material.darkness = 0.771
-            material.roughness = 0.01
-            material.raytrace_mirror.use = True
-            material.raytrace_mirror.reflect_factor = 0.9
-
-        # elif col["material"] == "GLITTER":
-        #    slot = material.texture_slots.add()
-        #    tex = bpy.data.textures.new("GlitterTex", type = "STUCCI")
-        #    tex.use_color_ramp = True
-        #
-        #    slot.texture = tex
-
-        else:
-            material.specular_intensity = 0.2
-
-        # Create input and output nodes, and link them together
-        input = nodes.new('ShaderNodeMaterial')
-        input.location = 0, -250
-        input.material = material
-        output = nodes.new('ShaderNodeOutput')
-        output.location = 400, -250
-
-        links.new(input.outputs[0], output.inputs[0])
-
-        if Options.instructionsLook and alpha < 1.0:
-            mult = BlenderMaterials.__nodeMath(nodes, 'MULTIPLY', 200, -410);
-            links.new(input.outputs[1], mult.inputs[0])
-            links.new(mult.outputs[0], output.inputs[1])
-        else:
-            links.new(input.outputs[1], output.inputs[1])
 
     def __createNodeBasedMaterial(blenderName, col, isSlopeMaterial=False):
         """Set Cycles Material Values."""
@@ -2509,13 +2386,8 @@ class BlenderMaterials:
             material.diffuse_color = getDiffuseColor(col["colour"][0:3])
 
         if Options.instructionsLook:
-            if not isBlender28OrLater:
-                material.use_shadeless = True
-                material.diffuse_intensity = 1.0
-                material.translucency = 0
-            else:
-                material.blend_method = 'BLEND'
-                material.show_transparent_back = False
+            material.blend_method = 'BLEND'
+            material.show_transparent_back = False
 
             if col is not None:
                 # Dark colours have white lines
@@ -2530,12 +2402,10 @@ class BlenderMaterials:
             nodes.remove(n)
 
         if col is not None:
-            BlenderMaterials.__setBlenderRenderProperties(material, nodes, links, col)
-
             isTransparent = col["alpha"] < 1.0
 
             #  See Enable eevee transparency https://github.com/TobyLobster/ImportLDraw/pull/46/
-            if isBlender28OrLater and isTransparent:
+            if isTransparent:
                 material.blend_method = 'BLEND'
                 material.refraction_depth = 0.1
                 material.use_screen_refraction = True
@@ -2564,7 +2434,7 @@ class BlenderMaterials:
             if isSlopeMaterial and not Options.instructionsLook:
                 BlenderMaterials.__createCyclesSlopeTexture(nodes, links, 0.6)
             elif Options.curvedWalls and not Options.instructionsLook:
-                BlenderMaterials.__createCyclesConcaveWalls(nodes, links, 0.2)
+                BlenderMaterials.__createCyclesConcaveWalls(nodes, links, 20 * globalScaleFactor)
 
             material["Lego.isTransparent"] = isTransparent
             return material
@@ -3195,6 +3065,8 @@ class BlenderMaterials:
 
     # **********************************************************************************
     def __createBlenderSlopeTextureNodeGroup():
+        global globalScaleFactor
+
         if bpy.data.node_groups.get('Slope Texture') is None:
             debugPrint("createBlenderSlopeTextureNodeGroup #create")
             # create a group
@@ -3205,7 +3077,7 @@ class BlenderMaterials:
 
             # create nodes
             node_texture_coordinate = BlenderMaterials.__nodeTexCoord(group.nodes, -300, 240)
-            node_voronoi = BlenderMaterials.__nodeVoronoi(group.nodes, 3.0 / Options.scale, -100, 155)
+            node_voronoi = BlenderMaterials.__nodeVoronoi(group.nodes, 3.0 / globalScaleFactor, -100, 155)
             node_bump = BlenderMaterials.__nodeBumpShader(group.nodes, 0.3, 0.08, 90, 50)
             node_bump.invert = True
 
@@ -3368,8 +3240,7 @@ class BlenderMaterials:
                 group.links.new(node_emission.outputs['Emission'], node_output.inputs['Shader'])
             else:
                 if BlenderMaterials.usePrincipledShader:
-                    node_main = BlenderMaterials.__nodePrincipled(group.nodes, 0.05, 0.05, 0.0, 0.1, 0.0, 0.0, 1.45,
-                                                                  0.0, 0, 0)
+                    node_main = BlenderMaterials.__nodePrincipled(group.nodes, 5 * globalScaleFactor, 0.05, 0.0, 0.1, 0.0, 0.0, 1.45, 0.0, 0, 0)
                     output_name = 'BSDF'
                     color_name = 'Base Color'
                     if Options.addSubsurface:
@@ -3887,20 +3758,6 @@ class BlenderMaterials:
 
 
 # **************************************************************************************
-def point_to_line_segment_dist_squared(p, a, b):
-    ab = b - a
-    ab_length_squared = ab.dot(ab)
-    if (ab_length_squared < epsilon):
-        t = 0.5
-    else:
-        ap = p - a
-        t = ap.dot(ab) / ab_length_squared
-        t = max(0, min(t, 1))
-    c = p - (a + t * ab)
-    return c.dot(c)
-
-
-# **************************************************************************************
 def addSharpEdges(bm, geometry, filename):
     if geometry.edges:
         global globalWeldDistance
@@ -4079,6 +3936,7 @@ partsHierarchy = {}
 macro_name = None
 macros = {}
 
+# **************************************************************************************
 def parseParentsFile(file):
     global parent
     global attach_points
@@ -4191,6 +4049,8 @@ def parseParentsFile(file):
 
 # **************************************************************************************
 def setupImplicitParents():
+    global globalScaleFactor
+
     if not Options.minifigHierarchy:
         return
 
@@ -4199,10 +4059,7 @@ def setupImplicitParents():
     if not partsHierarchy:
         return
 
-    if isBlender28OrLater:
-        bpy.context.view_layer.update()
-    else:
-        bpy.context.scene.update()
+    bpy.context.view_layer.update()
 
     # create a set of the parent parts and a set of child parts from the partsHierarchy
     parentParts = set()
@@ -4220,7 +4077,7 @@ def setupImplicitParents():
     # print('Child parts: %s' % (childParts,))
     # print('Interesting parts: %s' % (interestingParts,))
 
-    tolerance = Options.scale * 5 # in LDraw units
+    tolerance = globalScaleFactor * 5 # in LDraw units
     squaredTolerance = tolerance * tolerance
     # print(" Squared tolerance: %s" % (squaredTolerance,))
 
@@ -4283,13 +4140,13 @@ def setupImplicitParents():
         childrenData = parentableMeshes.get(meshName)
         if not childrenData:
             continue
-        # parentLocation = matmul(obj.matrix_world, mathutils.Vector((0, 0, 0)))
+        # parentLocation = obj.matrix_world @ mathutils.Vector((0, 0, 0))
         # parentMatrixInverted = obj.matrix_world.inverted()
         # print("Looking for children of %s (at %s)" % (obj.name, parentLocation))
 
         slotLocations = []
         for slot in childrenData[0]:
-            loc = matmul(obj.matrix_world, (mathutils.Vector(slot) * Options.scale))
+            loc = obj.matrix_world @ (mathutils.Vector(slot) * globalScaleFactor)
             slotLocations.append(loc)
         # print(" Slot locations: %s" % (slotLocations,))
 
@@ -4423,13 +4280,14 @@ def createMesh(name, meshName, geometry):
 
     return (mesh, newMeshCreated)
 
-
 # **************************************************************************************
 def addModifiers(ob):
+    global globalScaleFactor
+
     # Add Bevel modifier to each instance
     if Options.addBevelModifier:
         bevelModifier = ob.modifiers.new("Bevel", type='BEVEL')
-        bevelModifier.width = Options.bevelWidth * Options.scale
+        bevelModifier.width = Options.bevelWidth * globalScaleFactor
         bevelModifier.segments = 4
         bevelModifier.profile = 0.5
         bevelModifier.limit_method = 'WEIGHT'
@@ -4440,7 +4298,6 @@ def addModifiers(ob):
         edgeModifier = ob.modifiers.new("Edge Split", type='EDGE_SPLIT')
         edgeModifier.use_edge_sharp = True
         edgeModifier.split_angle = math.radians(30.0)
-
 
 # **************************************************************************************
 def smoothShadingAndFreestyleEdges(ob):
@@ -4510,7 +4367,7 @@ def createBlenderObjectsFromNode(node,
 
         # Create Blender Object
         ob = bpy.data.objects.new(blenderName, mesh)
-        ob.matrix_local = matmul(blenderParentTransform, localMatrix)
+        ob.matrix_local = blenderParentTransform @ localMatrix
 
         if newMeshCreated:
             # For performance reasons we try to avoid using bpy.ops.* methods
@@ -4521,7 +4378,7 @@ def createBlenderObjectsFromNode(node,
             if hasattr(ob.data, "use_customdata_edge_bevel"):
                 ob.data.use_customdata_edge_bevel = True
             else:
-                # create object and add to scene
+                # Add to scene
                 linkToScene(ob)
 
                 # Blender 3.4 removed 'ob.data.use_customdata_edge_bevel', so this seems to be the alternative:
@@ -4543,6 +4400,9 @@ def createBlenderObjectsFromNode(node,
                 bpy.ops.object.mode_set(mode='OBJECT')
 
                 unlinkFromScene(ob)
+
+        # The lines out of an empty shown in the viewport are scaled to a reasonable size
+        ob.empty_display_size = 250.0 * globalScaleFactor
 
         # Mark object as transparent if any polygon is transparent
         ob["Lego.isTransparent"] = False
@@ -4567,11 +4427,7 @@ def createBlenderObjectsFromNode(node,
 
         # Add light to light bricks
         if name in globalLightBricks:
-            if isBlender28OrLater:
-                lamp_data = bpy.data.lights.new(name="LightLamp", type='POINT')
-            else:
-                lamp_data = bpy.data.lamps.new(name="LightLamp", type='POINT')
-
+            lamp_data = bpy.data.lights.new(name="LightLamp", type='POINT')
             lamp_data.shadow_soft_size = 0.05
             lamp_data.use_nodes = True
             emission_node = lamp_data.node_tree.nodes.get('Emission')
@@ -4596,14 +4452,22 @@ def createBlenderObjectsFromNode(node,
             bm.edges.ensure_lookup_table()
 
             # Remove doubles
+            # Note: This doesn't work properly with a low distance value
+            # So we scale up the vertices beforehand and scale them down afterwards
+            for v in bm.verts:
+                v.co = v.co * 1000
+
             if removeDoubles:
-                bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=globalWeldDistance)
+                bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=globalWeldDistance)
+
+            for v in bm.verts:
+                v.co = v.co / 1000
 
             # Recalculate normals
             if recalculateNormals:
                 bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
 
-            # Add sharp edges
+            # Add sharp edges with edge weights
             addSharpEdges(bm, geometry, name)
 
             bm.to_mesh(ob.data)
@@ -4611,21 +4475,18 @@ def createBlenderObjectsFromNode(node,
             bm.free()
 
             # Show the sharp edges in Edit Mode
-            if isBlender28OrLater:
-                for area in bpy.context.screen.areas:  # iterate through areas in current screen
-                    if area.type == 'VIEW_3D':
-                        for space in area.spaces:  # iterate through spaces in current VIEW_3D area
-                            if space.type == 'VIEW_3D':  # check if space is a 3D view
-                                space.overlay.show_edge_sharp = True
-            else:
-                ob.data.show_edge_sharp = True
+            for area in bpy.context.screen.areas:  # iterate through areas in current screen
+                if area.type == 'VIEW_3D':
+                    for space in area.spaces:  # iterate through spaces in current VIEW_3D area
+                        if space.type == 'VIEW_3D':  # check if space is a 3D view
+                            space.overlay.show_edge_sharp = True
 
             # Scale for Gaps
             if Options.gaps and node.file.isPart:
-                # Distance between gaps is controlled by Options.gapWidth
-                # Gap height is set smaller than gapWidth since empirically, stacked bricks tend
+                # Distance between gaps is controlled by Options.realGapWidth
+                # Gap height is set smaller than realGapWidth since empirically, stacked bricks tend
                 # to be pressed more tightly together
-                gapHeight = 0.33 * Options.gapWidth
+                gapHeight = 0.33 * Options.realGapWidth
                 objScale = ob.scale
                 dim = ob.dimensions
 
@@ -4635,13 +4496,13 @@ def createBlenderObjectsFromNode(node,
                 # the dimension so that the mesh shrinks a fixed distance
                 # (determined by the gap_width and the scale of the object)
                 # in every direction, creating a uniform gap.
-                scaleFac = mathutils.Vector((1.0, 1.0, 1.0))
+                scaleFac = mathutils.Vector( (1.0, 1.0, 1.0) )
                 if dim.x != 0:
-                    scaleFac.x = 1 - Options.gapWidth * abs(objScale.x) / dim.x
+                    scaleFac.x = 1 - Options.realGapWidth * abs(objScale.x) / dim.x
                 if dim.y != 0:
-                    scaleFac.y = 1 - gapHeight        * abs(objScale.y) / dim.y
+                    scaleFac.y = 1 - gapHeight            * abs(objScale.y) / dim.y
                 if dim.z != 0:
-                    scaleFac.z = 1 - Options.gapWidth * abs(objScale.z) / dim.z
+                    scaleFac.z = 1 - Options.realGapWidth * abs(objScale.z) / dim.z
 
                 # A safety net: Don't distort the part too much (e.g. -ve scale would not look good)
                 if scaleFac.x < 0.95:
@@ -4666,8 +4527,8 @@ def createBlenderObjectsFromNode(node,
         # Notice that we do this after scaling for Options.gaps
         if Options.positionObjectOnGroundAtOrigin or Options.positionCamera:
             if mesh and mesh.vertices:
-                localTransform = matmul(localToWorldSpaceMatrix, localMatrix)
-                points = [matvecmul(localTransform, p.co) for p in mesh.vertices]
+                localTransform = localToWorldSpaceMatrix @ localMatrix
+                points = [localTransform @ p.co for p in mesh.vertices]
 
                 # Remember all the points
                 globalPoints.extend(points)
@@ -4679,19 +4540,17 @@ def createBlenderObjectsFromNode(node,
         # Add bevel and edge split modifiers as needed
         if mesh:
             addModifiers(ob)
+
     else:
-        blenderParentTransform = matmul(blenderParentTransform, localMatrix)
+        blenderParentTransform = blenderParentTransform @ localMatrix
 
     # Create children and parent them
     for childNode in node.file.childNodes:
         # Create sub-objects recursively
         childColourName = LDrawNode.resolveColour(childNode.colourName, realColourName)
-        createBlenderObjectsFromNode(childNode, childNode.matrix, childNode.filename, childColourName,
-                                     blenderParentTransform, matmul(localToWorldSpaceMatrix, localMatrix),
-                                     blenderNodeParent)
+        createBlenderObjectsFromNode(childNode, childNode.matrix, childNode.filename, childColourName, blenderParentTransform, localToWorldSpaceMatrix @ localMatrix, blenderNodeParent)
 
     return ob
-
 
 # **************************************************************************************
 def addFileToCache(relativePath, name):
@@ -4700,7 +4559,6 @@ def addFileToCache(relativePath, name):
     file = LDrawFile(relativePath, False, "", None, True)
     CachedFiles.addToCache(name, file)
     return True
-
 
 # **************************************************************************************
 def setupLineset(lineset, thickness, group):
@@ -4715,12 +4573,8 @@ def setupLineset(lineset, thickness, group):
     lineset.select_material_boundary = False
     lineset.edge_type_combination = 'OR'
     lineset.edge_type_negation = 'INCLUSIVE'
-    if isBlender28OrLater:
-        lineset.select_by_collection = True
-        lineset.collection = bpy.data.collections[bpy.data.collections.find(group)]
-    else:
-        lineset.select_by_group = True
-        lineset.group = bpy.data.groups[bpy.data.groups.find(group)]
+    lineset.select_by_collection = True
+    lineset.collection = bpy.data.collections[bpy.data.collections.find(group)]
 
     # Set line color
     lineset.linestyle.color = (0.0, 0.0, 0.0)
@@ -4737,7 +4591,6 @@ def setupLineset(lineset, thickness, group):
 
     # Set Thickness
     lineset.linestyle.thickness = thickness
-
 
 # **************************************************************************************
 def setupRealisticLook():
@@ -4766,10 +4619,7 @@ def setupRealisticLook():
             background = nodes["Background"]
             links.new(env_tex.outputs[0], background.inputs[0])
     else:
-        if isBlender28OrLater:
-            scene.world.color = (1.0, 1.0, 1.0)
-        else:
-            scene.world.horizon_color = (1.0, 1.0, 1.0)
+        scene.world.color = (1.0, 1.0, 1.0)
 
     if Options.setRenderSettings:
         useDenoising(scene, True)
@@ -4782,10 +4632,9 @@ def setupRealisticLook():
             scene.cycles.glossy_bounces = 20
 
         #  See Enable eevee transparency https://github.com/TobyLobster/ImportLDraw/pull/46/
-        if isBlender28OrLater:
-            scene.eevee.use_ssr = True
-            scene.eevee.use_ssr_refraction = True
-            scene.eevee.use_taa_reprojection = True
+        scene.eevee.use_ssr = True
+        scene.eevee.use_ssr_refraction = True
+        scene.eevee.use_taa_reprojection = True
 
     # Check layer names to see if we were previously rendering instructions and change settings back.
     layerNames = getLayerNames(scene)
@@ -4820,16 +4669,6 @@ def setupRealisticLook():
         for i in range(len(layers)):
             layers[i].use = True
 
-        # Move each part to appropriate scene layer
-        if not isBlender28OrLater:
-            for object in scene.objects:
-                # For each lego object...
-                if "Lego.isTransparent" in object:
-                    # Turn on just the first scene layer
-                    length = len(object.layers)
-                    for i in range(length):
-                        object.layers[i] = (i == 0)
-
         # Create Compositing Nodes
         scene.use_nodes = True
 
@@ -4855,17 +4694,21 @@ def setupRealisticLook():
 
 
 # **************************************************************************************
+def createCollection(scene, name):
+    if bpy.data.collections.find(name) < 0:
+        # Create collection
+        bpy.data.collections.new(name)
+        # Add collection to scene
+        scene.collection.children.link(bpy.data.collections[name])
+
+# **************************************************************************************
 def setupInstructionsLook():
     scene = bpy.context.scene
     render = scene.render
     render.use_freestyle = True
 
-    if isBlender28OrLater:
-        # Use Blender Eevee for instructions look
-        render.engine = 'BLENDER_EEVEE'
-    else:
-        # Use Blender render for instructions look
-        render.engine = 'BLENDER_RENDER'
+    # Use Blender Eevee for instructions look
+    render.engine = 'BLENDER_EEVEE'
 
     # Change camera to Orthographic
     if scene.camera is not None:
@@ -4883,29 +4726,12 @@ def setupInstructionsLook():
     if scene.cycles.transparent_max_bounces < 80:
         scene.cycles.transparent_max_bounces = 80
 
-    # Add two groups, if not already present
+    # Add collections / groups, if not already present
     if hasCollections:
-        if bpy.data.collections.find('Black Edged Bricks Collection') < 0:
-            # Create collection
-            bpy.data.collections.new('Black Edged Bricks Collection')
-            # Add collection to scene
-            scene.collection.children.link(bpy.data.collections['Black Edged Bricks Collection'])
-        if bpy.data.collections.find('White Edged Bricks Collection') < 0:
-            # Create collection
-            bpy.data.collections.new('White Edged Bricks Collection')
-            # Add collection to scene
-            scene.collection.children.link(bpy.data.collections['White Edged Bricks Collection'])
-        if bpy.data.collections.find('Solid Bricks Collection') < 0:
-            # Create collection
-            bpy.data.collections.new('Solid Bricks Collection')
-            # Add collection to scene
-            scene.collection.children.link(bpy.data.collections['Solid Bricks Collection'])
-        if bpy.data.collections.find('Transparent Bricks Collection') < 0:
-            # Create collection
-            bpy.data.collections.new('Transparent Bricks Collection')
-            # Add collection to scene
-            scene.collection.children.link(bpy.data.collections['Transparent Bricks Collection'])
-
+        createCollection(scene, 'Black Edged Bricks Collection')
+        createCollection(scene, 'White Edged Bricks Collection')
+        createCollection(scene, 'Solid Bricks Collection')
+        createCollection(scene, 'Transparent Bricks Collection')
     else:
         if bpy.data.groups.find('Black Edged Bricks Collection') < 0:
             bpy.data.groups.new('Black Edged Bricks Collection')
@@ -4915,12 +4741,13 @@ def setupInstructionsLook():
     # Find or create the render/view layers we are interested in:
     layers = getLayers(scene)
 
+    # Remember current view layer
+    current_view_layer = bpy.context.view_layer
+
+    # Add layers as needed
     layerNames = list(map((lambda x: x.name), layers))
     if "SolidBricks" not in layerNames:
-        if isBlender28OrLater:
-            bpy.ops.scene.view_layer_add()
-        else:
-            bpy.ops.scene.render_layer_add()
+        bpy.ops.scene.view_layer_add()
 
         layers[-1].name = "SolidBricks"
         layers[-1].use = True
@@ -4928,15 +4755,15 @@ def setupInstructionsLook():
     solidLayer = layerNames.index("SolidBricks")
 
     if "TransparentBricks" not in layerNames:
-        if isBlender28OrLater:
-            bpy.ops.scene.view_layer_add()
-        else:
-            bpy.ops.scene.render_layer_add()
+        bpy.ops.scene.view_layer_add()
 
         layers[-1].name = "TransparentBricks"
         layers[-1].use = True
         layerNames.append("TransparentBricks")
     transLayer = layerNames.index("TransparentBricks")
+
+    # Restore current view layer
+    bpy.context.window.view_layer = current_view_layer
 
     # Use Z layer (defaults to off in Blender 3.5.1)
     if hasattr(layers[transLayer], "use_pass_z"):
@@ -4949,91 +4776,46 @@ def setupInstructionsLook():
         if i not in [solidLayer, transLayer]:
             layers[i].use = False
 
-    if isBlender28OrLater:
-        layers[solidLayer].use = True
-        layers[transLayer].use = True
+    layers[solidLayer].use = True
+    layers[transLayer].use = True
 
-        # Include or exclude collections for each layer
-        for collection in layers[solidLayer].layer_collection.children:
-            collection.exclude = collection.name != 'Solid Bricks Collection'
-        for collection in layers[transLayer].layer_collection.children:
-            collection.exclude = collection.name != 'Transparent Bricks Collection'
+    # Include or exclude collections for each layer
+    for collection in layers[solidLayer].layer_collection.children:
+        collection.exclude = collection.name != 'Solid Bricks Collection'
+    for collection in layers[transLayer].layer_collection.children:
+        collection.exclude = collection.name != 'Transparent Bricks Collection'
 
-        # layers[solidLayer].layer_collection.children['Black Edged Bricks Collection'].exclude = True
-        # layers[solidLayer].layer_collection.children['White Edged Bricks Collection'].exclude = True
-        # layers[solidLayer].layer_collection.children['Solid Bricks Collection'].exclude = False
-        # layers[solidLayer].layer_collection.children['Transparent Bricks Collection'].exclude = True
+    #layers[solidLayer].layer_collection.children['Black Edged Bricks Collection'].exclude = True
+    #layers[solidLayer].layer_collection.children['White Edged Bricks Collection'].exclude = True
+    #layers[solidLayer].layer_collection.children['Solid Bricks Collection'].exclude = False
+    #layers[solidLayer].layer_collection.children['Transparent Bricks Collection'].exclude = True
 
-        # layers[transLayer].layer_collection.children['Black Edged Bricks Collection'].exclude = True
-        # layers[transLayer].layer_collection.children['White Edged Bricks Collection'].exclude = True
-        # layers[transLayer].layer_collection.children['Solid Bricks Collection'].exclude = True
-        # layers[transLayer].layer_collection.children['Transparent Bricks Collection'].exclude = False
+    #layers[transLayer].layer_collection.children['Black Edged Bricks Collection'].exclude = True
+    #layers[transLayer].layer_collection.children['White Edged Bricks Collection'].exclude = True
+    #layers[transLayer].layer_collection.children['Solid Bricks Collection'].exclude = True
+    #layers[transLayer].layer_collection.children['Transparent Bricks Collection'].exclude = False
 
-        # Move each part to appropriate collection
-        for object in scene.objects:
-            isTransparent = False
-            if "Lego.isTransparent" in object:
-                isTransparent = object["Lego.isTransparent"]
+    # Move each part to appropriate collection
+    for object in scene.objects:
+        isTransparent = False
+        if "Lego.isTransparent" in object:
+            isTransparent = object["Lego.isTransparent"]
 
-                # Add objects to the appropriate layers
-                if isTransparent:
-                    linkToCollection('Transparent Bricks Collection', object)
+            # Add objects to the appropriate layers
+            if isTransparent:
+                linkToCollection('Transparent Bricks Collection', object)
+            else:
+                linkToCollection('Solid Bricks Collection', object)
+
+            # Add object to the appropriate group
+            if object.data != None:
+                colour = object.data.materials[0].diffuse_color
+
+                # Dark colours have white lines
+                if LegoColours.isDark(colour):
+                    linkToCollection('White Edged Bricks Collection', object)
                 else:
-                    linkToCollection('Solid Bricks Collection', object)
-
-                # Add object to the appropriate group
-                if object.data != None:
-                    colour = object.data.materials[0].diffuse_color
-
-                    # Dark colours have white lines
-                    if LegoColours.isDark(colour):
-                        linkToCollection('White Edged Bricks Collection', object)
-                    else:
-                        linkToCollection('Black Edged Bricks Collection', object)
-
-    else:
-        # Enable two scene layers
-        scene.layers[0] = True
-        scene.layers[1] = True
-
-        # Enable just the right scene layers in each of our two render layers
-        length = len(layers[solidLayer].layers)
-        for i in range(length):
-            layers[solidLayer].layers[i] = (i == 0)
-
-        length = len(layers[transLayer].layers)
-        for i in range(length):
-            layers[transLayer].layers[i] = (i == 1)
-
-        # Move each part to appropriate scene layer
-        for object in scene.objects:
-            isTransparent = False
-            if "Lego.isTransparent" in object:
-                isTransparent = object["Lego.isTransparent"]
-
-                # Turn on the appropriate layers
-                if isTransparent:
-                    object.layers[1] = True
-                else:
-                    object.layers[0] = True
-
-                # Turn off all other layers as appropriate
-                length = len(object.layers)
-                for i in range(length):
-                    if isTransparent:
-                        object.layers[i] = (i == 1)
-                    else:
-                        object.layers[i] = (i == 0)
-
-                # Add object to the appropriate group
-                if object.data != None:
-                    colour = object.data.materials[0].diffuse_color
-
-                    # Dark colours have white lines
-                    if LegoColours.isDark(colour):
-                        linkToCollection('White Edged Bricks Collection', object)
-                    else:
-                        linkToCollection('Black Edged Bricks Collection', object)
+                    linkToCollection('Black Edged Bricks Collection', object)
 
     # Find or create linesets
     solidBlackLineset = None
@@ -5111,12 +4893,10 @@ def setupInstructionsLook():
 
 # **************************************************************************************
 def iterateCameraPosition(camera, render, vcentre3d, moveCamera):
+
     global globalPoints
 
-    if isBlender28OrLater:
-        bpy.context.view_layer.update()
-    else:
-        bpy.context.scene.update()
+    bpy.context.view_layer.update()
 
     minX = sys.float_info.max
     maxX = -sys.float_info.max
@@ -5126,26 +4906,19 @@ def iterateCameraPosition(camera, render, vcentre3d, moveCamera):
     # Calculate matrix to take 3d points into normalised camera space
     modelview_matrix = camera.matrix_world.inverted()
 
-    if isBlender28OrLater:
-        get_depsgraph_method = getattr(bpy.context, "evaluated_depsgraph_get", None)
-        if callable(get_depsgraph_method):
-            depsgraph = get_depsgraph_method()
-        else:
-            depsgraph = bpy.context.depsgraph
-        projection_matrix = camera.calc_matrix_camera(
-            depsgraph,
-            x=render.resolution_x,
-            y=render.resolution_y,
-            scale_x=render.pixel_aspect_x,
-            scale_y=render.pixel_aspect_y)
+    get_depsgraph_method = getattr(bpy.context, "evaluated_depsgraph_get", None)
+    if callable(get_depsgraph_method):
+        depsgraph = get_depsgraph_method()
     else:
-        projection_matrix = camera.calc_matrix_camera(
-            render.resolution_x,
-            render.resolution_y,
-            render.pixel_aspect_x,
-            render.pixel_aspect_y)
+        depsgraph = bpy.context.depsgraph
+    projection_matrix = camera.calc_matrix_camera(
+        depsgraph,
+        x=render.resolution_x,
+        y=render.resolution_y,
+        scale_x=render.pixel_aspect_x,
+        scale_y=render.pixel_aspect_y)
 
-    mp_matrix = matmul(projection_matrix, modelview_matrix)
+    mp_matrix = projection_matrix @ modelview_matrix
     mpinv_matrix = mp_matrix.copy()
     mpinv_matrix.invert()
 
@@ -5154,7 +4927,7 @@ def iterateCameraPosition(camera, render, vcentre3d, moveCamera):
     # Convert 3d points to camera space, calculating the min and max extents in 2d normalised camera space.
     minDistToCamera = sys.float_info.max
     for point in globalPoints:
-        p1 = matvecmul(mp_matrix, mathutils.Vector((point.x, point.y, point.z, 1)))
+        p1 = mp_matrix @ mathutils.Vector((point.x, point.y, point.z, 1))
         if isOrtho:
             point2d = (p1.x, p1.y)
         elif abs(p1.w) < 1e-8:
@@ -5200,7 +4973,7 @@ def iterateCameraPosition(camera, render, vcentre3d, moveCamera):
 
     # Transform the 2d centre of object back into 3d space
     if isOrtho:
-        centre3d = matvecmul(mpinv_matrix, mathutils.Vector((centre2d.x, centre2d.y, 0, 1)))
+        centre3d = mpinv_matrix @ mathutils.Vector((centre2d.x, centre2d.y, 0, 1))
         centre3d = mathutils.Vector((centre3d.x, centre3d.y, centre3d.z))
 
         # Move centre3d a distance d from the camera plane
@@ -5208,7 +4981,7 @@ def iterateCameraPosition(camera, render, vcentre3d, moveCamera):
         dist = v.dot(forwards3d)
         centre3d = centre3d + (d - dist) * forwards3d
     else:
-        centre3d = matvecmul(mpinv_matrix, mathutils.Vector((centre2d.x, centre2d.y, -1, 1)))
+        centre3d = mpinv_matrix @ mathutils.Vector((centre2d.x, centre2d.y, -1, 1))
         centre3d = mathutils.Vector((centre3d.x / centre3d.w, centre3d.y / centre3d.w, centre3d.z / centre3d.w))
 
         # Make sure the 3d centre of the object is distance d from the camera location
@@ -5272,6 +5045,40 @@ def loadFromFile(context, filename, isFullFilepath=True):
     global globalCamerasToAdd
     global globalLightsToAdd
     global globalContext
+    global globalScaleFactor
+
+    # Set global scale factor
+    # -----------------------
+    #
+    # 1. The size of Lego pieces:
+    #
+    # Lego scale: https://www.lugnet.com/~330/FAQ/Build/dimensions
+    #
+    #   1 Lego draw unit = 0.4 mm, in an idealised world.
+    #
+    # In real life, actual Lego pieces have been measured as 0.3993 mm +/- 0.0002,
+    # which makes 0.4mm accurate enough for all practical purposes (The difference
+    # being just 7 microns).
+    #
+    # 2. Blender coordinates:
+    #
+    # Blender reports coordinates in metres by default. So the
+    # scale factor to convert from Lego units to Blender coordinates
+    # is 0.0004.
+    #
+    # This calculation does not adjust for any gap between the pieces.
+    # This is (optionally) done later in the calculations, where we
+    # reduce the size of each piece by 0.2mm (default amount) to allow
+    # for a small gap between pieces. This matches real piece sizes.
+    #
+    # 3. Blender Scene Unit Scale:
+    #
+    # Blender has a 'Scene Unit Scale' value which by default is set
+    # to 1.0. By changing the 'Unit Scale' after import the size of
+    # everything in the scene can be adjusted.
+
+    globalScaleFactor = 0.0004 * Options.realScale
+    globalWeldDistance = 0.01 * globalScaleFactor
 
     ldrawModelFile = filename
     globalCamerasToAdd = []
@@ -5322,10 +5129,10 @@ def loadFromFile(context, filename, isFullFilepath=True):
     if node.file.isModel:
         # Fix top level rotation from LDraw coordinate space to Blender coordinate space
         node.file.geometry.points = [Math.rotationMatrix * p for p in node.file.geometry.points]
-        node.file.geometry.edges  = [(matvecmul(Math.rotationMatrix, e[0]), matvecmul(Math.rotationMatrix, e[1])) for e in node.file.geometry.edges]
+        node.file.geometry.edges  = [(Math.rotationMatrix @ e[0], Math.rotationMatrix @ e[1]) for e in node.file.geometry.edges]
 
         for childNode in node.file.childNodes:
-            childNode.matrix = matmul(Math.rotationMatrix, childNode.matrix)
+            childNode.matrix = Math.rotationMatrix @ childNode.matrix
 
     # Switch to Object mode and deselect all
     if bpy.ops.object.mode_set.poll():
@@ -5357,10 +5164,7 @@ def loadFromFile(context, filename, isFullFilepath=True):
     camera = scene.camera
     render = scene.render
     importedCameraName = ""
-    if isBlender28OrLater:
-        lightName = "Light"
-    else:
-        lightName = "Lamp"
+    lightName = "Light"
 
     debugPrint("Number of vertices: " + str(len(globalPoints)))
 
@@ -5368,6 +5172,13 @@ def loadFromFile(context, filename, isFullFilepath=True):
     # This results in far fewer points to consider when adjusting the object and/or camera position.
     getConvexHull()
     debugPrint("Number of convex hull vertices: " + str(len(globalPoints)))
+
+    # Set camera type
+    if scene.camera is not None:
+        if Options.instructionsLook:
+            scene.camera.data.type = 'ORTHO'
+        else:
+            scene.camera.data.type = 'PERSP'
 
     # Centre object only if root node is a model
     if node.file.isModel and globalPoints:
@@ -5382,11 +5193,20 @@ def loadFromFile(context, filename, isFullFilepath=True):
         boundingBoxMax[1] = max(p[1] for p in globalPoints)
         boundingBoxMax[2] = max(p[2] for p in globalPoints)
 
+        # Length of bounding box diagonal
+        boundingBoxDistance = (boundingBoxMax - boundingBoxMin).length
+        boundingBoxCentre = (boundingBoxMax + boundingBoxMin) * 0.5
+
         vcentre = (boundingBoxMin + boundingBoxMax) * 0.5
         offsetToCentreModel = mathutils.Vector((-vcentre.x, -vcentre.y, -boundingBoxMin.z))
         if Options.positionObjectOnGroundAtOrigin:
             debugPrint("Centre object")
             rootOb.location += offsetToCentreModel
+
+            # Offset bounding box
+            boundingBoxMin += offsetToCentreModel
+            boundingBoxMax += offsetToCentreModel
+            boundingBoxCentre += offsetToCentreModel
 
             # Offset all points
             globalPoints = [p + offsetToCentreModel for p in globalPoints]
@@ -5401,8 +5221,13 @@ def loadFromFile(context, filename, isFullFilepath=True):
             elif camera is not None:
                 debugPrint("Positioning Camera: {0}".format(camera.data.name))
 
+                camera.data.clip_start = 25 * globalScaleFactor            # 0.01 at normal scale
+                camera.data.clip_end   = 250000 * globalScaleFactor        # 100 at normal scale
+
                 # Set up a default camera position and rotation
                 camera.location = mathutils.Vector((6.5, -6.5, 4.75))
+                camera.location.normalize()
+                camera.location = camera.location * boundingBoxDistance
                 camera.rotation_mode = 'XYZ'
                 camera.rotation_euler = mathutils.Euler((1.0471975803375244, 0.0, 0.7853981852531433), 'XYZ')
 
@@ -5416,6 +5241,16 @@ def loadFromFile(context, filename, isFullFilepath=True):
                             error = iterateCameraPosition(camera, render, vcentre, True)
                             if (error < 0.001):
                                 break
+
+        # Find the (first) 3D View, then set the view's 'look at' and 'distance'
+        # Note: Not a camera object, but the point of view in the UI.
+        areas = [area for area in bpy.context.window.screen.areas if area.type == 'VIEW_3D']
+        if len(areas) > 0:
+            area = areas[0]
+            with bpy.context.temp_override(area=area):
+                view3d = bpy.context.space_data
+                view3d.region_3d.view_location = boundingBoxCentre      # Where to look at
+                view3d.region_3d.view_distance = boundingBoxDistance    # How far from target
 
     # Get existing object names
     sceneObjectNames = [x.name for x in scene.objects]
@@ -5469,7 +5304,7 @@ def loadFromFile(context, filename, isFullFilepath=True):
     # Add ground plane with white material
     if Options.addGroundPlane and not Options.instructionsLook:
         if "LegoGroundPlane" not in sceneObjectNames:
-            addPlane((0, 0, 0), 100000 * Options.scale)
+            addPlane((0, 0, 0), 100000 * globalScaleFactor)
 
             blenderName = "Mat_LegoGroundPlane"
             # Reuse current material if it exists, otherwise create a new material

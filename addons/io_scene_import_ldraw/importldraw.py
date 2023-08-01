@@ -73,7 +73,7 @@ curvedWalls                   = True
 defaultColour                 = 4
 flattenHierarchy              = False
 gaps                          = False
-gapsWidth                     = 0.01
+realGapWidth                  = 0.0002
 importCameras                 = True
 instanceStuds                 = False
 linkParts                     = True
@@ -88,7 +88,7 @@ removeDoubles                 = True
 renderWindow                  = False
 resolution                    = Standard
 resolveNormals                = guess
-scale                         = 0.01
+realScale                     = 1.0
 smoothShading                 = True
 transparentBackground         = True
 useColourScheme               = lego
@@ -205,7 +205,7 @@ class Preferences():
 
     def getLSynthPath(self):
         return os.path.abspath(os.path.join(os.path.dirname(__file__), 'lsynth'))
-    
+
     def getLStudsPath(self):
         return os.path.abspath(os.path.join(os.path.dirname(__file__), 'studs'))
 
@@ -233,10 +233,10 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         default=prefs.get("ldrawDirectory", loadldraw.Configure.findDefaultLDrawDirectory())
     )
 
-    importScale: FloatProperty(
+    realScale: FloatProperty(
         name="Scale",
-        description="Image percentage scale for its pixel resolution (enter between .01 and 1)",
-        default=prefs.get("scale", 0.01)
+        description="Sets a scale for the model (1.0 = real life scale)",
+        default=prefs.get("realScale", 1.0)
     )
 
     resPrims: EnumProperty(
@@ -266,8 +266,8 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         default=prefs.get("useColourScheme", "lgeo"),
         items=[
             ("lgeo", "Realistic colours", "Uses the LGEO colour scheme for realistic colours."),
-            ("ldraw", "Original LDraw colours", "Uses the standard LDraw colour scheme (LDConfig.ldr)."),
-            ("alt", "Alternate LDraw colours", "Uses the alternate LDraw colour scheme (LDCfgalt.ldr)."),
+            ("ldraw", "Original LDraw colours", "Uses the standard LDraw colour scheme (LDConfig.ldr). Good with the Instructions Look."),
+            ("alt", "Alternate LDraw colours", "Uses the alternate LDraw colour scheme (LDCfgalt.ldr). Good with the Instructions Look."),
             ("custom", "Custom LDraw colours", "Uses a user specified LDraw colour file.")
         ],
     )
@@ -295,15 +295,15 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         default=prefs.get("gaps", False)
     )
 
-    gapsSize: FloatProperty(
+    gapWidthMM: FloatProperty(
         name="Space",
-        description="Amount of space between each part",
-        default=prefs.get("gapWidth", 0.01)
+        description="Amount of space between each part (default 0.2mm)",
+        default=1000 * prefs.get("realGapWidth", 0.0002)
     )
 
     curvedWalls: BoolProperty(
         name="Use curved wall normals",
-        description="Makes surfaces look slightly concave",
+        description="Makes surfaces look slightly concave, for interesting reflections",
         default=prefs.get("curvedWalls", True)
     )
 
@@ -411,7 +411,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
 
     cameraBorderPercentage: FloatProperty(
         name="Camera Border %",
-        description="When positioning the camera, include a (percentage) border around the model in the render",
+        description="When positioning the camera, include a (percentage) border leeway around the model in the rendered image",
         default=prefs.get("cameraBorderPercentage", 5.0)
     )
 
@@ -530,24 +530,24 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         box.prop(self, "searchAdditionalPaths")
 
         layout.separator(factor=space_factor)
-        box.label(text="Import Options")    
-        box.prop(self, "addEnvironment")        
+        box.label(text="Import Options")
+        box.prop(self, "addEnvironment")
         box.prop(self, "importCameras")
         box.prop(self, "importLights")
-        box.prop(self, "importScale")
-        box.prop(self, "look", expand=True)        
+        box.prop(self, "realScale")
+        box.prop(self, "look", expand=True)
         box.prop(self, "useColourScheme", expand=True)
         box.prop(self, "positionCamera")
-        box.prop(self, "cameraBorderPercentage")    
+        box.prop(self, "cameraBorderPercentage")
         box.prop(self, "positionOnGround")
         box.prop(self, "useLogoStuds")
-        box.prop(self, "logoStudVersion", expand=True)    
+        box.prop(self, "logoStudVersion", expand=True)
         box.prop(self, "numberNodes")
         box.prop(self, "minifigHierarchy")
 
         layout.separator(factor=space_factor)
         box.label(text="Cleanup Options")
-        box.prop(self, "flatten")  
+        box.prop(self, "flatten")
         box.prop(self, "instanceStuds")
         box.prop(self, "resPrims", expand=True)
         box.prop(self, "smoothParts")
@@ -555,12 +555,13 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         box.prop(self, "bevelEdges")
         box.prop(self, "bevelWidth")
         box.prop(self, "addGaps")
-        box.prop(self, "gapsSize")
+        box.prop(self, "gapWidthMM")
         box.prop(self, "curvedWalls")
         box.prop(self, "linkParts")
 
         layout.separator(factor=space_factor)
-        box.prop(self, "resolveNormals", expand=True)          
+        box.label(text="Resolve Ambiguous Normals:", icon='ORIENTATION_NORMAL')
+        box.prop(self, "resolveNormals", expand=True)
 
         layout.separator(factor=space_factor)
         box.label(text="Extras")
@@ -605,10 +606,10 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             self.environmentFile         = ImportLDrawOps.prefs.get("environmentFile",      self.environmentFile)
             self.flatten                 = ImportLDrawOps.prefs.get("flattenHierarchy",     self.flatten)
             self.minifigHierarchy        = ImportLDrawOps.prefs.set("minifigHierarchy",     self.minifigHierarchy)
-            self.gapsSize                = ImportLDrawOps.prefs.get("gapWidth",             self.gapsSize)
+            self.gapWidthMM              = ImportLDrawOps.prefs.get("realGapWidth",         self.gapWidthMM / 1000)
             self.importCameras           = ImportLDrawOps.prefs.get("importCameras",        self.importCameras)
             self.importLights            = ImportLDrawOps.prefs.get("importLights",         self.importLights)
-            self.importScale             = ImportLDrawOps.prefs.get("scale",                self.importScale)
+            self.realScale               = ImportLDrawOps.prefs.get("realScale",            self.realScale)
             self.instanceStuds           = ImportLDrawOps.prefs.get("instanceStuds",        self.instanceStuds)
             self.ldrawPath               = ImportLDrawOps.prefs.get("ldrawDirectory",       self.ldrawPath)
             self.linkParts               = ImportLDrawOps.prefs.get("linkParts",            self.linkParts)
@@ -638,7 +639,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             assert self.customLDConfigFile != "", "Custom LDraw colour (LDConfig) file path not specified."
 
         if self.preferencesFile == "":
-            
+
             # Read current preferences from the UI and save them
 
             ImportLDrawOps.prefs.set("customLDConfigFile",     self.customLDConfigFile)
@@ -652,7 +653,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             ImportLDrawOps.prefs.set("flattenHierarchy",       self.flatten)
             ImportLDrawOps.prefs.set("minifigHierarchy",       self.minifigHierarchy)
             ImportLDrawOps.prefs.set("gaps",                   self.addGaps)
-            ImportLDrawOps.prefs.set("gapWidth",               self.gapsSize)
+            ImportLDrawOps.prefs.set("realGapWidth",           self.gapWidthMM / 1000)
             ImportLDrawOps.prefs.set("importCameras",          self.importCameras)
             ImportLDrawOps.prefs.set("importLights",           self.importLights)
             ImportLDrawOps.prefs.set("instanceStuds",          self.instanceStuds)
@@ -665,7 +666,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             ImportLDrawOps.prefs.set("positionObjectOnGroundAtOrigin", self.positionOnGround)
             ImportLDrawOps.prefs.set("resolution",             self.resPrims)
             ImportLDrawOps.prefs.set("resolveNormals",         self.resolveNormals)
-            ImportLDrawOps.prefs.set("scale",                  self.importScale)
+            ImportLDrawOps.prefs.set("realScale",              self.realScale)
             ImportLDrawOps.prefs.set("useArchiveLibrary",      self.useArchiveLibrary)
             ImportLDrawOps.prefs.set("searchAdditionalPaths",  self.searchAdditionalPaths)
             ImportLDrawOps.prefs.set("smoothShading",          self.smoothParts)
@@ -675,11 +676,10 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             ImportLDrawOps.prefs.set("useLook",                self.look)
             ImportLDrawOps.prefs.set("useUnofficialParts",     self.useUnofficialParts)
             ImportLDrawOps.prefs.set("verbose",                self.verbose)
-        
+
         ImportLDrawOps.prefs.save()
 
         # Set bpy related variables here since it isn't available immediately on Blender startup
-        loadldraw.isBlender28OrLater = hasattr(bpy.app, "version") and bpy.app.version >= (2, 82)
         loadldraw.hasCollections = hasattr(bpy.data, "collections")
 
         # Set import options and import
@@ -696,7 +696,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         loadldraw.Options.flattenHierarchy            = self.flatten
         loadldraw.Options.minifigHierarchy            = self.minifigHierarchy
         loadldraw.Options.gaps                        = self.addGaps
-        loadldraw.Options.gapWidth                    = self.gapsSize
+        loadldraw.Options.realGapWidth                = self.gapWidthMM / 1000
         loadldraw.Options.importCameras               = self.importCameras
         loadldraw.Options.importLights                = self.importLights
         loadldraw.Options.instanceStuds               = self.instanceStuds
@@ -710,7 +710,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         loadldraw.Options.removeDoubles               = self.removeDoubles
         loadldraw.Options.resolution                  = self.resPrims
         loadldraw.Options.resolveAmbiguousNormals     = self.resolveNormals
-        loadldraw.Options.scale                       = self.importScale
+        loadldraw.Options.realScale                   = self.realScale
         loadldraw.Options.useArchiveLibrary           = self.useArchiveLibrary
         loadldraw.Options.searchAdditionalPaths       = self.searchAdditionalPaths
         loadldraw.Options.smoothShading               = self.smoothParts
