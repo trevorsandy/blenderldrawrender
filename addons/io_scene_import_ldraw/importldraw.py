@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update August 01, 2023
+Last Update August 11, 2023
 Copyright (c) 2023 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
@@ -138,9 +138,13 @@ class Preferences():
                         self.__config[section].pop(popItem)
                         self.__updateIni = True
             elif section == "ImportLDrawMM":
-                if not self.__config.has_option(section, 'colorstrategy'):
-                    self.__config.set(section, 'colorstrategy', 'material')
-                    self.__updateIni = True
+                addList = ['colorstrategy,material']
+                addList += ['casesensitivefilesystem,True'] if sys.platform == "linux" else ['casesensitivefilesystem,False']
+                for addItem in addList:
+                    pair = addItem.split(",")
+                    if not self.__config.has_option(section, pair[0]):
+                        self.__config.set(section, pair[0], str(pair[1]))
+                        self.__updateIni = True
                 popList = ['preservehierarchy', 'treatmodelswithsubpartsasparts']
                 for popItem in popList:
                     if self.__config.has_option(section, popItem):

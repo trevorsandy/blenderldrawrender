@@ -47,9 +47,13 @@ class Preferences():
                         self.__config[section].pop(popItem)
                         self.__updateIni = True
             elif section == "ImportLDrawMM":
-                if not self.__config.has_option(section, 'colorstrategy'):
-                    self.__config.set(section, 'colorstrategy', 'material')
-                    self.__updateIni = True
+                addList = ['colorstrategy,material']
+                addList += ['casesensitivefilesystem,True'] if sys.platform == "linux" else ['casesensitivefilesystem,False']
+                for addItem in addList:
+                    pair = addItem.split(",")
+                    if not self.__config.has_option(section, pair[0]):
+                        self.__config.set(section, pair[0], str(pair[1]))
+                        self.__updateIni = True
                 popList = ['preservehierarchy', 'treatmodelswithsubpartsasparts']
                 for popItem in popList:
                     if self.__config.has_option(section, popItem):
@@ -71,6 +75,7 @@ class Preferences():
                 'blend_file': self.__config[self.__sectionName]['blendfile'],
                 'blendfile_trusted': self.__config[self.__sectionName]['blendfiletrusted'],
                 'camera_border_percent': self.__config[self.__sectionName]['cameraborderpercent'],
+                'case_sensitive_filesystem': self.__config[self.__sectionName]['casesensitivefilesystem'],
                 'chosen_logo': self.__config[self.__sectionName]['chosenlogo'],
                 'color_strategy': self.__config[self.__sectionName]['colorstrategy'],
                 'crop_image': self.__config[self.__sectionName]['cropimage'],
