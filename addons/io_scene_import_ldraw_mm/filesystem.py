@@ -4,6 +4,7 @@ import glob
 from sys import platform
 from pathlib import Path
 from . import helpers
+import tempfile
 
 def locate_ldraw():
     ldraw_folder_name = 'ldraw'
@@ -92,6 +93,16 @@ def locate_studio_ldraw():
     return ""
 
 
+def is_case_sensitive():
+    # By default mkstemp() creates a file with
+    # a name that begins with 'tmp' (lowercase)
+    tmphandle, tmppath = tempfile.mkstemp()
+    if os.path.exists(tmppath.upper()):
+        return False
+    else:
+        return True
+
+
 class FileSystem:
     defaults = {}
 
@@ -118,6 +129,9 @@ class FileSystem:
 
     defaults['search_additional_paths'] = False
     search_additional_paths = defaults['search_additional_paths']
+
+    defaults['case_sensitive_filesystem'] = is_case_sensitive()
+    case_sensitive_filesystem = defaults['case_sensitive_filesystem']
 
     defaults['use_archive_library'] = False
     use_archive_library = defaults['use_archive_library']
@@ -258,10 +272,11 @@ class FileSystem:
     @classmethod
     def append_search_path(cls, path, root=False):
         cls.search_dirs.append(path)
-        cls.append_lowercase_paths(path, '*')
-        if root:
-            return
-        cls.append_lowercase_paths(path, '**/*')
+        if cls.case_sensitive_filesystem:
+            cls.append_lowercase_paths(path, '*')
+            if root:
+                return
+            cls.append_lowercase_paths(path, '**/*')
 
     @classmethod
     def append_lowercase_paths(cls, path, pattern):
@@ -280,6 +295,9 @@ class FileSystem:
 
         for dir in cls.search_dirs:
             full_path = os.path.join(dir, part_path)
+            if os.path.isfile(full_path):
+                return full_path
+
             lc_path = full_path.lower()
             if lc_path in cls.lowercase_paths:
                 full_path = cls.lowercase_paths.get(lc_path)

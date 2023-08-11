@@ -235,7 +235,7 @@ def meta_lp_lc_camera(child_node, matrix):
     global camera
 
     clean_line = child_node.line
-    _params = helpers.get_params(clean_line, lowercase=True)[3:]
+    _params = clean_line.lower().split()[3:]
 
     is_lpub_meta = clean_line.startswith("0 !LPUB ")
 

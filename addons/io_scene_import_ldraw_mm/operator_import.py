@@ -110,6 +110,12 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         **ImportSettings.settings_dict('prefer_studio'),
     )
 
+    case_sensitive_filesystem: bpy.props.BoolProperty(
+        name="Case-sensitive filesystem",
+        description="Filesystem is case sensitive",
+        **ImportSettings.settings_dict('case_sensitive_filesystem'),
+    )
+
     prefer_unofficial: bpy.props.BoolProperty(
         name="Prefer unofficial parts",
         description="Search for unofficial parts first",
@@ -457,6 +463,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
             self.camera_border_percent   = IMPORT_OT_do_ldraw_import.prefs.get("camera_border_percent", self.camera_border_percent)
             self.import_lights           = IMPORT_OT_do_ldraw_import.prefs.get("import_lights", self.import_lights)
             self.search_additional_paths = IMPORT_OT_do_ldraw_import.prefs.get("search_additional_paths", self.search_additional_paths)
+            self.case_sensitive_filesystem = IMPORT_OT_do_ldraw_import.prefs.get("case_sensitive_filesystem", self.case_sensitive_filesystem)            
 
             self.custom_ldconfig_file    = IMPORT_OT_do_ldraw_import.prefs.get("custom_ldconfig_file",   self.custom_ldconfig_file)
             self.additional_search_paths = IMPORT_OT_do_ldraw_import.prefs.get("additional_search_paths", self.additional_search_paths)
@@ -522,6 +529,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
             IMPORT_OT_do_ldraw_import.prefs['camera_border_percent']   = self.camera_border_percent
             IMPORT_OT_do_ldraw_import.prefs['import_lights']           = self.import_lights
             IMPORT_OT_do_ldraw_import.prefs['search_additional_paths'] = self.search_additional_paths
+            IMPORT_OT_do_ldraw_import.prefs['case_sensitive_filesystem'] = self.case_sensitive_filesystem            
 
             IMPORT_OT_do_ldraw_import.prefs['custom_ldconfig_file']    = self.custom_ldconfig_file
             IMPORT_OT_do_ldraw_import.prefs['additional_search_paths'] = self.additional_search_paths
@@ -640,6 +648,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         box.prop(self, "custom_ldconfig_file")
         box.prop(self, "studio_ldraw_path")
         box.prop(self, "search_additional_paths")
+        box.prop(self, "case_sensitive_filesystem")
         if not self.ldraw_model_file_loaded:
             box.prop(self, "environment_file")
 
