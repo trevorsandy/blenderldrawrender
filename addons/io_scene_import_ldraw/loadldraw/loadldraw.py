@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update August 01, 2023
+Last Update August 19, 2023
 Copyright (c) 2023 by Toby Nelson
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
@@ -1894,6 +1894,7 @@ class LDrawLight:
         self.name             = "LDraw_Light"
         self.color            = mathutils.Vector((1.0, 1.0, 1.0))
         self.use_cutoff       = False
+        self.use_shadow       = True
         self.position         = mathutils.Vector((0.0, 0.0, 0.0))
         self.target_position  = mathutils.Vector((1.0, 0.0, 0.0))
         self.up_vector        = mathutils.Vector((0.0, 1.0, 0.0))
@@ -1908,9 +1909,10 @@ class LDrawLight:
         light.data.specular_factor      = self.specular
         light.data.use_custom_distance  = self.use_cutoff
         light.data.cutoff_distance      = self.cutoff_distance
+        light.data.use_shadow           = self.use_shadow
         if self.type == 'POINT':
             light.data.shadow_soft_size = self.factorA
-        elif self.type == 'SUN':
+        elif self.type == 'SUN' or self.type == 'DIRECTIONAL':
             light.data.angle            = math.radians(self.factorA)
         elif self.type == 'SPOT':
             light.data.spot_size        = math.radians(self.spot_size)
@@ -2290,6 +2292,9 @@ class LDrawFile:
                                     light.use_cutoff = True
                                     light.cutoff_distance = float(parameters[1])
                                     parameters = parameters[2:]
+                                elif parameters[0] == "SHADOWLESS":
+                                    light.use_shadow = False
+                                    parameters = parameters[1:]
                                 elif parameters[0] == "TYPE":
                                     light.type = parameters[1].upper().strip()
                                     parameters = parameters[2:]

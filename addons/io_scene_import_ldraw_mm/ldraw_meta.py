@@ -375,6 +375,9 @@ def meta_lp_lc_light(child_node, matrix):
             light.use_cutoff = True
             light.cutoff_distance = float(_params[1])
             _params = _params[2:]
+        elif _params[0] == "shadowless":
+            light.use_shadow = False
+            _params = _params[1:]
         elif _params[0] == "type":
             light.type = _params[1].upper().strip()
             _params = _params[2:]

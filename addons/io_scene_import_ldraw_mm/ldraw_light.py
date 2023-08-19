@@ -18,6 +18,7 @@ class LDrawLight:
         self.spot_blend       = 0.150
         self.cutoff_distance  = 40
         self.use_cutoff       = False
+        self.use_shadow       = True
         self.color            = mathutils.Vector((1.0, 1.0, 1.0))
         self.position         = mathutils.Vector((0.0, 0.0, 0.0))
         self.target_position  = mathutils.Vector((1.0, 0.0, 0.0))

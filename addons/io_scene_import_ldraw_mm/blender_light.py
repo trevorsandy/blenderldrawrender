@@ -13,9 +13,10 @@ def create_light(light, empty=None, collection=None):
     blender_light.specular_factor      = light.specular
     blender_light.use_custom_distance  = light.use_cutoff
     blender_light.cutoff_distance      = light.cutoff_distance
+    blender_light.use_shadow           = light.use_shadow
     if light.type == 'POINT':
         blender_light.shadow_soft_size = light.factor_a
-    elif light.type == 'SUN':
+    elif light.type == 'SUN' or light.type == 'DIRECTIONAL':
         blender_light.angle            = math.radians(light.factor_a)
     elif light.type == 'SPOT':
         blender_light.spot_size        = math.radians(light.spot_size)
