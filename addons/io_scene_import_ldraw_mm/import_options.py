@@ -44,15 +44,20 @@ class ImportOptions:
     defaults['display_logo'] = True
     display_logo = defaults['display_logo']
 
-    # cast items as list or "EnumProperty(..., default='logo3'): not found in enum members" and a messed up menu
-    chosen_logo_choices = list(((logo, logo, logo) for logo in ["logo", "logo2", "logo3", "logo4", "logo5", "high-contrast"]))
+    chosen_logo_choices = (
+       #("logo", "Line", "Single line logo geometry"),
+       #("logo2", "Outline", "Outlined logo geometry"),
+        ("logo3", "Flattened", "Raised flat logo geometry"),
+        ("logo4", "Rounded", "Raised rounded logo geometry"),
+        ("logo5", "Subtle Rounded", "Subtle rounded logo geometry"),
+    )
 
     defaults['chosen_logo'] = 2
     chosen_logo = defaults['chosen_logo']
 
     @staticmethod
     def chosen_logo_value():
-        return ImportOptions.chosen_logo_choices[ImportOptions.chosen_logo]
+        return ImportOptions.chosen_logo_choices[ImportOptions.chosen_logo][0]
 
     defaults['shade_smooth'] = True
     shade_smooth = defaults['shade_smooth']
