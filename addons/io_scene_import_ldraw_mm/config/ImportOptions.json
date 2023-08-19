@@ -52,7 +52,7 @@
   "set_end_frame": true,
   "set_timeline_markers": false,
   "shade_smooth": true,
-  "smooth_type": "edge_split",
+  "smooth_type": "bmesh_split",
   "starting_step_frame": 1,
   "studio_ldraw_path": "",
   "transparent_background": false,
