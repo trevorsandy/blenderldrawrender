@@ -20,7 +20,7 @@
   "gap_target": "object",
   "import_cameras": true,
   "import_edges": false,
-  "import_lights": false,
+  "import_lights": true,
   "import_scale": 0.02,
   "ldraw_path": "",
   "make_gaps": true,
