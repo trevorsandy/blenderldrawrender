@@ -187,6 +187,7 @@ def __process_mesh_edges(key, geometry_data):
 
 
 def __process_mesh_sharp_edges(mesh, geometry_data):
+    # TODO: ImportOptions.mark_edges_as_sharp
     if ImportOptions.smooth_type_value() == "edge_split" or ImportOptions.use_freestyle_edges or ImportOptions.bevel_edges:
         edge_indices = __get_edge_indices(mesh.vertices, geometry_data)
 

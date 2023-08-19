@@ -22,8 +22,14 @@ def reset_caches():
 
 
 # TODO: to add rigid body - must apply scale and cannot be parented to empty
-def process_top_object(key, mesh, geometry_data, color_code, matrix, collection):
-    obj = __get_top_object(mesh, geometry_data, color_code)
+def create_object(key, mesh, geometry_data, color_code, matrix, collection):
+    obj = bpy.data.objects.new(mesh.name, mesh)
+    obj[strings.ldraw_filename_key] = geometry_data.file.name
+    obj[strings.ldraw_color_code_key] = color_code
+    color = LDrawColor.get_color(color_code)
+    obj.color = color.linear_color_a
+
+    ldraw_props.set_props(obj, geometry_data.file, color_code)
     __process_top_object_matrix(obj, matrix)
     __process_top_object_gap(obj, matrix)
     __process_top_object_edges(obj)
@@ -34,38 +40,28 @@ def process_top_object(key, mesh, geometry_data, color_code, matrix, collection)
     return obj
 
 
-def __get_top_object(mesh, geometry_data, color_code):
-    obj = bpy.data.objects.new(mesh.name, mesh)
-    obj[strings.ldraw_filename_key] = geometry_data.file.name
-    obj[strings.ldraw_color_code_key] = color_code
-
-    color = LDrawColor.get_color(color_code)
-    obj.color = color.linear_color_a
-
-    ldraw_props.set_props(obj, geometry_data.file, color_code)
-
-    return obj
-
-
 def __process_top_object_matrix(obj, obj_matrix):
     if ImportOptions.parent_to_empty:
         global top_empty
         if top_empty is None:
             top_empty = bpy.data.objects.new(group.top_collection.name, None)
+            if ImportOptions.parent_to_empty:
+                top_empty.ldraw_props.invert_import_scale_matrix = True
             group.link_obj(group.top_collection, top_empty)
 
-        top_empty.matrix_world = matrices.transform_matrix
+        matrix_world = matrices.rotation_matrix @ matrices.import_scale_matrix
+        top_empty.matrix_world = matrix_world
         obj.matrix_world = obj_matrix
         obj.parent = top_empty  # must be after matrix_world set or else transform is incorrect
     else:
-        matrix_world = matrices.transform_matrix @ obj_matrix
+        matrix_world = matrices.rotation_matrix @ matrices.import_scale_matrix @ obj_matrix
         obj.matrix_world = matrix_world
 
 
 def __process_top_object_gap(obj, obj_matrix):
     if ImportOptions.make_gaps and ImportOptions.gap_target_value() == "object":
         if ImportOptions.gap_scale_strategy_value() == "object":
-            matrix_world = matrices.transform_matrix @ obj_matrix @ matrices.gap_scale_matrix
+            matrix_world = matrices.rotation_matrix @ matrices.import_scale_matrix @ obj_matrix @ matrices.gap_scale_matrix
             obj.matrix_world = matrix_world
         elif ImportOptions.gap_scale_strategy_value() == "constraint":
             global gap_scale_empty
@@ -77,7 +73,7 @@ def __process_top_object_gap(obj, obj_matrix):
                     gap_scale_empty.matrix_world = matrix_world
                     gap_scale_empty.parent = top_empty
                 else:
-                    matrix_world = matrices.transform_matrix @ matrices.gap_scale_matrix
+                    matrix_world = matrices.rotation_matrix @ matrices.import_scale_matrix @ matrices.gap_scale_matrix
                     gap_scale_empty.matrix_world = matrix_world
                 group.link_obj(group.top_collection, gap_scale_empty)
             copy_scale_constraint = obj.constraints.new("COPY_SCALE")

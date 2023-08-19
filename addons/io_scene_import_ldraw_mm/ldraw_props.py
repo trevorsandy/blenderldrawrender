@@ -1,6 +1,7 @@
 import bpy
 
-import getpass
+from .import_options import ImportOptions
+from .export_options import ExportOptions
 
 
 def set_props(obj, ldraw_file, color_code):
@@ -20,6 +21,10 @@ def set_props(obj, ldraw_file, color_code):
     # obj.ldraw_props.keywords = ldraw_file.keywords or ""
     # obj.ldraw_props.history = "; ".join(ldraw_file.history or [])
     obj.ldraw_props.color_code = color_code
+    if not ImportOptions.parent_to_empty:
+        obj.ldraw_props.invert_import_scale_matrix = True
+    if ImportOptions.make_gaps:
+        obj.ldraw_props.invert_gap_scale_matrix = True
 
 
 def get_header_lines(obj, is_model=False):
@@ -83,7 +88,7 @@ class LDrawProps(bpy.types.PropertyGroup):
     author: bpy.props.StringProperty(
         name="Author",
         description="LDraw author",
-        default=getpass.getuser(),
+        default="",
     )
 
     part_type_items = (
@@ -256,6 +261,18 @@ class LDrawProps(bpy.types.PropertyGroup):
         # update=test_update
     )
 
+    invert_import_scale_matrix: bpy.props.BoolProperty(
+        name="Invert import scale matrix",
+        description="If true, import scale matrix will be inverted on export",
+        default=False
+    )
+
+    invert_gap_scale_matrix: bpy.props.BoolProperty(
+        name="Invert gap scale matrix",
+        description="If true, gap scale matrix will be inverted on export",
+        default=False
+    )
+
     export_polygons: bpy.props.BoolProperty(
         name="Export polygons",
         description="If true, export object as polygons. If false, export as line type 1.",
@@ -265,7 +282,7 @@ class LDrawProps(bpy.types.PropertyGroup):
     export_precision: bpy.props.IntProperty(
         name="Export precision",
         description="Round vertex coordinates to this number of places",
-        default=2,
+        default=ExportOptions.export_precision,
         min=0,
     )
 

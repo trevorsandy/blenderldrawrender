@@ -15,7 +15,7 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
 
     bl_idname = "export_scene.lpub3d_export_ldraw_mm"
     bl_description = "Export LDraw model (.ldr/.dat)"
-    bl_label = "Export LDraw"
+    bl_label = "Export LDraw MM"
     bl_options = {'PRESET'}
 
     filename_ext: bpy.props.EnumProperty(
@@ -24,7 +24,7 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
         items=(
             ('.ldr', 'ldr', 'Export as model'),            
             ('.dat', 'dat', 'Export as part'),
-            ('.mpd', 'mpd', 'Export as multi-part document'),
+           #('.mpd', 'mpd', 'Export as multi-part document'),
         ),
         default='.ldr',
     )
@@ -96,13 +96,6 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
         ],
     )
 
-    export_precision: bpy.props.IntProperty(
-        name="Export precision",
-        description="Round vertex coordinates to this number of places",
-        default=6,
-        min=0,
-    )
-
     # resolution: bpy.props.EnumProperty(
     #     name="Part resolution",
     #     options={'HIDDEN'},
@@ -126,7 +119,6 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
         LDrawColor.use_colour_scheme = self.use_colour_scheme
 
         ExportOptions.selection_only = self.selection_only
-        ExportOptions.export_precision = self.export_precision
         ExportOptions.remove_doubles = self.remove_doubles
         ExportOptions.merge_distance = self.merge_distance
         ExportOptions.recalculate_normals = self.recalculate_normals
@@ -164,7 +156,6 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
         col.label(text="Export Options")
         # col.prop(self, "selection_only")
         col.prop(self, "use_colour_scheme", expand=True)
-        col.prop(self, "export_precision")
 
         layout.separator(factor=space_factor)
         col = layout.column()

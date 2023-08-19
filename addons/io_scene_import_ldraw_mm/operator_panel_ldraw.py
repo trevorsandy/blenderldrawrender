@@ -2,14 +2,15 @@ import bpy
 
 
 # bpy.context.mode == 'OBJECT'
-# bpy.context.mode == 'EDIT_MESH' # TODO: panel that add color code to face's material
+# bpy.context.mode == 'EDIT_MESH'
+# TODO: panel that add color code to face's material
 class CO_PT_ldraw_panel(bpy.types.Panel):
     """This is a test panel"""
 
     # having a friendly name here gives a _PT_ warning message
     # not setting it works
     # bl_idname = 'CO_PT_ldraw_panel'
-    bl_label = 'LDraw MM'
+    bl_label = 'LDraw'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_context = 'objectmode'
@@ -85,6 +86,8 @@ class CO_PT_ldraw_panel(bpy.types.Panel):
             col.label(text="Export Options")
             if obj.type == 'MESH':
                 col.prop(obj.ldraw_props, 'export_polygons')
+            col.prop(obj.ldraw_props, 'invert_import_scale_matrix')
+            col.prop(obj.ldraw_props, 'invert_gap_scale_matrix')
             col.prop(obj.ldraw_props, 'export_precision')
 
 
