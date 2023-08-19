@@ -29,21 +29,20 @@ def do_export(filepath):
     all_objects = bpy.context.scene.objects
     selected_objects = bpy.context.selected_objects
     active_objects = bpy.context.view_layer.objects.active
+    export_type = ExportOptions.export_type_value()
 
     objects = all_objects
-    if ExportOptions.selection_only:
+    if export_type == "selection_only":
         objects = selected_objects
-#    if ExportOptions.selection_only and len(selected_objects) > 0:
-#        objects = selected_objects
-#    else:
-#        for collection in bpy.data.collections:
-#            for top in collection.all_objects:
-#                if top.name == collection.name:
-#                    objects = top.children
-#                    active_object = top
-#                    break
-#            if active_object is not None:
-#                break
+    elif export_type == "model_parts_only":
+        for collection in bpy.data.collections:
+            for top in collection.all_objects:
+                if top.name == collection.name:
+                    objects = top.children
+                    active_object = top
+                    break
+            if active_object is not None:
+                break
 
     if active_object is None:
         print("No selected objects")
@@ -83,6 +82,12 @@ def do_export(filepath):
         # objects during a failed export would be such an object
         if obj.users < 1:
             continue
+
+        if export_type == "model_parts_only":
+            if obj.name == "gap_scale":
+                continue
+            if obj.type == "CAMERA":
+                continue
 
         if obj.ldraw_props.export_polygons:
             polygon_obj_names.append(obj.name)

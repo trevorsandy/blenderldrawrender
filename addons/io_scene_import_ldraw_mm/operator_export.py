@@ -22,7 +22,7 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
         name='File extension',
         description='Choose File Format:',
         items=(
-            ('.ldr', 'ldr', 'Export as model'),            
+            ('.ldr', 'ldr', 'Export as model'),
             ('.dat', 'dat', 'Export as part'),
            #('.mpd', 'mpd', 'Export as multi-part document'),
         ),
@@ -54,10 +54,11 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
         items=LDrawColor.use_colour_scheme_choices,
     )
 
-    selection_only: bpy.props.BoolProperty(
-        name="Selection only",
-        description="Export selected objects only",
-        default=True,
+    export_type: bpy.props.EnumProperty(
+        name="Export type",
+        description="Export type",
+        default=ExportOptions.export_type_value(),
+        items=ExportOptions.export_type_choices,
     )
 
     recalculate_normals: bpy.props.BoolProperty(
@@ -116,9 +117,14 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
         FileSystem.ldraw_path = self.ldraw_path
         FileSystem.studio_ldraw_path = self.studio_ldraw_path
         # FileSystem.resolution = self.resolution
-        LDrawColor.use_colour_scheme = self.use_colour_scheme
-
-        ExportOptions.selection_only = self.selection_only
+        for i, choice in enumerate(ExportOptions.export_type_choices):
+            if choice[0] == self.export_type:
+                ExportOptions.export_type = i
+                break
+        for i, choice in enumerate(LDrawColor.use_colour_scheme_choices):
+            if choice[0] == self.use_colour_scheme:
+                LDrawColor.use_colour_scheme = i
+                break
         ExportOptions.remove_doubles = self.remove_doubles
         ExportOptions.merge_distance = self.merge_distance
         ExportOptions.recalculate_normals = self.recalculate_normals
@@ -154,7 +160,9 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
         layout.separator(factor=space_factor)
         col = layout.column()
         col.label(text="Export Options")
-        # col.prop(self, "selection_only")
+        col.prop(self, "export_type", expand=True)
+    
+        layout.separator(factor=space_factor)
         col.prop(self, "use_colour_scheme", expand=True)
 
         layout.separator(factor=space_factor)
