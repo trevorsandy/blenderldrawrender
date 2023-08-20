@@ -437,6 +437,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
 
         # bpy.ops.object.mode_set(mode='OBJECT')
 
+        print("")
         use_lpub_settings = False
         if self.preferences_file != "":
             ImportSettings.debugPrint("=====Import MM Settings====")
@@ -621,6 +622,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
 
         model_globals.LDRAW_MODEL_LOADED = True
 
+        print("")
         ImportSettings.debugPrint("=====Import MM Complete====")
         if load_result is None:
             ImportSettings.debugPrint("Import MM result: None")
@@ -630,7 +632,6 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         elapsed = end - start
         ImportSettings.debugPrint(f"Elapsed time: {elapsed}")
         ImportSettings.debugPrint("===========================")
-        ImportSettings.debugPrint("")
 
         return {'FINISHED'}
 

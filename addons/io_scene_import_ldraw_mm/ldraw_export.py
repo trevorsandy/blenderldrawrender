@@ -77,6 +77,7 @@ def do_export(filepath):
     subfile_obj_names = []
     polygon_obj_names = []
 
+    print("")
     for obj in objects:
         # so objects that are not linked to the scene don't get exported
         # objects during a failed export would be such an object
@@ -86,6 +87,9 @@ def do_export(filepath):
         if export_type == "model_parts_only":
             if obj.name == "gap_scale":
                 continue
+
+        LDrawNode.part_count += 1
+        print(f"Part Name: {obj.ldraw_props.name}, Type: {obj.ldraw_props.part_type}, Count: {LDrawNode.part_count}")
 
         if obj.ldraw_props.export_polygons:
             polygon_obj_names.append(obj.name)

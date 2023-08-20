@@ -136,9 +136,10 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
         print("")
         print("======Export Complete======")
         print(self.filepath)
+        print(f"Part count: {ldraw_export.LDrawNode.part_count}")
         end = time.perf_counter()
         elapsed = (end - start)
-        print(f"elapsed: {elapsed}")
+        print(f"Elapsed time: {elapsed}")
         print("===========================")
         print("")
 
