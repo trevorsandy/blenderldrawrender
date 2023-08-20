@@ -93,7 +93,7 @@ class ImportSettings:
                         _v = i
                         break
             cls.settings[k] = _v
-        helpers.write_json('config', cls.settings)
+        helpers.write_json(cls.settings_path, cls.settings)
 
     @classmethod
     def apply_settings(cls):
