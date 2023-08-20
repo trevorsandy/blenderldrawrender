@@ -112,28 +112,29 @@ def do_import(filepath):
             offset_to_centre_model = Vector((0, 0, 0))
             
     if ImportOptions.position_camera:
-        camera = bpy.context.scene.camera
         if ldraw_meta.cameras:
             imported_camera_name = ldraw_meta.cameras[0].name
             helpers.render_print(f"Positioning Camera: {imported_camera_name}")
-        elif camera is not None:
-            helpers.render_print(f"Positioning Camera: {camera.data.name}")
-            # Set up a default camera position and rotation
-            camera.location = Vector((6.5, -6.5, 4.75))
-            camera.rotation_mode = 'XYZ'
-            camera.rotation_euler = Euler((1.0471975803375244, 0.0, 0.7853981852531433), 'XYZ')
+        else:
+            camera = bpy.context.scene.camera            
+            if camera is not None:
+                helpers.render_print(f"Positioning Camera: {camera.data.name}")
+                # Set up a default camera position and rotation
+                camera.location = Vector((6.5, -6.5, 4.75))
+                camera.rotation_mode = 'XYZ'
+                camera.rotation_euler = Euler((1.0471975803375244, 0.0, 0.7853981852531433), 'XYZ')
 
-            # Must have at least three vertices to move the camera
-            if len(vertices) >= 3:
-                render = bpy.context.scene.render
-                is_ortho = camera.data.type == 'ORTHO'
-                if is_ortho:
-                    blender_camera.iterate_camera_position(camera, render, bbox_ctr, True, vertices)
-                else:
-                    for i in range(20):
-                        error = blender_camera.iterate_camera_position(camera, render, bbox_ctr, True, vertices)
-                        if error < 0.001:
-                            break
+                # Must have at least three vertices to move the camera
+                if len(vertices) >= 3:
+                    render = bpy.context.scene.render
+                    is_ortho = camera.data.type == 'ORTHO'
+                    if is_ortho:
+                        blender_camera.iterate_camera_position(camera, render, bbox_ctr, True, vertices)
+                    else:
+                        for i in range(20):
+                            error = blender_camera.iterate_camera_position(camera, render, bbox_ctr, True, vertices)
+                            if error < 0.001:
+                                break
     # mod_end
     
     if ImportOptions.meta_step:
@@ -175,6 +176,7 @@ def do_import(filepath):
             if camera.data.clip_end > max_clip_end:
                 max_clip_end = camera.data.clip_end
             bpy.context.scene.camera = camera
+        camera.parent = obj
 
     # lpub3d_mod
     for light in ldraw_meta.lights:
