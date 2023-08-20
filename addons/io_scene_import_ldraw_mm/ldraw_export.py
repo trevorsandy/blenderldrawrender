@@ -86,8 +86,6 @@ def do_export(filepath):
         if export_type == "model_parts_only":
             if obj.name == "gap_scale":
                 continue
-            if obj.type == "CAMERA":
-                continue
 
         if obj.ldraw_props.export_polygons:
             polygon_obj_names.append(obj.name)
