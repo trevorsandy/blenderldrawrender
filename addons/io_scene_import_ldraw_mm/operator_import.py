@@ -176,20 +176,6 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         items=ImportOptions.smooth_type_choices,
     )
 
-    gap_target: bpy.props.EnumProperty(
-        name="Gap target",
-        description="Where to apply gap",
-        **ImportSettings.settings_dict('gap_target'),
-        items=ImportOptions.gap_target_choices,
-    )
-
-    gap_scale_strategy: bpy.props.EnumProperty(
-        name="Gap strategy",
-        description="How to scale the object to create the gap",
-        **ImportSettings.settings_dict('gap_scale_strategy'),
-        items=ImportOptions.gap_scale_strategy_choices,
-    )
-
     color_strategy: bpy.props.EnumProperty(
         name="Color strategy",
         description="How to color parts",
@@ -481,8 +467,6 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
             self.parent_to_empty         = IMPORT_OT_do_ldraw_import.prefs.get("parent_to_empty", self.parent_to_empty)
             self.make_gaps               = IMPORT_OT_do_ldraw_import.prefs.get("make_gaps", self.make_gaps)
             self.gap_scale               = IMPORT_OT_do_ldraw_import.prefs.get("gap_scale", self.gap_scale)
-            self.gap_target              = IMPORT_OT_do_ldraw_import.prefs.get("gap_target", self.gap_target)
-            self.gap_scale_strategy      = IMPORT_OT_do_ldraw_import.prefs.get("gap_scale_strategy", self.gap_scale_strategy)
 
             self.bevel_edges             = IMPORT_OT_do_ldraw_import.prefs.get("bevel_edges", self.bevel_edges)
             self.bevel_weight            = IMPORT_OT_do_ldraw_import.prefs.get("bevel_weight", self.bevel_weight)
@@ -547,8 +531,6 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
             IMPORT_OT_do_ldraw_import.prefs["parent_to_empty"]         = self.parent_to_empty
             IMPORT_OT_do_ldraw_import.prefs["make_gaps"]               = self.make_gaps
             IMPORT_OT_do_ldraw_import.prefs["gap_scale"]               = self.gap_scale
-            IMPORT_OT_do_ldraw_import.prefs["gap_target"]              = self.gap_target
-            IMPORT_OT_do_ldraw_import.prefs["gap_scale_strategy"]      = self.gap_scale_strategy
 
             IMPORT_OT_do_ldraw_import.prefs["bevel_edges"]             = self.bevel_edges
             IMPORT_OT_do_ldraw_import.prefs["bevel_weight"]            = self.bevel_weight
@@ -675,8 +657,6 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         box.prop(self, "parent_to_empty")
         box.prop(self, "make_gaps")
         box.prop(self, "gap_scale")
-        box.prop(self, "gap_target", expand=True)
-        box.prop(self, "gap_scale_strategy", expand=True)
 
         layout.separator(factor=space_factor)
         box.prop(self, "bevel_edges")
