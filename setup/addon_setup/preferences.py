@@ -54,7 +54,7 @@ class Preferences():
                     if not self.__config.has_option(section, pair[0]):
                         self.__config.set(section, pair[0], str(pair[1]))
                         self.__updateIni = True
-                popList = ['preservehierarchy', 'treatmodelswithsubpartsasparts']
+                popList = ['preservehierarchy', 'treatmodelswithsubpartsasparts', 'gapscalestrategy', 'gaptarget']
                 for popItem in popList:
                     if self.__config.has_option(section, popItem):
                         self.__config[section].pop(popItem)
