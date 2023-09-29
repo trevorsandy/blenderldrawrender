@@ -43,7 +43,7 @@ bl_info = {
     "name": "LPub3D Import LDraw",
     "description": "Import LDraw models in .mpd .ldr .l3b and .dat formats",
     "author": "Trevor SANDY <trevor.sandy@gmail.com>",
-    "version": (1, 5, 2),
+    "version": (1, 5, 3),
     "blender": (2, 82, 0),
     "location": "File > Import",
     "warning": "",
