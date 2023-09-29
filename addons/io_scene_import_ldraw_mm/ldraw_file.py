@@ -159,6 +159,8 @@ class LDrawFile:
                                 current_data.append(base64_data)
                             except IndexError as e:
                                 print(e)
+                                import traceback
+                                print(traceback.format_exc())
                             continue
                     else:
                         base64_handler.named_png_from_base64_str(current_data_filename, "".join(current_data))
@@ -268,6 +270,8 @@ class LDrawFile:
                 if self.__line_stud_io(clean_line): continue
             except Exception as e:
                 print(e)
+                import traceback
+                print(traceback.format_exc())
                 continue
 
     # always return false so that the rest of the line types are parsed even if this is true
@@ -433,6 +437,8 @@ class LDrawFile:
 
             # 0 !LDCAD GROUP_DEF [topLevel=true] [LID=119507361] [GID=FsMGcO9CYmY] [name=Group 12] [center=0 0 0]
             _params = re.search(r"\S+\s+\S+\s+\S+\s+(\[.*\])\s+(\[.*\])\s+(\[.*\])\s+(\[.*\])\s+(\[.*\])", clean_line)
+            if not _params:
+                return
 
             lid_str = _params[2]  # "[LID=119507361]"
             lid_args = re.search(r"\[(.*)=(.*)\]", lid_str)
@@ -441,6 +447,12 @@ class LDrawFile:
             name_str = _params[4]  # "[name=Group 12]"
             name_args = re.search(r"\[(.*)=(.*)\]", name_str)
             ldraw_node.meta_args["name"] = name_args[2]  # "Group 12"
+
+            center_str = _params[5]  # "[center=0 0 0]"
+            name_args = re.search(r"\[(.*)=(.*)\]", center_str)
+            center_str_val = name_args[2]  # "0 0 0"
+            (x, y, z) = map(float, center_str_val.split())
+            ldraw_node.meta_args["center"] = mathutils.Vector((x, y, z))
 
             self.child_nodes.append(ldraw_node)
             return True

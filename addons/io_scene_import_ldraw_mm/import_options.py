@@ -84,9 +84,9 @@ class ImportOptions:
     set_timeline_markers = defaults['set_timeline_markers']
 
     smooth_type_choices = (
-        ("bmesh_split", "bmesh smooth", "Split during initial mesh processing"),
         ("edge_split", "Edge split", "Use an edge split modifier"),
         ("auto_smooth", "Auto smooth", "Use auto smooth"),
+        ("bmesh_split", "bmesh smooth", "Split while processing bmesh"),
     )
 
     defaults['smooth_type'] = 0
