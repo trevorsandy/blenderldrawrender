@@ -3,32 +3,40 @@ import bpy
 import time
 import os
 
-
+# _*_lp_lc_mod
 from io_scene_render_ldraw.modelglobals import model_globals
 from bpy_extras.io_utils import ImportHelper
+# _*_mod_end
 from .import_settings import ImportSettings
 from .import_options import ImportOptions
-from .ldraw_color import LDrawColor
 from .filesystem import FileSystem
 from .ldraw_node import LDrawNode
+# _*_lp_lc_mod
+from .ldraw_color import LDrawColor
+# _*_mod_end
 from . import blender_import
 
+# _*_lp_lc_mod
 class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
+# _*_mod_end
     """Import an LDraw model File"""
-
+    # _*_lp_lc_mod
     bl_idname = "import_scene.lpub3d_import_ldraw_mm"
     bl_description = "Import LDraw model (.mpd/.ldr/.l3b/.dat)"
+    # _*_mod_end
     bl_label = "Import LDraw"
+    # _*_lp_lc_mod
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
     # Declarations
+    # _*_mod_end
     filename_ext = ""
+    # _*_lp_lc_mod
     ldraw_model_file_loaded = False
-
-    # Preferences declaration
     prefs = ImportSettings.get_settings()
+    # _*_mod_end
 
     filter_glob: bpy.props.StringProperty(
         name="Extensions",
@@ -49,16 +57,23 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         **ImportSettings.settings_dict('ldraw_path'),
     )
 
-    custom_ldconfig_file: bpy.props.StringProperty(
-        name="Custom LDConfig",
-        description="Full directory path to specified custom LDraw colours (LDConfig) file",
-        **ImportSettings.settings_dict('custom_ldconfig_file'),
+    studio_ldraw_path: bpy.props.StringProperty(
+        name="Stud.io LDraw path",
+        description="Full filepath to the Stud.io LDraw Parts Library (download from https://www.bricklink.com/v3/studio/download.page)",
+        **ImportSettings.settings_dict('studio_ldraw_path'),
     )
 
+    # _*_lp_lc_mod
     additional_search_paths: bpy.props.StringProperty(
         name="Additional search paths",
         description="Full directory paths, comma delimited, to additional LDraw search paths",
         **ImportSettings.settings_dict('additional_search_paths'),
+    )
+
+    custom_ldconfig_file: bpy.props.StringProperty(
+        name="Custom LDConfig",
+        description="Full directory path to specified custom LDraw colours (LDConfig) file",
+        **ImportSettings.settings_dict('custom_ldconfig_file'),
     )
 
     environment_file: bpy.props.StringProperty(
@@ -71,12 +86,6 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         name="Add environment",
         description="Adds a ground plane and environment texture",
         **ImportSettings.settings_dict('add_environment'),
-    )
-
-    studio_ldraw_path: bpy.props.StringProperty(
-        name="Stud.io LDraw path",
-        description="Full filepath to the Stud.io LDraw Parts Library (download from https://www.bricklink.com/v3/studio/download.page)",
-        **ImportSettings.settings_dict('studio_ldraw_path'),
     )
 
     import_cameras: bpy.props.BoolProperty(
@@ -103,6 +112,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         description="Import Light definitions (from models authored in LPub3D or LeoCAD)",
         **ImportSettings.settings_dict('import_lights'),
     )
+    # _*_mod_end
 
     prefer_studio: bpy.props.BoolProperty(
         name="Prefer Stud.io library",
@@ -129,6 +139,15 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         items=FileSystem.resolution_choices,
     )
 
+    # _*_lp_lc_mod
+    use_colour_scheme: bpy.props.EnumProperty(
+        name="Colour scheme options",
+        description="Colour scheme options",
+        **ImportSettings.settings_dict('use_colour_scheme'),
+        items=LDrawColor.use_colour_scheme_choices,
+    )
+    # _*_mod_end
+
     remove_doubles: bpy.props.BoolProperty(
         name="Remove doubles",
         description="Merge overlapping vertices",
@@ -153,13 +172,6 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         name="Display logo",
         description="Display logo on studs. Requires unofficial parts library to be downloaded",
         **ImportSettings.settings_dict('display_logo'),
-    )
-
-    use_colour_scheme: bpy.props.EnumProperty(
-        name="Colour scheme options",
-        description="Colour scheme options",
-        **ImportSettings.settings_dict('use_colour_scheme'),
-        items=LDrawColor.use_colour_scheme_choices,
     )
 
     chosen_logo: bpy.props.EnumProperty(
@@ -331,11 +343,13 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         **ImportSettings.settings_dict('triangulate'),
     )
 
+    # _*_lp_lc_mod
     profile: bpy.props.BoolProperty(
         name="Profile",
         description="Profile import performance",
         **ImportSettings.settings_dict('profile'),
     )
+    # _*_mod_end
 
     bevel_edges: bpy.props.BoolProperty(
         name="Bevel edges",
@@ -369,6 +383,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         **ImportSettings.settings_dict('bevel_segments'),
     )
 
+	# _*_lp_lc_mod
     search_additional_paths: bpy.props.BoolProperty(
         name="Search Additional Paths",
         description="Search additional LDraw paths (automatically set for fade previous steps and highlight step)",
@@ -396,6 +411,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
     #    context.window_manager.fileselect_add(self)
     #    ImportSettings.load_settings()
     #    return {'RUNNING_MODAL'}
+    # _*_mod_end
 
     # _timer = None
     # __i = 0
@@ -423,6 +439,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
 
         # bpy.ops.object.mode_set(mode='OBJECT')
 
+        # _*_lp_lc_mod
         print("")
         use_lpub_settings = False
         if self.preferences_file != "":
@@ -574,9 +591,12 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         assert self.filepath != "", "Model file path not specified."
 
         ImportSettings.save_settings(IMPORT_OT_do_ldraw_import.prefs)
+        # _*_mod_end
         ImportSettings.apply_settings()
 
+        # _*_lp_lc_mod
         model_globals.LDRAW_MODEL_FILE = self.filepath
+        # _*_mod_end
 
         # wm = context.window_manager
         # self._timer = wm.event_timer_add(0.01, window=context.window)
@@ -585,35 +605,47 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         # return {'RUNNING_MODAL'}
 
         # https://docs.python.org/3/library/profile.html
+        # _*_lp_lc_mod
         load_result = None
+        # _*_mod_end
         if self.profile:
             import cProfile
             import pstats
 
             from pathlib import Path
+            # _*_lp_lc_mod
             prof_output = os.path.join(Path.home(), 'ldraw_import_mm.prof')
+            # _*_mod_end
 
             with cProfile.Profile() as profiler:
+                # _*_lp_lc_mod
                 load_result = blender_import.do_import(bpy.path.abspath(self.filepath))
+                # _*_mod_end
             stats = pstats.Stats(profiler)
             stats.sort_stats(pstats.SortKey.TIME)
             stats.print_stats()
             stats.dump_stats(filename=prof_output)
         else:
+            # _*_lp_lc_mod
             load_result = blender_import.do_import(bpy.path.abspath(self.filepath))
 
         model_globals.LDRAW_MODEL_LOADED = True
+        # _*_mod_end
 
         print("")
+        # _*_lp_lc_mod
         ImportSettings.debugPrint("=====Import MM Complete====")
         if load_result is None:
             ImportSettings.debugPrint("Import MM result: None")
         ImportSettings.debugPrint(f"Model file: {model_globals.LDRAW_MODEL_FILE}")
         ImportSettings.debugPrint(f"Part count: {LDrawNode.part_count}")
+        # _*_mod_end
         end = time.perf_counter()
+        # _*_lp_lc_mod
         elapsed = end - start
         ImportSettings.debugPrint(f"Elapsed time: {elapsed}")
         ImportSettings.debugPrint("===========================")
+        # _*_mod_end
 
         return {'FINISHED'}
 
@@ -622,8 +654,11 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         space_factor = 0.3
 
         layout = self.layout
+        # _*_lp_lc_mod
         layout.use_property_split = True  # Active single-column layout
+        # _*_mod_end
 
+        # _*_lp_lc_mod
         box = layout.box()
         box.label(text="LDraw Import Options", icon='PREFERENCES')
         box.label(text="Import filepaths:", icon='FILEBROWSER')
@@ -634,8 +669,10 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         box.prop(self, "case_sensitive_filesystem")
         if not self.ldraw_model_file_loaded:
             box.prop(self, "environment_file")
+        # _*_mod_end
 
         layout.separator(factor=space_factor)
+        # _*_lp_lc_mod
         box.label(text="Import Options")
         box.prop(self, "add_environment")
         box.prop(self, "import_cameras")
@@ -650,21 +687,27 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         box.prop(self, "display_logo")
         box.prop(self, "chosen_logo")
         box.prop(self, "use_freestyle_edges")
+        # _*_mod_end
 
         layout.separator(factor=space_factor)
+        # _*_lp_lc_mod
         box.label(text="Scaling Options")
         box.prop(self, "import_scale")
         box.prop(self, "parent_to_empty")
         box.prop(self, "make_gaps")
         box.prop(self, "gap_scale")
+        # _*_mod_end
 
         layout.separator(factor=space_factor)
+        # _*_lp_lc_mod        
         box.prop(self, "bevel_edges")
         box.prop(self, "bevel_weight")
         box.prop(self, "bevel_width")
         box.prop(self, "bevel_segments")
+        # _*_mod_end
 
         layout.separator(factor=space_factor)
+        # _*_lp_lc_mod
         box.label(text="Cleanup Options")
         box.prop(self, "remove_doubles")
         box.prop(self, "merge_distance")
@@ -672,8 +715,10 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         box.prop(self, "shade_smooth")
         box.prop(self, "recalculate_normals")
         box.prop(self, "triangulate")
+        # _*_mod_end
 
         layout.separator(factor=space_factor)
+        # _*_lp_lc_mod
         box.label(text="Meta Commands")
         box.prop(self, "meta_bfc")
         box.prop(self, "meta_texmap")
@@ -687,19 +732,24 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         # box.prop(self, "meta_pause")
         box.prop(self, "meta_save")
         box.prop(self, "set_timeline_markers")
+        # _*_mod_end
 
         layout.separator(factor=space_factor)
+        # _*_lp_lc_mod
         box.label(text="Extras")
         box.prop(self, "import_edges")
         box.prop(self, "treat_shortcut_as_model")
         box.prop(self, "no_studs")
         box.prop(self, "verbose")
         box.prop(self, "profile")
+        # _*_mod_end
 
 
 def build_import_menu(self, context):
+    # _*_lp_lc_mod
     self.layout.operator(IMPORT_OT_do_ldraw_import.bl_idname,
                          text="LPub3D Import LDraw MM (.mpd/.ldr/.l3b/.dat)")
+    # _*_mod_end
 
 
 classesToRegister = [
@@ -712,7 +762,9 @@ registerClasses, unregisterClasses = bpy.utils.register_classes_factory(classesT
 
 def register():
     bpy.utils.register_class(IMPORT_OT_do_ldraw_import)
+    # _*_lp_lc_mod
     bpy.types.TOPBAR_MT_file_import.prepend(build_import_menu)
+    # _*_mod_end
 
 
 def unregister():

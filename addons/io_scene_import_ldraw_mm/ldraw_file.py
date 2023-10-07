@@ -66,10 +66,11 @@ class LDrawFile:
         """Reads the color values from the LDConfig.ldr file. For details of the
         LDraw color system see: http://www.ldraw.org/article/547"""
 
-        # if there is no LDCfgalt.ldr, look for LDConfig.ldr
+		# _*_lp_lc_mod
+        # if the LDCfgalt.ldr is not found, look for LDConfig.ldr
         # the Stud.io library doesn't have LDCfgalt.ldr,
         # so if use_colour_scheme_value() == alt and prefer_studio set filename to default_ldconfig
-        # might trip up the user because they'll get a bunch of invalid color errors
+        # may confuse users because they'll get a bunch of invalid color errors
         alt_ldconfig = "LDCfgalt.ldr"
         default_ldconfig = "LDConfig.ldr"
 
@@ -86,8 +87,10 @@ class LDrawFile:
                 filename = alt_ldconfig
         else:
             filename = default_ldconfig
+        # _*_mod_end
 
         ldraw_file = LDrawFile.get_file(filename)
+        # _*_lp_lc_mod        
         if filename != default_ldconfig and ldraw_file is None:
             ldraw_file = LDrawFile.get_file(default_ldconfig)
 
@@ -98,6 +101,7 @@ class LDrawFile:
         # We overwrite the standard LDraw colours if we have better LGEO colours.
         if LDrawColor.use_colour_scheme_value() == "lgeo":
             LDrawColor.set_lgeo_colors(FileSystem.read_lgeo_colors())
+		# _*_mod_end
 
         # import all materials
         # from .blender_materials import BlenderMaterials
@@ -265,7 +269,9 @@ class LDrawFile:
                 if self.__line_clear(clean_line): continue
                 if self.__line_print(clean_line): continue
                 if self.__line_ldcad(clean_line): continue
+                # _*_lp_lc_mod
                 if self.__line_lp_lc(clean_line): continue
+                # _*_mod_end
                 if self.__line_texmap(clean_line): continue
                 if self.__line_stud_io(clean_line): continue
             except Exception as e:
@@ -474,6 +480,7 @@ class LDrawFile:
         return False
 
     # https://www.leocad.org/docs/meta.html
+	# _*_lp_lc_mod
     def __line_lp_lc(self, clean_line):
         meta = "!LPUB"
         name = "lpub3d"
@@ -482,6 +489,7 @@ class LDrawFile:
             name = "leocad"
 
         if clean_line.startswith(f"0 {meta} GROUP BEGIN "):
+            # _*_mod_end
             name_args = clean_line.split(maxsplit=4)
             ldraw_node = LDrawNode()
             ldraw_node.line = clean_line
@@ -490,26 +498,32 @@ class LDrawFile:
             self.child_nodes.append(ldraw_node)
             return True
 
+        # _*_lp_lc_mod
         if clean_line.startswith(f"0 {meta} GROUP END"):
+            # _*_mod_end
             ldraw_node = LDrawNode()
             ldraw_node.line = clean_line
             ldraw_node.meta_command = "group_end"
             self.child_nodes.append(ldraw_node)
             return True
 
+        # _*_lp_lc_mod
         if clean_line.startswith(f"0 {meta} CAMERA "):
             ldraw_node = LDrawNode()
             ldraw_node.line = clean_line
             ldraw_node.meta_command = f"{name}_camera"
             self.child_nodes.append(ldraw_node)
             return True
+        # _*_mod_end
 
+        # _*_lp_lc_mod
         if clean_line.startswith(f"0 {meta} LIGHT "):
             ldraw_node = LDrawNode()
             ldraw_node.line = clean_line
             ldraw_node.meta_command = f"{name}_light"
             self.child_nodes.append(ldraw_node)
             return True
+        # _*_mod_end            
         return False
 
     def __line_texmap(self, clean_line):

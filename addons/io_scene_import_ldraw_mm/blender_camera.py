@@ -1,12 +1,17 @@
+# _*_lp_lc_mod
 import sys
+# _*_mod_end
 import math
+# _*_lp_lc_mod
 from mathutils import Vector
 import bpy
+# _*_mod_end
 
 from .import_options import ImportOptions
+# _*_lp_lc_mod
 from . import blender_lookat
+# _*_mod_end
 from . import group
-#from . import helpers
 
 
 def create_camera(camera, empty=None, collection=None):
@@ -64,11 +69,13 @@ def create_camera(camera, empty=None, collection=None):
     bpy.context.view_layer.update()
     if obj.parent is not None:
         obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
-
+    # _*_lp_lc_mod
     blender_lookat.look_at(obj, camera.target_position, camera.up_vector)
+    # _*_mod_end
 
     return obj
 
+# _*_lp_lc_mod
 # **************************************************************************************
 def iterate_camera_position(camera, render, vcentre3d, move_camera, vertices):
 
@@ -187,3 +194,4 @@ def iterate_camera_position(camera, render, vcentre3d, move_camera, vertices):
         return offset3d.length
 
     return 0.0
+# _*_mod_end

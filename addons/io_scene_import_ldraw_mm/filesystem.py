@@ -3,7 +3,9 @@ import string
 import glob
 from sys import platform
 from pathlib import Path
+# _*_lp_lc_mod
 from . import helpers
+# _*_mod_end
 import tempfile
 
 def locate_ldraw():
@@ -15,6 +17,7 @@ def locate_ldraw():
     if os.path.isdir(ldraw_path):
         return ldraw_path
 
+    # _*_lp_lc_mod
     # Get list of possible ldraw installation directories for the platform
     if platform == "win32":
         ldrawPossibleDirectories = [
@@ -71,6 +74,7 @@ def locate_ldraw():
                 ldraw_path = dir
 
     return ldraw_path
+    # _*_mod_end
 
 def locate_studio_ldraw():
     ldraw_folder_name = 'ldraw'
@@ -112,6 +116,7 @@ class FileSystem:
     defaults['studio_ldraw_path'] = locate_studio_ldraw()
     studio_ldraw_path = defaults['studio_ldraw_path']
     
+    # _*_lp_lc_mod
     defaults['environment_file'] = ''
     environment_file = defaults['environment_file']
 
@@ -120,6 +125,7 @@ class FileSystem:
 
     defaults['additional_search_paths'] = ''
     additional_search_paths = defaults['additional_search_paths']
+    # _*_mod_end
 
     defaults['prefer_studio'] = False
     prefer_studio = defaults['prefer_studio']
@@ -127,14 +133,18 @@ class FileSystem:
     defaults['prefer_unofficial'] = False
     prefer_unofficial = defaults['prefer_unofficial']
 
+    # _*_lp_lc_mod
     defaults['search_additional_paths'] = False
     search_additional_paths = defaults['search_additional_paths']
+    # _*_mod_end
 
     defaults['case_sensitive_filesystem'] = is_case_sensitive()
     case_sensitive_filesystem = defaults['case_sensitive_filesystem']
 
+    # _*_lp_lc_mod
     defaults['use_archive_library'] = False
     use_archive_library = defaults['use_archive_library']
+    # _*_mod_end
 
     resolution_choices = (
         ("Low", "Low resolution primitives", "Import using low resolution primitives."),
@@ -157,6 +167,7 @@ class FileSystem:
         cls.search_dirs.clear()
         cls.lowercase_paths.clear()
 
+    # _*_lp_lc_mod
     @staticmethod
     def locate_environment_file():
         file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
@@ -206,6 +217,7 @@ class FileSystem:
                             lgeo_colours[code] = colour
 
         return lgeo_colours
+    # _*_mod_end
 
     @classmethod
     def build_search_paths(cls, parent_filepath=None):

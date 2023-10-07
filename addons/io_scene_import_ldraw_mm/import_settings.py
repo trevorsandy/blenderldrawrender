@@ -13,6 +13,7 @@ class ImportSettings:
     filesystem_defaults = FileSystem.defaults
     ldraw_color_defaults = LDrawColor.defaults
     import_options_defaults = ImportOptions.defaults
+	# _*_lp_lc_mod    
     lpub3d_defaults = {
         'overwrite_image': True,
         'transparent_background': False,
@@ -26,13 +27,16 @@ class ImportSettings:
         'render_percentage': 100,
         'blend_file': ''
     }
+    # _*_mod_end
 
+	# _*_lp_lc_mod
     default_settings = {
         **filesystem_defaults,
         **ldraw_color_defaults,
         **import_options_defaults,
         **lpub3d_defaults
     }
+    # _*_mod_end
 
     @classmethod
     def settings_dict(cls, key):
@@ -67,6 +71,7 @@ class ImportSettings:
     def load_settings(cls):
         cls.settings = helpers.read_json(cls.settings_path, cls.default_settings)
 
+	# _*_lp_lc_mod
     @classmethod
     def save_settings(cls, has_settings):
         cls.settings = {}
@@ -94,6 +99,7 @@ class ImportSettings:
                         break
             cls.settings[k] = _v
         helpers.write_json(cls.settings_path, cls.settings)
+    # _*_mod_end
 
     @classmethod
     def apply_settings(cls):
@@ -106,6 +112,7 @@ class ImportSettings:
         for k, v in cls.import_options_defaults.items():
             setattr(ImportOptions, k, cls.settings[k])
 
+	# _*_lp_lc_mod
     @classmethod
     def get_settings(cls):
         cls.load_settings()
@@ -131,3 +138,4 @@ class ImportSettings:
 
         if cls.settings.get('verbose'):
             helpers.render_print(message)
+    # _*_mod_end

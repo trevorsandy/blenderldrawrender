@@ -3,9 +3,11 @@ import io
 import re
 import codecs
 import json
+# _*_lp_lc_mod
 import sys
 import datetime
 import configparser
+# _*_mod_end
 from pathlib import Path
 import os
 
@@ -90,6 +92,7 @@ def read_json(filepath, default=None):
         return default
 
 
+# _*_lp_lc_mod
 def read_ini(ini_file, default=None):
     assert ini_file != "", "LDrawRendererPreferences.ini file was not specified."
     try:
@@ -178,7 +181,7 @@ def render_print(message,is_error=False):
     else:
         sys.stdout.write(f"{message}\n")
         sys.stdout.flush()
-
+# _*_mod_end
 
 def clamp(num, min_value, max_value):
     return max(min(num, max_value), min_value)

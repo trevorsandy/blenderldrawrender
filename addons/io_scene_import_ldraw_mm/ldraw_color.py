@@ -36,6 +36,7 @@ blend_colors = [
 class LDrawColor:
     defaults = {}
 
+	# _*_lp_lc_mod
     use_colour_scheme_choices = (
         ("lgeo", "Realistic colours", "Uses the LGEO colour scheme for realistic colours."),
         ("ldraw", "Original LDraw colours", "Uses the standard LDraw colour scheme (LDConfig.ldr)."),
@@ -49,6 +50,7 @@ class LDrawColor:
     @staticmethod
     def  use_colour_scheme_value():
         return LDrawColor.use_colour_scheme_choices[LDrawColor.use_colour_scheme][0]
+	# _*_mod_end
 
     __colors = {}
     __bad_color = None
@@ -388,6 +390,7 @@ class LDrawColor:
 
         return hex_digits
 
+	# _*_lp_lc_mod
     @classmethod
     def __overwrite_color(cls, code, color):
         cls.__colors[str(code)].color = color
@@ -515,7 +518,7 @@ class LDrawColor:
             cls.__overwrite_color(503, (199 / 255, 193 / 255, 183 / 255))
             cls.__overwrite_color(504, (137 / 255, 135 / 255, 136 / 255))
             cls.__overwrite_color(511, (250 / 255, 250 / 255, 250 / 255))
-
+	# _*_mod_end
 
     @classmethod
     def __get_rgb_color_value(cls, value, linear=True):

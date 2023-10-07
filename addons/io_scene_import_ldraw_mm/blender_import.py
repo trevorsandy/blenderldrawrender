@@ -1,9 +1,9 @@
 import bpy
 import bmesh
-# lpub3d_mod
+# _*_lp_lc_mod
 from mathutils import Vector
 from mathutils import Euler
-# mod_end
+# _*_mod_end
 
 from .blender_materials import BlenderMaterials
 from .import_options import ImportOptions
@@ -12,9 +12,9 @@ from .ldraw_node import LDrawNode
 from .filesystem import FileSystem
 from .ldraw_color import LDrawColor
 from . import blender_camera
-# lpub3d_mod
+# _*_lp_lc_mod
 from . import blender_light
-# mod_end
+# _*_mod_end
 
 from . import helpers
 from . import strings
@@ -22,15 +22,15 @@ from . import group
 from . import ldraw_meta
 from . import ldraw_object
 from . import matrices
-# lpub3d_mod
+# _*_lp_lc_mod
 from . import ldraw_props
-# mod_end
+# _*_mod_end
 
 
 def do_import(filepath):
-    # lpub3d_mod
+    # _*_lp_lc_mod
     #print(filepath)  # TODO: multiple filepaths?
-    # mod_end
+    # _*_mod_end
 
     __scene_setup()
 
@@ -67,7 +67,7 @@ def do_import(filepath):
     # s = {str(k): v for k, v in sorted(LDrawNode.geometry_datas2.items(), key=lambda ele: ele[1], reverse=True)}
     # helpers.write_json("gs2.json", s, indent=4)
 
-    # lpub3d_mod
+    # _*_lp_lc_mod
     if not ldraw_object.top_empty is None:
         ldraw_props.set_props(ldraw_object.top_empty, ldraw_file, "16")
         mesh_objs = []
@@ -135,14 +135,14 @@ def do_import(filepath):
                             error = blender_camera.iterate_camera_position(camera, render, bbox_ctr, True, vertices)
                             if error < 0.001:
                                 break
-    # mod_end
+    # _*_mod_end
     
     if ImportOptions.meta_step:
         if ImportOptions.set_end_frame:
             bpy.context.scene.frame_end = ldraw_meta.current_frame + ImportOptions.frames_per_step
             bpy.context.scene.frame_set(bpy.context.scene.frame_end)
 
-    # lpub3d_mod
+    # _*_lp_lc_mod
     # Get existing scene names
     scene_object_names = [x.name for x in bpy.context.scene.objects]
 
@@ -167,7 +167,7 @@ def do_import(filepath):
             light_location = light.location - Vector((4.076245307922363, 1.0054539442062378, 5.903861999511719))
             if light_location.length < 0.001:
                 __unlink_from_scene(light)
-    # mod_end
+    # _*_mod_end
 
     max_clip_end = 0
     for camera in ldraw_meta.cameras:
@@ -178,7 +178,7 @@ def do_import(filepath):
             bpy.context.scene.camera = camera
         camera.parent = obj
 
-    # lpub3d_mod
+    # _*_lp_lc_mod
     for light in ldraw_meta.lights:
         light = blender_light.create_light(light, empty=ldraw_object.top_empty, collection=group.top_collection)
         light.parent = obj
@@ -196,7 +196,7 @@ def do_import(filepath):
         __setup_environment()
     
     __setup_realistic_look()
-    # mod_end
+    # _*_mod_end
 
     return obj
 
@@ -252,11 +252,11 @@ def __scene_setup():
         lineset.select_external_contour = False
         lineset.select_material_boundary = False
 
-# lpub3d_mod
+# _*_lp_lc_mod
 def __unlink_from_scene(obj):
     if bpy.context.collection.objects.find(obj.name) >= 0:
         bpy.context.collection.objects.unlink(obj)
-# mod_end
+# _*_mod_end
 
 def __load_materials(file):
     ImportOptions.meta_group = False
@@ -346,7 +346,7 @@ def __load_materials(file):
             group.link_obj(collection, obj)
         j += 1
 
-# lpub3d_mod
+# _*_lp_lc_mod
 def __get_layers(scene):
     return scene.view_layers
 
@@ -497,4 +497,4 @@ def __setup_environment():
             obj.data.materials[0] = material
         else:
             obj.data.materials.append(material)
-# mod_end
+# _*_mod_end

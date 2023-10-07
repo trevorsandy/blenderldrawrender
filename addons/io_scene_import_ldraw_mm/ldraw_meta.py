@@ -8,31 +8,37 @@ from .geometry_data import FaceData
 from . import group
 from . import helpers
 from . import ldraw_camera
+# _*_lp_lc_mod
 from . import ldraw_light
+# _*_mod_end
 
 current_frame = 0
 current_step = 0
 cameras = []
-lights = []
 camera = None
+# _*_lp_lc_mod
+lights = []
 light = None
-
+# _*_mod_end
 
 def reset_caches():
     global current_frame
     global current_step
     global cameras
-    global lights
     global camera
+# _*_lp_lc_mod    
+    global lights
     global light
+# _*_mod_end
 
     current_frame = 0
     current_step = 0
     cameras.clear()
-    lights.clear()
     camera = None
+# _*_lp_lc_mod
+    lights.clear()
     light = None
-
+# _*_mod_end
 
 def meta_bfc(ldraw_node, child_node, matrix, local_cull, winding, invert_next, accum_invert):
     clean_line = child_node.line
@@ -230,17 +236,21 @@ def meta_root_group_nxt(ldraw_node, child_node):
                 group.next_collection = None
 
 
+# _*_lp_lc_mod
 def meta_lp_lc_camera(child_node, matrix):
     if not ImportOptions.import_cameras:
         return
-        
+    # _*_mod_end
+
     global cameras
     global camera
 
     clean_line = child_node.line
     _params = clean_line.lower().split()[3:]
 
+    # _*_lp_lc_mod
     is_lpub_meta = clean_line.startswith("0 !LPUB ")
+    # _*_mod_end
 
     if camera is None:
         camera = ldraw_camera.LDrawCamera()
@@ -260,29 +270,35 @@ def meta_lp_lc_camera(child_node, matrix):
             _params = _params[2:]
         elif _params[0] == "position":
             (x, y, z) = map(float, _params[1:4])
+            # _*_lp_lc_mod
             # Convert LPub3D transform, switch Z and Y with -Z in the up direction
             if is_lpub_meta:
                 vector = matrix @ mathutils.Vector((x, z, -y))
             else:
                 vector = matrix @ mathutils.Vector((x, y, z))
+            # _*_mod_end
             camera.position = vector
             _params = _params[4:]
         elif _params[0] == "target_position":
             (x, y, z) = map(float, _params[1:4])
+            # _*_lp_lc_mod
             # Convert LPub3D transform, switch Z and Y with -Z in the up direction
             if is_lpub_meta:
                 vector = matrix @ mathutils.Vector((x, z, -y))
             else:
                 vector = matrix @ mathutils.Vector((x, y, z))
+            # _*_mod_end
             camera.target_position = vector
             _params = _params[4:]
         elif _params[0] == "up_vector":
             (x, y, z) = map(float, _params[1:4])
+            # _*_lp_lc_mod
             # Convert LPub3D transform, switch Z and Y with -Z in the up direction
             if is_lpub_meta:
                 vector = matrix @ mathutils.Vector((x, z, -y))
             else:
                 vector = matrix @ mathutils.Vector((x, y, z))
+            # _*_mod_end
             camera.up_vector = vector
             _params = _params[4:]
         elif _params[0] == "orthographic":
@@ -295,7 +311,9 @@ def meta_lp_lc_camera(child_node, matrix):
             # "0 !LEOCAD CAMERA NAME Camera  2".split("NAME ")[1] => "Camera  2"
             # "NAME Camera  2".split("NAME ")[1] => "Camera  2"
             name_args = clean_line.split("NAME ")
+            # _*_lp_lc_mod
             camera.name = "Imported {0}".format(name_args[1])
+            # _*_mod_end
 
             # By definition this is the last of the parameters
             _params = []
@@ -305,6 +323,7 @@ def meta_lp_lc_camera(child_node, matrix):
         else:
             _params = _params[1:]
 
+# _*_lp_lc_mod
 def meta_lp_lc_light(child_node, matrix):
     if not ImportOptions.import_lights:
         return
@@ -398,6 +417,7 @@ def meta_lp_lc_light(child_node, matrix):
             light = None
         else:
             _params = _params[1:]
+# _*_mod_end
 
 # https://www.ldraw.org/documentation/ldraw-org-file-format-standards/language-extension-for-texture-mapping.html
 

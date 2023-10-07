@@ -96,7 +96,9 @@ class BlenderMaterials:
 
         _key += (use_backface_culling,)
 
+        # _*_lp_lc_mod
         _key += (LDrawColor.use_colour_scheme_value(),)
+        # _*_mod_end
 
         if part_slopes is not None:
             _key += (part_slopes,)

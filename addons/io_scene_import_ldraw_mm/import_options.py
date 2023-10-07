@@ -41,9 +41,12 @@ class ImportOptions:
     defaults['meta_texmap'] = True
     meta_texmap = defaults['meta_texmap']
 
+	# _*_lp_lc_mod
     defaults['display_logo'] = True
+	# _*_mod_end
     display_logo = defaults['display_logo']
 
+	# _*_lp_lc_mod
     chosen_logo_choices = (
        #("logo", "Line", "Single line logo geometry"),
        #("logo2", "Outline", "Outlined logo geometry"),
@@ -51,6 +54,7 @@ class ImportOptions:
         ("logo4", "Rounded", "Raised rounded logo geometry"),
         ("logo5", "Subtle Rounded", "Subtle rounded logo geometry"),
     )
+	# _*_mod_end
 
     defaults['chosen_logo'] = 2
     chosen_logo = defaults['chosen_logo']
@@ -111,6 +115,7 @@ class ImportOptions:
     defaults['bevel_segments'] = 4
     bevel_segments = defaults['bevel_segments']
 
+	# _*_lp_lc_mod
     defaults['import_cameras'] = True
     import_cameras = defaults['import_cameras']
 
@@ -125,6 +130,7 @@ class ImportOptions:
     
     defaults['position_camera'] = True
     position_camera = defaults['position_camera']
+	# _*_mod_end
 
     defaults['use_freestyle_edges'] = False
     use_freestyle_edges = defaults['use_freestyle_edges']
