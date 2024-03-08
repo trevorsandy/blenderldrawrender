@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update August 29, 2023
+Last Update May 08, 2024
 Copyright (c) 2023 by Toby Nelson
-Copyright (c) 2020 - 2023 by Trevor SANDY
+Copyright (c) 2020 - 2024 by Trevor SANDY
 
 LPub3D Import LDraw GPLv2 license.
 
@@ -84,11 +84,12 @@ overwriteExistingMeshes       = False
 overwriteImage                = True
 positionCamera                = True
 positionObjectOnGroundAtOrigin= True
-removeDoubles                 = True
+removeDoubles                 = False
 renderWindow                  = False
 resolution                    = Standard
 resolveNormals                = guess
 realScale                     = 0.02    # rollback realScale: 1.0
+scaleStrategy                 = Mesh
 smoothShading                 = True
 transparentBackground         = True
 useColourScheme               = lego
@@ -138,14 +139,14 @@ class Preferences():
                         self.__config[section].pop(popItem)
                         self.__updateIni = True
             elif section == "ImportLDrawMM":
-                addList = ['colorstrategy,material']
+                addList = ['scalestrategy,mesh']
                 addList += ['casesensitivefilesystem,True'] if sys.platform == "linux" else ['casesensitivefilesystem,False']
                 for addItem in addList:
                     pair = addItem.split(",")
                     if not self.__config.has_option(section, pair[0]):
                         self.__config.set(section, pair[0], str(pair[1]))
                         self.__updateIni = True
-                popList = ['preservehierarchy', 'treatmodelswithsubpartsasparts', 'gapscalestrategy', 'gaptarget']
+                popList = ['preservehierarchy', 'treatmodelswithsubpartsasparts', 'colorstrategy', 'gapscalestrategy', 'gaptarget']
                 for popItem in popList:
                     if self.__config.has_option(section, popItem):
                         self.__config[section].pop(popItem)
