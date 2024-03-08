@@ -47,14 +47,14 @@ class Preferences():
                         self.__config[section].pop(popItem)
                         self.__updateIni = True
             elif section == "ImportLDrawMM":
-                addList = ['colorstrategy,material']
+                addList = ['scalestrategy,mesh']
                 addList += ['casesensitivefilesystem,True'] if sys.platform == "linux" else ['casesensitivefilesystem,False']
                 for addItem in addList:
                     pair = addItem.split(",")
                     if not self.__config.has_option(section, pair[0]):
                         self.__config.set(section, pair[0], str(pair[1]))
                         self.__updateIni = True
-                popList = ['preservehierarchy', 'treatmodelswithsubpartsasparts', 'gapscalestrategy', 'gaptarget']
+                popList = ['preservehierarchy', 'treatmodelswithsubpartsasparts', 'colorstrategy', 'gapscalestrategy', 'gaptarget']
                 for popItem in popList:
                     if self.__config.has_option(section, popItem):
                         self.__config[section].pop(popItem)
@@ -77,7 +77,6 @@ class Preferences():
                 'camera_border_percent': self.__config[self.__sectionName]['cameraborderpercent'],
                 'case_sensitive_filesystem': self.__config[self.__sectionName]['casesensitivefilesystem'],
                 'chosen_logo': self.__config[self.__sectionName]['chosenlogo'],
-                'color_strategy': self.__config[self.__sectionName]['colorstrategy'],
                 'crop_image': self.__config[self.__sectionName]['cropimage'],
                 'custom_ldconfig_file': self.__config[self.__sectionName]['customldconfigfile'],
                 'display_logo': self.__config[self.__sectionName]['displaylogo'],
@@ -116,6 +115,7 @@ class Preferences():
                 'resolution': self.__config[self.__sectionName]['resolution'],
                 'resolution_height': self.__config[self.__sectionName]['resolutionheight'],
                 'resolution_width': self.__config[self.__sectionName]['resolutionwidth'],
+                'scale_strategy': self.__config[self.__sectionName]['scalestrategy'],                
                 'search_additional_paths': self.__config[self.__sectionName]['searchadditionalpaths'],
                 'set_end_frame': self.__config[self.__sectionName]['setendframe'],
                 'set_timeline_markers': self.__config[self.__sectionName]['settimelinemarkers'],
