@@ -12,6 +12,7 @@ from . import ldraw_camera
 from . import ldraw_light
 # _*_mod_end
 
+
 current_frame = 0
 current_step = 0
 cameras = []
@@ -20,6 +21,7 @@ camera = None
 lights = []
 light = None
 # _*_mod_end
+
 
 def reset_caches():
     global current_frame
@@ -133,8 +135,8 @@ def meta_step():
         bpy.context.scene.timeline_markers.new("STEP", frame=current_frame)
 
     if ImportOptions.meta_step_groups:
-        collection_name = f"Steps"
-        host_collection = group.get_scene_collection()
+        collection_name = f"{group.top_collection.name} Steps"
+        host_collection = group.top_collection
         steps_collection = group.get_collection(collection_name, host_collection)
         helpers.hide_obj(steps_collection)
 
@@ -191,17 +193,20 @@ def meta_group(child_node):
 
 def meta_group_def(child_node):
     group.collection_id_map[child_node.meta_args["id"]] = child_node.meta_args["name"]
-    collection_name = group.collection_id_map[child_node.meta_args["id"]]
+    name = group.collection_id_map[child_node.meta_args["id"]]
+    collection_name = f"{group.top_collection.name} {name}"
     host_collection = group.groups_collection
     group.get_collection(collection_name, host_collection)
 
 
 def meta_group_nxt(child_node):
+    group.stored_collection = group.next_collection
+    collection = None
     if child_node.meta_args["id"] in group.collection_id_map:
-        collection_name = group.collection_id_map[child_node.meta_args["id"]]
+        name = group.collection_id_map[child_node.meta_args["id"]]
+        collection_name = f"{group.top_collection.name} {name}"
         collection = bpy.data.collections.get(collection_name)
-        if collection is not None:
-            group.next_collection = collection
+    group.next_collection = collection
     group.end_next_collection = True
 
 
@@ -209,7 +214,8 @@ def meta_group_begin(child_node):
     if group.next_collection is not None:
         group.next_collections.append(group.next_collection)
 
-    collection_name = child_node.meta_args["name"]
+    name = child_node.meta_args["name"]
+    collection_name = f"{group.top_collection.name} {name}"
     host_collection = group.groups_collection
     collection = group.get_collection(collection_name, host_collection)
     group.next_collection = collection
@@ -217,15 +223,15 @@ def meta_group_begin(child_node):
     if len(group.next_collections) > 0:
         host_collection = group.next_collections[-1]
         group.link_child(collection, host_collection)
+    # else:
+    #     host_collection = group.top_collection
+    #     group.link_child(collection, host_collection)
 
 
 def meta_group_end():
-    try:
+    if len(group.next_collections) > 0:
         group.next_collection = group.next_collections.pop()
-    except IndexError as e:
-        print(e)
-        import traceback
-        print(traceback.format_exc())
+    else:
         group.next_collection = None
 
 
@@ -450,7 +456,7 @@ def meta_texmap(ldraw_node, child_node, matrix):
             texture_params = helpers.parse_csv_line(_params[13], 2)
             texture = texture_params[0]
             glossmap = texture_params[1]
-            if glossmap == '':
+            if glossmap == "":
                 glossmap = None
 
             new_texmap.parameters = [
@@ -468,7 +474,7 @@ def meta_texmap(ldraw_node, child_node, matrix):
             texture_params = helpers.parse_csv_line(_params[14], 2)
             texture = texture_params[0]
             glossmap = texture_params[1]
-            if glossmap == '':
+            if glossmap == "":
                 glossmap = None
 
             new_texmap.parameters = [
@@ -487,7 +493,7 @@ def meta_texmap(ldraw_node, child_node, matrix):
             texture_params = helpers.parse_csv_line(_params[15], 2)
             texture = texture_params[0]
             glossmap = texture_params[1]
-            if glossmap == '':
+            if glossmap == "":
                 glossmap = None
 
             new_texmap.parameters = [

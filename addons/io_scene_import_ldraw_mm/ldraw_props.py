@@ -13,6 +13,7 @@ def set_props(obj, ldraw_file, color_code):
         obj.ldraw_props.part_type = ldraw_file.actual_part_type or ""
     except TypeError as e:
         print(e)
+        print(ldraw_file)
         import traceback
         print(traceback.format_exc())
         obj.ldraw_props.part_type = 'Unknown'
@@ -20,7 +21,7 @@ def set_props(obj, ldraw_file, color_code):
     obj.ldraw_props.optional_qualifier = ldraw_file.optional_qualifier or ""
     obj.ldraw_props.update_date = ldraw_file.update_date or ""
     obj.ldraw_props.license = ldraw_file.license or ""
-    # obj.ldraw_props.category = ldraw_file.category or ""
+    obj.ldraw_props.category = "\n".join(ldraw_file.category) or ""
     # obj.ldraw_props.keywords = ldraw_file.keywords or ""
     # obj.ldraw_props.history = "; ".join(ldraw_file.history or [])
     obj.ldraw_props.color_code = color_code
@@ -231,12 +232,11 @@ class LDrawProps(bpy.types.PropertyGroup):
     #     "Wing",
     #     "Znap",
     # ]
-    # category: bpy.props.EnumProperty(
-    #     name="Category",
-    #     description="Category of this part",
-    #     items=list(((c, c, c) for c in categories)),
-    #     default="",
-    # )
+    category:  bpy.props.StringProperty(
+        name="Category",
+        description="Category",
+        default="",
+    )
 
     # keywords: bpy.props.StringProperty(
     #     name="Keywords",
@@ -277,7 +277,7 @@ class LDrawProps(bpy.types.PropertyGroup):
 
     export_polygons: bpy.props.BoolProperty(
         name="Export polygons",
-        description="If true, export object as polygons. If false, export as line type 1.",
+        description="If true, export object as polygons. If false, export as line type 1",
         default=False
     )
 
@@ -288,7 +288,7 @@ class LDrawProps(bpy.types.PropertyGroup):
     )
 
     export_precision: bpy.props.IntProperty(
-        name="Export precision",
+        name="Vertex precision",
         description="Round vertex coordinates to this number of places",
         default=ExportOptions.export_precision,
         min=0,

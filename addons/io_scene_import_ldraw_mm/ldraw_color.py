@@ -44,8 +44,8 @@ class LDrawColor:
         ("custom", "Custom LDraw colours", "Uses a user specified LDraw colour file.")
     )
 
-    defaults['use_colour_scheme'] = 0
-    use_colour_scheme = defaults['use_colour_scheme']
+    defaults["use_colour_scheme"] = 0
+    use_colour_scheme = defaults["use_colour_scheme"]
 
     @staticmethod
     def  use_colour_scheme_value():
@@ -279,6 +279,7 @@ class LDrawColor:
                 print(traceback.format_exc())
 
         print(f"Bad color code: {color_code}")
+        color_code = '99999'
         if cls.__bad_color is None:
             clean_line = f"0 !COLOUR Bad_Color CODE {color_code} VALUE #FF0000 EDGE #00FF00"
             color_code = cls.parse_color(clean_line)
@@ -531,15 +532,15 @@ class LDrawColor:
     @classmethod
     def __extract_hex_digits(cls, value):
         # the normal format of color values
-        if value.startswith('#'):  # '#efefefff'
+        if value.startswith("#"):  # "#efefefff"
             return value[1:]
 
         # some color codes in 973psr.dat are just hex values for the desired color, such as 0x24C4C45
-        if value.lower().startswith('0x2'):  # '0x24C4C45ff'
+        if value.lower().startswith("0x2"):  # "0x24C4C45ff"
             return value[3:]
 
-        # some color codes are ints that need to be converted to hex -> hex(intval) == '0xFFFFFFFF'
-        if value.lower().startswith('0x'):  # '0xffffffff'
+        # some color codes are ints that need to be converted to hex -> hex(intval) == "0xFFFFFFFF"
+        if value.lower().startswith("0x"):  # "0xffffffff"
             return value[2:]
 
         return None

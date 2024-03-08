@@ -5,8 +5,9 @@ from mathutils import Vector
 from mathutils import Euler
 # _*_mod_end
 
-from .blender_materials import BlenderMaterials
+from .import_settings import ImportSettings
 from .import_options import ImportOptions
+from .blender_materials import BlenderMaterials
 from .ldraw_file import LDrawFile
 from .ldraw_node import LDrawNode
 from .filesystem import FileSystem
@@ -27,19 +28,24 @@ from . import ldraw_props
 # _*_mod_end
 
 
-def do_import(filepath):
+def do_import(filepath, color_code="16", return_mesh=False):
     # _*_lp_lc_mod
     #print(filepath)  # TODO: multiple filepaths?
     # _*_mod_end
 
-    __scene_setup()
+    ImportSettings.apply_settings()
 
+    BlenderMaterials.reset_caches()
+    FileSystem.reset_caches()
+    LDrawColor.reset_caches()
     LDrawFile.reset_caches()
     LDrawNode.reset_caches()
     group.reset_caches()
     ldraw_meta.reset_caches()
     ldraw_object.reset_caches()
     matrices.reset_caches()
+
+    __scene_setup()
 
     FileSystem.build_search_paths(parent_filepath=filepath)
     LDrawFile.read_color_table()
@@ -53,16 +59,15 @@ def do_import(filepath):
         __load_materials(ldraw_file)
         return
 
-    ldraw_meta.meta_step()
-
     root_node = LDrawNode()
     root_node.is_root = True
     root_node.file = ldraw_file
 
-    group.groups_setup(root_node)
+    group.groups_setup(filepath)
+    ldraw_meta.meta_step()
 
     # return root_node.load()
-    obj = root_node.load()
+    obj = root_node.load(color_code=color_code, return_mesh=return_mesh)
 
     # s = {str(k): v for k, v in sorted(LDrawNode.geometry_datas2.items(), key=lambda ele: ele[1], reverse=True)}
     # helpers.write_json("gs2.json", s, indent=4)
@@ -206,21 +211,6 @@ def __scene_setup():
     bpy.context.scene.eevee.use_ssr_refraction = True
     bpy.context.scene.eevee.use_taa_reprojection = True
 
-    if ImportOptions.color_strategy_value() == "vertex_colors":
-        # view vertex colors in solid view
-        for window in bpy.context.window_manager.windows:
-            for area in window.screen.areas:
-                if area.type == 'VIEW_3D':
-                    for space in area.spaces:
-                        if space.type == 'VIEW_3D':
-                            if ImportOptions.meta_bfc:
-                                space.shading.show_backface_culling = True
-                            space.shading.type = 'SOLID'
-                            # Shading > Color > Object to see object colors
-                            space.shading.color_type = 'VERTEX'
-                            # space.shading.color_type = 'MATERIAL'
-                            # space.shading.color_type = 'OBJECT'
-
     # https://blender.stackexchange.com/a/146838
     # TODO: use line art modifier with grease pencil object
     #  parts can't be in more than one group if those group's parent is targeted by the modifier
@@ -288,7 +278,7 @@ def __load_materials(file):
         clean_line = helpers.clean_line(line)
         strip_line = line.strip()
 
-        if clean_line.startswith('0 // LDraw'):
+        if clean_line.startswith("0 // LDraw"):
             group_name = clean_line
             colors[group_name] = []
             continue
