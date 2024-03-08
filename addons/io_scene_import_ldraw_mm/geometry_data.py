@@ -15,6 +15,8 @@ class FaceData:
     def handle_vertex_winding(child_node, matrix, winding):
         vert_count = len(child_node.vertices)
 
+        # matrix = matrix @ matrices.gap_scale_matrix
+
         vertices = []
         if winding == "CW":
             if vert_count == 3:

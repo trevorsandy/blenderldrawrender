@@ -188,13 +188,6 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         items=ImportOptions.smooth_type_choices,
     )
 
-    color_strategy: bpy.props.EnumProperty(
-        name="Color strategy",
-        description="How to color parts",
-        **ImportSettings.settings_dict('color_strategy'),
-        items=ImportOptions.color_strategy_choices,
-    )
-
     no_studs: bpy.props.BoolProperty(
         name="No studs",
         description="Don't import studs",
@@ -205,6 +198,13 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         name="Parent to empty",
         description="Parent the model to an empty",
         **ImportSettings.settings_dict('parent_to_empty'),
+    )
+
+    scale_strategy: bpy.props.EnumProperty(
+        name="Scale strategy",
+        description="How to apply import scaling",
+        **ImportSettings.settings_dict('scale_strategy'),
+        items=ImportOptions.scale_strategy_choices,
     )
 
     import_scale: bpy.props.FloatProperty(
@@ -479,7 +479,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
             self.display_logo            = IMPORT_OT_do_ldraw_import.prefs.get("display_logo", self.display_logo)
             self.chosen_logo             = IMPORT_OT_do_ldraw_import.prefs.get("chosen_logo", self.chosen_logo)
 
-            self.color_strategy          = IMPORT_OT_do_ldraw_import.prefs.get("color_strategy", self.color_strategy)
+            self.scale_strategy          = IMPORT_OT_do_ldraw_import.prefs.get("scale_strategy", self.scale_strategy)
             self.import_scale            = IMPORT_OT_do_ldraw_import.prefs.get("import_scale", self.import_scale)
             self.parent_to_empty         = IMPORT_OT_do_ldraw_import.prefs.get("parent_to_empty", self.parent_to_empty)
             self.make_gaps               = IMPORT_OT_do_ldraw_import.prefs.get("make_gaps", self.make_gaps)
@@ -543,7 +543,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
             IMPORT_OT_do_ldraw_import.prefs["display_logo"]            = self.display_logo
             IMPORT_OT_do_ldraw_import.prefs["chosen_logo"]             = self.chosen_logo
 
-            IMPORT_OT_do_ldraw_import.prefs["color_strategy"]          = self.color_strategy
+            IMPORT_OT_do_ldraw_import.prefs["scale_strategy"]          = self.scale_strategy
             IMPORT_OT_do_ldraw_import.prefs["import_scale"]            = self.import_scale
             IMPORT_OT_do_ldraw_import.prefs["parent_to_empty"]         = self.parent_to_empty
             IMPORT_OT_do_ldraw_import.prefs["make_gaps"]               = self.make_gaps
@@ -592,7 +592,6 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
 
         ImportSettings.save_settings(IMPORT_OT_do_ldraw_import.prefs)
         # _*_mod_end
-        ImportSettings.apply_settings()
 
         # _*_lp_lc_mod
         model_globals.LDRAW_MODEL_FILE = self.filepath
@@ -672,8 +671,8 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         # _*_mod_end
 
         layout.separator(factor=space_factor)
-        # _*_lp_lc_mod
         box.label(text="Import Options")
+        # _*_lp_lc_mod        
         box.prop(self, "add_environment")
         box.prop(self, "import_cameras")
         box.prop(self, "position_camera")
@@ -681,30 +680,27 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         box.prop(self, "import_lights")
         box.prop(self, "prefer_studio")
         box.prop(self, "prefer_unofficial")
+        # _*_mod_end        
         box.prop(self, "use_colour_scheme", expand=True)
         box.prop(self, "resolution", expand=True)
-        box.prop(self, "color_strategy", expand=True)
         box.prop(self, "display_logo")
         box.prop(self, "chosen_logo")
         box.prop(self, "use_freestyle_edges")
-        # _*_mod_end
+        box.prop(self, "parent_to_empty")
 
         layout.separator(factor=space_factor)
-        # _*_lp_lc_mod
         box.label(text="Scaling Options")
+        box.prop(self, "scale_strategy")
         box.prop(self, "import_scale")
-        box.prop(self, "parent_to_empty")
         box.prop(self, "make_gaps")
         box.prop(self, "gap_scale")
-        # _*_mod_end
 
         layout.separator(factor=space_factor)
-        # _*_lp_lc_mod        
+        box.label(text="Bevel Options")
         box.prop(self, "bevel_edges")
         box.prop(self, "bevel_weight")
         box.prop(self, "bevel_width")
         box.prop(self, "bevel_segments")
-        # _*_mod_end
 
         layout.separator(factor=space_factor)
         # _*_lp_lc_mod

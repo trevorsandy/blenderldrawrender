@@ -6,7 +6,6 @@ import uuid
 from .definitions import APP_ROOT
 from .ldraw_color import LDrawColor
 from .filesystem import FileSystem
-from .import_options import ImportOptions
 from . import strings
 
 
@@ -20,10 +19,12 @@ class BlenderMaterials:
     # https://github.com/bblanimation/abs-plastic-materials
     @classmethod
     def create_blender_node_groups(cls):
-        cls.reset_caches()
-        path = os.path.join(APP_ROOT, 'materials', 'all_monkeys.blend')
+        path = os.path.join(APP_ROOT, 'inc', 'all_monkeys.blend')
         if bpy.app.version < (3, 4):
-            path = os.path.join(APP_ROOT, 'materials', 'all_monkeys_33.blend')
+            path = os.path.join(APP_ROOT, 'inc', 'all_monkeys_33.blend')
+        elif bpy.app.version < (4,):
+            path = os.path.join(APP_ROOT, 'inc', 'all_monkeys_36.blend')
+
         with bpy.data.libraries.load(path) as (data_from, data_to):
             all_node_groups = False
             if all_node_groups:
@@ -44,14 +45,14 @@ class BlenderMaterials:
             node_group.use_fake_user = True
 
     @classmethod
-    def get_material(cls, color_code, vertex_colors=None, use_backface_culling=True, part_slopes=None, parts_cloth=False, texmap=None, pe_texmap=None, easy_key=False):
+    def get_material(cls, color_code, bfc_certified=True, part_slopes=None, parts_cloth=False, texmap=None, pe_texmap=None, easy_key=False):
         color = LDrawColor.get_color(color_code)
-        use_backface_culling = use_backface_culling is True
+        bfc_certified = bfc_certified is True
 
         if easy_key:
             key = color_code
         else:
-            key = cls.__build_key(color, use_backface_culling, part_slopes, parts_cloth, texmap, pe_texmap)
+            key = cls.__build_key(color, bfc_certified, part_slopes, parts_cloth, texmap, pe_texmap)
 
         # Reuse current material if it exists, otherwise create a new material
         material = bpy.data.materials.get(key)
@@ -61,8 +62,7 @@ class BlenderMaterials:
         material = cls.__create_node_based_material(
             key,
             color,
-            vertex_colors,
-            use_backface_culling=use_backface_culling,
+            bfc_certified=bfc_certified,
             part_slopes=part_slopes,
             parts_cloth=parts_cloth,
             texmap=texmap,
@@ -71,30 +71,12 @@ class BlenderMaterials:
         return material
 
     @classmethod
-    def __build_key(cls, color, use_backface_culling, part_slopes, parts_cloth, texmap, pe_texmap):
+    def __build_key(cls, color, bfc_certified, part_slopes, parts_cloth, texmap, pe_texmap):
         _key = ()
 
-        if ImportOptions.color_strategy_value() == "vertex_colors":
-            # key is everything but the color
-            _key += (
-                color.alpha,
-                color.luminance,
-                color.material_name,
-                color.material_color,
-                color.material_color_i,
-                color.material_color_hex,
-                color.material_alpha,
-                color.material_luminance,
-                color.material_fraction,
-                color.material_vfraction,
-                color.material_size,
-                color.material_minsize,
-                color.material_maxsize,
-            )
-        else:
-            _key += (color.name, color.code,)
+        _key += (color.name, color.code,)
 
-        _key += (use_backface_culling,)
+        _key += (bfc_certified,)
 
         # _*_lp_lc_mod
         _key += (LDrawColor.use_colour_scheme_value(),)
@@ -112,6 +94,10 @@ class BlenderMaterials:
         if pe_texmap is not None:
             _key += (pe_texmap.texture,)
 
+        str_key = str(_key)
+        if len(str_key) < 60:
+            return str(str_key)
+
         key = cls.__key_map.get(_key)
         if key is None:
             cls.__key_map[_key] = str(uuid.uuid4())
@@ -120,11 +106,11 @@ class BlenderMaterials:
         return key
 
     @classmethod
-    def __create_node_based_material(cls, key, color, vertex_colors, use_backface_culling=True, part_slopes=None, parts_cloth=False, texmap=None, pe_texmap=None):
+    def __create_node_based_material(cls, key, color, bfc_certified=True, part_slopes=None, parts_cloth=False, texmap=None, pe_texmap=None):
         material = bpy.data.materials.new(key)
         material.use_fake_user = True
         material.use_nodes = True
-        material.use_backface_culling = use_backface_culling
+        material.use_backface_culling = bfc_certified
 
         nodes = material.node_tree.nodes
         links = material.node_tree.links
@@ -133,14 +119,11 @@ class BlenderMaterials:
 
         out = cls.__node_output_material(nodes, 200, 0)
 
-        if ImportOptions.color_strategy_value() == "vertex_colors":
-            node, vertex_color_node, mix_rgb_node = cls.__node_group_vertex_color_code(color, vertex_colors, nodes, links, 200, 0)
-        else:
-            node, rgb_node, mix_rgb_node = cls.__node_group_color_code(color, nodes, links, 200, 0)
-            diff_color = color.linear_color_a
-            material.diffuse_color = diff_color
-            material[strings.ldraw_color_code_key] = color.code
-            material[strings.ldraw_color_name_key] = color.name
+        node, rgb_node, mix_rgb_node = cls.__node_group_color_code(color, nodes, links, 200, 0)
+        diff_color = color.linear_color_a
+        material.diffuse_color = diff_color
+        material[strings.ldraw_color_code_key] = color.code
+        material[strings.ldraw_color_name_key] = color.name
 
         links.new(node.outputs["Shader"], out.inputs["Surface"])
 
@@ -228,21 +211,6 @@ class BlenderMaterials:
         links.new(mix_rgb_node.outputs["Color"], node.inputs["Color"])
 
         return node, rgb_node, mix_rgb_node
-
-    @classmethod
-    def __node_group_vertex_color_code(cls, color, vertex_colors, nodes, links, x, y):
-        vertex_color_node = cls.__node_vertex_color(nodes, x + -600, y + 60)
-        vertex_color_node.layer_name = vertex_colors.name
-
-        mix_rgb_node = cls.__node_mix_rgb(nodes, x + -400, y + 0)
-        mix_rgb_node.inputs["Fac"].default_value = 0
-
-        node = cls.__node_color_code_material(nodes, color, x + -200, y + 0)
-
-        links.new(vertex_color_node.outputs["Color"], mix_rgb_node.inputs["Color1"])
-        links.new(mix_rgb_node.outputs["Color"], node.inputs["Color"])
-
-        return node, vertex_color_node, mix_rgb_node
 
     @classmethod
     def __node_color_code_material(cls, nodes, color, x, y):

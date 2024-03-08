@@ -79,6 +79,7 @@ if "bpy" in locals():
     reload(operator_import)
     reload(operator_export)
     reload(operator_panel_ldraw)
+    reload(ldraw_operators)
 
     _modules_loaded[:] = [reload(module) for module in _modules_loaded]
     del reload
@@ -87,6 +88,7 @@ else:
     from . import operator_import
     from . import operator_export
     from . import operator_panel_ldraw
+    from . import ldraw_operators
 
 # First import the modules
 __import__(name=__name__, fromlist=_modules)
@@ -104,6 +106,7 @@ def register():
     operator_import.register()
     operator_export.register()
     operator_panel_ldraw.register()
+    ldraw_operators.register()
 
 
 def unregister():
@@ -111,6 +114,7 @@ def unregister():
     operator_import.unregister()
     operator_export.unregister()
     operator_panel_ldraw.unregister()
+    ldraw_operators.unregister()
 
 
 if __name__ == "__main__":

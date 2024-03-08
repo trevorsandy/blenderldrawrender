@@ -18,13 +18,13 @@ class LDrawFile:
     A file that has been loaded and its lines converted to header data and ldraw_nodes.
     """
 
-    __raw_files = {}
-    __file_cache = {}
+    __unparsed_file_cache = {}
+    __parsed_file_cache = {}
 
     @classmethod
     def reset_caches(cls):
-        cls.__raw_files.clear()
-        cls.__file_cache.clear()
+        cls.__unparsed_file_cache.clear()
+        cls.__parsed_file_cache.clear()
 
     def __init__(self, filename):
         self.filename = filename
@@ -42,13 +42,15 @@ class LDrawFile:
         self.update_date = None
         self.license = None
         self.help = []
-        self.category = None
+        self.category = []
         self.keywords = []
         self.cmdline = None
         self.history = []
 
         self.child_nodes = []
         self.geometry_commands = {}
+
+        self.named = False
 
     def __str__(self):
         return "\n".join([
@@ -61,8 +63,6 @@ class LDrawFile:
 
     @classmethod
     def read_color_table(cls):
-        LDrawColor.reset_caches()
-
         """Reads the color values from the LDConfig.ldr file. For details of the
         LDraw color system see: http://www.ldraw.org/article/547"""
 
@@ -115,23 +115,23 @@ class LDrawFile:
 
     @classmethod
     def get_file(cls, filename):
-        ldraw_file = LDrawFile.__file_cache.get(filename)
+        ldraw_file = cls.__parsed_file_cache.get(filename)
         if ldraw_file is not None:
             return ldraw_file
 
-        ldraw_file = cls.__raw_files.get(filename)
+        ldraw_file = cls.__unparsed_file_cache.get(filename)
         if ldraw_file is None:
-            ldraw_file = LDrawFile.read_file(filename)
+            ldraw_file = cls.__read_file(filename)
 
         if ldraw_file is None:
             return ldraw_file
 
         ldraw_file.__parse_file()
-        LDrawFile.__file_cache[filename] = ldraw_file
+        cls.__parsed_file_cache[filename] = ldraw_file
         return ldraw_file
 
     @classmethod
-    def read_file(cls, filename):
+    def __read_file(cls, filename):
         filepath = FileSystem.locate(filename)
         if filepath is None:
             return None
@@ -141,6 +141,7 @@ class LDrawFile:
             is_mpd = None
             no_file = False
             first_mpd_filename = None
+            current_file = None
             current_mpd_file = None
             current_data_filename = None
             current_data = None
@@ -188,10 +189,8 @@ class LDrawFile:
 
                 # not mpd -> regular ldr/dat file
                 if not is_mpd:
-                    current_file = cls.__raw_files.get(filename)
                     if current_file is None:
-                        cls.__raw_files[filename] = LDrawFile(filename)
-                        current_file = cls.__raw_files.get(filename)
+                        current_file = LDrawFile(filename)
                     current_file.lines.append(line)
                     continue
 
@@ -204,14 +203,14 @@ class LDrawFile:
                         first_mpd_filename = mpd_filename
 
                     if current_mpd_file is not None:
-                        cls.__raw_files[current_mpd_file.filename] = current_mpd_file
+                        cls.__unparsed_file_cache[current_mpd_file.filename] = current_mpd_file
                     current_mpd_file = LDrawFile(mpd_filename)
                     continue
 
                 if is_nofile_line:
                     no_file = True
                     if current_mpd_file is not None:
-                        cls.__raw_files[current_mpd_file.filename] = current_mpd_file
+                        cls.__unparsed_file_cache[current_mpd_file.filename] = current_mpd_file
                     current_mpd_file = None
                     continue
 
@@ -234,12 +233,15 @@ class LDrawFile:
 
             # last file in mpd will not be added to the file cache if it doesn't end in 0 NOFILE
             if current_mpd_file is not None:
-                cls.__raw_files[current_mpd_file.filename] = current_mpd_file
+                cls.__unparsed_file_cache[current_mpd_file.filename] = current_mpd_file
+
+            if current_file is not None:
+                cls.__unparsed_file_cache[current_file.filename] = current_file
 
             if first_mpd_filename is not None:
                 filename = first_mpd_filename
 
-            return cls.__raw_files.get(filename)
+            return cls.__unparsed_file_cache.get(filename)
 
     # create meta nodes when those commands affect the scene
     # process meta command in place if it only affects the file
@@ -293,6 +295,9 @@ class LDrawFile:
     # https://forums.ldraw.org/thread-23904-post-35984.html#pid35984
     def __line_name(self, clean_line, strip_line):
         if clean_line.lower().startswith("0 Name: ".lower()):
+            if self.named:
+                return True
+            self.named = True
             self.name = strip_line.split(maxsplit=2)[2]
             return True
         return False
@@ -304,32 +309,61 @@ class LDrawFile:
         return False
 
     def __line_part_type(self, clean_line, strip_line):
-        if (clean_line.startswith("0 !LDRAW_ORG ") or
-                clean_line.startswith("0 LDRAW_ORG ") or
-                clean_line.startswith("0 Unofficial ") or
-                clean_line.startswith("0 Un-official ")):
-            parts = strip_line.split(maxsplit=3)
-            self.actual_part_type = parts[2]
-            self.part_type = self.determine_part_type(self.actual_part_type)
+        in_part_type = False
+        for date_type in ["ORIGINAL", "UPDATE"]:
+            # print(strip_line)
+            try:
+                index = clean_line.index(date_type)
+                date_string = clean_line[index:]
+                parts = date_string.split(maxsplit=1)
+                self.update_date = parts[1]
+                clean_line = clean_line[0:index]
+                in_part_type = True
+            except ValueError as e:
+                pass
 
-            if 'UPDATE' in strip_line:
-                _r = parts[3]
-                if _r.startswith('UPDATE'):
-                    _p = _r.split(maxsplit=1)
-                    self.optional_qualifier = ''
-                    self.update_date = _p[1]
-                else:
-                    _p = _r.split(maxsplit=1)
-                    self.optional_qualifier = _p[0]
-                    __p = _p[1].split(maxsplit=1)
-                    self.update_date = __p[1]
+        for optional_qualifier in ["Alias", "Physical_Colour", "Flexible_Section"]:
+            try:
+                index = strip_line.index(optional_qualifier)
+                self.optional_qualifier = optional_qualifier
+                clean_line = clean_line[0:index]
+                in_part_type = True
+            except ValueError as e:
+                pass
+
+        for part_type_prefix in ["0 !LDRAW_ORG ", "0 LDRAW_ORG "]:
+            try:
+                index = strip_line.index(part_type_prefix)
+                parts = clean_line.split(maxsplit=2)
+                self.actual_part_type = parts[2].strip()
+                self.part_type = self.determine_part_type(self.actual_part_type)
+                in_part_type = True
+            except ValueError as e:
+                pass
+
+        for part_type_prefix in ["0 Unofficial ", "0 Un-official "]:
+            try:
+                index = strip_line.index(part_type_prefix)
+                parts = clean_line.split(maxsplit=1)
+                self.actual_part_type = parts[1].strip()
+                self.part_type = self.determine_part_type(self.actual_part_type)
+                in_part_type = True
+            except ValueError as e:
+                pass
+
+        for part_type_prefix in ["0 Official LCAD "]:
+            try:
+                index = strip_line.index(part_type_prefix)
+                parts = clean_line.split(maxsplit=4)
+                self.actual_part_type = parts[3].strip()
+                self.part_type = self.determine_part_type(self.actual_part_type)
+                in_part_type = True
+            except ValueError as e:
+                pass
+
+        if in_part_type:
             return True
 
-        if clean_line.startswith("0 Official LCAD "):
-            parts = strip_line.split(maxsplit=4)
-            self.actual_part_type = parts[3]
-            self.part_type = self.determine_part_type(self.actual_part_type)
-            return True
         return False
 
     def __line_license(self, strip_line):
@@ -346,7 +380,7 @@ class LDrawFile:
 
     def __line_category(self, strip_line):
         if strip_line.startswith("0 !CATEGORY "):
-            self.category = strip_line.split(maxsplit=2)[2]
+            self.category.append(strip_line.split(maxsplit=2)[2])
             return True
         return False
 
@@ -600,7 +634,7 @@ class LDrawFile:
 
             ldraw_node = LDrawNode()
             ldraw_node.file = ldraw_file
-            ldraw_node.line = strip_line
+            ldraw_node.line = clean_line
             ldraw_node.meta_command = "1"
             ldraw_node.color_code = color_code
             ldraw_node.matrix = matrix
@@ -698,6 +732,9 @@ class LDrawFile:
 
     def is_part(self):
         return self.part_type in ldraw_part_types.part_types
+
+    def is_like_part(self):
+        return self.is_part() or self.is_shortcut_part() or self.has_geometry()
 
     def is_subpart(self):
         return self.part_type in ldraw_part_types.subpart_types

@@ -12,3 +12,5 @@ thumbs/*
 .test/*
 .thumbs/*
 experiments/*
+brickset/*
+inc/tmp/*

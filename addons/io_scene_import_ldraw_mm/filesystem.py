@@ -8,6 +8,7 @@ from . import helpers
 # _*_mod_end
 import tempfile
 
+
 def locate_ldraw():
     ldraw_folder_name = 'ldraw'
 
@@ -110,40 +111,36 @@ def is_case_sensitive():
 class FileSystem:
     defaults = {}
 
-    defaults['ldraw_path'] = locate_ldraw()
-    ldraw_path = defaults['ldraw_path']
+    defaults["ldraw_path"] = locate_ldraw()
+    ldraw_path = defaults["ldraw_path"]
 
-    defaults['studio_ldraw_path'] = locate_studio_ldraw()
-    studio_ldraw_path = defaults['studio_ldraw_path']
-    
-    # _*_lp_lc_mod
-    defaults['environment_file'] = ''
-    environment_file = defaults['environment_file']
+    defaults["studio_ldraw_path"] = locate_studio_ldraw()
+    studio_ldraw_path = defaults["studio_ldraw_path"]
 
-    defaults['custom_ldconfig_file'] = ''
-    custom_ldconfig_file = defaults['custom_ldconfig_file']
+    defaults["prefer_studio"] = False
+    prefer_studio = defaults["prefer_studio"]
 
-    defaults['additional_search_paths'] = ''
-    additional_search_paths = defaults['additional_search_paths']
-    # _*_mod_end
+    defaults["prefer_unofficial"] = False
+    prefer_unofficial = defaults["prefer_unofficial"]
 
-    defaults['prefer_studio'] = False
-    prefer_studio = defaults['prefer_studio']
-
-    defaults['prefer_unofficial'] = False
-    prefer_unofficial = defaults['prefer_unofficial']
+    defaults["case_sensitive_filesystem"] = is_case_sensitive()
+    case_sensitive_filesystem = defaults["case_sensitive_filesystem"]
 
     # _*_lp_lc_mod
-    defaults['search_additional_paths'] = False
-    search_additional_paths = defaults['search_additional_paths']
-    # _*_mod_end
+    defaults["environment_file"] = ''
+    environment_file = defaults["environment_file"]
 
-    defaults['case_sensitive_filesystem'] = is_case_sensitive()
-    case_sensitive_filesystem = defaults['case_sensitive_filesystem']
+    defaults["custom_ldconfig_file"] = ''
+    custom_ldconfig_file = defaults["custom_ldconfig_file"]
 
-    # _*_lp_lc_mod
-    defaults['use_archive_library'] = False
-    use_archive_library = defaults['use_archive_library']
+    defaults["additional_search_paths"] = ''
+    additional_search_paths = defaults["additional_search_paths"]
+
+    defaults["search_additional_paths"] = False
+    search_additional_paths = defaults["search_additional_paths"]
+
+    defaults["use_archive_library"] = False
+    use_archive_library = defaults["use_archive_library"]
     # _*_mod_end
 
     resolution_choices = (
@@ -152,8 +149,8 @@ class FileSystem:
         ("High", "High resolution primitives", "Import using high resolution primitives."),
     )
 
-    defaults['resolution'] = 1
-    resolution = defaults['resolution']
+    defaults["resolution"] = 1
+    resolution = defaults["resolution"]
 
     @staticmethod
     def resolution_value():
@@ -221,8 +218,6 @@ class FileSystem:
 
     @classmethod
     def build_search_paths(cls, parent_filepath=None):
-        cls.reset_caches()
-
         ldraw_roots = []
 
         # append top level file's directory

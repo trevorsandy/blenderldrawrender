@@ -1,29 +1,29 @@
 class ExportOptions:
     defaults = {}
 
-    defaults['remove_doubles'] = True
-    remove_doubles = defaults['remove_doubles']
+    defaults["remove_doubles"] = False
+    remove_doubles = defaults["remove_doubles"]
 
-    defaults['recalculate_normals'] = True
-    recalculate_normals = defaults['recalculate_normals']
+    defaults["merge_distance"] = 0.05
+    merge_distance = defaults["merge_distance"]
 
-    defaults['merge_distance'] = 0.05
-    merge_distance = defaults['merge_distance']
+    defaults["recalculate_normals"] = False
+    recalculate_normals = defaults["recalculate_normals"]
 
-    defaults['triangulate'] = False
-    triangulate = defaults['triangulate']
+    defaults["triangulate"] = False
+    triangulate = defaults["triangulate"]
 
-    defaults['ngon_handling'] = "triangulate"
-    ngon_handling = defaults['ngon_handling']
+    defaults["ngon_handling"] = "triangulate"
+    ngon_handling = defaults["ngon_handling"]
 
 	# _*_lp_lc_mod
 	# moved to export_type_choices
-    #defaults['selection_only'] = True
-    #selection_only = defaults['selection_only']
+    #defaults["selection_only"] = True
+    #selection_only = defaults["selection_only"]
     # _*_mod_end
 
-    defaults['export_precision'] = 2
-    export_precision = defaults['export_precision']
+    defaults["export_precision"] = 2
+    export_precision = defaults["export_precision"]
 
 	# _*_lp_lc_mod
     export_type_choices = (

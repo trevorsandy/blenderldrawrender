@@ -11,7 +11,7 @@ from . import ldraw_export
 
 
 class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
-    """Export an LDraw model File."""
+    """Export an LDraw model File"""
 
 	# _*_lp_lc_mod
     bl_idname = "export_scene.lpub3d_export_ldraw_mm"
@@ -19,6 +19,9 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
     bl_label = "Export LDraw MM"
 	# _*_mod_end
     bl_options = {'PRESET'}
+
+    # TODO: set export filename to current obj ldraw part_name
+    # TODO: export polygons as individual parts
 
     filename_ext: bpy.props.EnumProperty(
         name='File extension',
@@ -70,19 +73,19 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
     recalculate_normals: bpy.props.BoolProperty(
         name="Recalculate normals",
         description="Recalculate normals",
-        default=True,
+        default=ExportOptions.recalculate_normals,
     )
 
     triangulate: bpy.props.BoolProperty(
         name="Triangulate faces",
         description="Triangulate all faces",
-        default=False,
+        default=ExportOptions.triangulate,
     )
 
     remove_doubles: bpy.props.BoolProperty(
         name="Remove doubles",
         description="Merge overlapping vertices",
-        default=True,
+        default=ExportOptions.remove_doubles,
     )
 
     merge_distance: bpy.props.FloatProperty(
@@ -175,14 +178,10 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
         col.label(text="Export Options")
         # _*_lp_lc_mod
         col.prop(self, "export_type", expand=True)
-        # _*_mod_end
-
-        layout.separator(factor=space_factor)
-        # _*_lp_lc_mod
         col.prop(self, "use_colour_scheme", expand=True)
+        # _*_mod_end
 
         layout.separator(factor=space_factor)
-        # _*_mod_end
         col = layout.column()
         col.label(text="Cleanup Options")
         col.prop(self, "remove_doubles")
