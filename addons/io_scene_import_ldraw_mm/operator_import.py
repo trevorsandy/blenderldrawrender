@@ -63,6 +63,12 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         **ImportSettings.settings_dict('studio_ldraw_path'),
     )
 
+    studio_custom_parts_path: bpy.props.StringProperty(
+        name="Stud.io CustomParts path",
+        description="Full filepath to the CustomParts path",
+        **ImportSettings.settings_dict('studio_custom_parts_path'),
+    )
+
     # _*_lp_lc_mod
     additional_search_paths: bpy.props.StringProperty(
         name="Additional search paths",
@@ -459,6 +465,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
 
             self.ldraw_path              = IMPORT_OT_do_ldraw_import.prefs.get("ldraw_path", self.ldraw_path)
             self.studio_ldraw_path       = IMPORT_OT_do_ldraw_import.prefs.get("studio_ldraw_path", self.studio_ldraw_path)
+            self.studio_custom_parts_path= IMPORT_OT_do_ldraw_import.prefs.get("studio_custom_parts_path", self.studio_custom_parts_path)
 
             self.add_environment         = IMPORT_OT_do_ldraw_import.prefs.get("add_environment", self.add_environment)
             self.environment_file        = IMPORT_OT_do_ldraw_import.prefs.get("environment_file", self.environment_file)
@@ -523,6 +530,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
 
             IMPORT_OT_do_ldraw_import.prefs["ldraw_path"]              = self.ldraw_path
             IMPORT_OT_do_ldraw_import.prefs["studio_ldraw_path"]       = self.studio_ldraw_path
+            IMPORT_OT_do_ldraw_import.prefs["studio_custom_parts_path"]= self.studio_custom_parts_path
 
             IMPORT_OT_do_ldraw_import.prefs['add_environment']         = self.add_environment
             IMPORT_OT_do_ldraw_import.prefs['environment_file']        = self.environment_file
@@ -664,6 +672,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         box.prop(self, "ldraw_path")
         box.prop(self, "custom_ldconfig_file")
         box.prop(self, "studio_ldraw_path")
+        box.prop(self, "studio_custom_parts_path")
         box.prop(self, "search_additional_paths")
         box.prop(self, "case_sensitive_filesystem")
         if not self.ldraw_model_file_loaded:
