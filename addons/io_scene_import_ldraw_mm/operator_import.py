@@ -217,8 +217,8 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         name="Import scale",
         description="Scale the entire model by this amount",
         **ImportSettings.settings_dict('import_scale'),
-        precision=2,
-        min=0.01,
+        precision=4,
+        min=0.0001,
         max=1.00,
     )
 
