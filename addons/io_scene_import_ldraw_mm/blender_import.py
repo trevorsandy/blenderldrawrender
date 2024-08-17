@@ -125,12 +125,11 @@ def do_import(filepath, color_code="16", return_mesh=False):
         else:
             camera = bpy.context.scene.camera            
             if camera is not None:
-                helpers.render_print(f"Positioning Camera: {camera.data.name}")
                 # Set up a default camera position and rotation
+                helpers.render_print(f"Positioning Camera: {camera.data.name}")
                 camera.location = Vector((6.5, -6.5, 4.75))
                 camera.rotation_mode = 'XYZ'
                 camera.rotation_euler = Euler((1.0471975803375244, 0.0, 0.7853981852531433), 'XYZ')
-
                 # Must have at least three vertices to move the camera
                 if len(vertices) >= 3:
                     render = bpy.context.scene.render
@@ -183,11 +182,13 @@ def do_import(filepath, color_code="16", return_mesh=False):
             if camera.data.clip_end > max_clip_end:
                 max_clip_end = camera.data.clip_end
             bpy.context.scene.camera = camera
+        helpers.render_print(f"Created Camera: {camera.data.name}")
         camera.parent = obj
 
     # _*_lp_lc_mod
     for light in ldraw_meta.lights:
         light = blender_light.create_light(light, empty=ldraw_object.top_empty, collection=group.top_collection)
+        helpers.render_print(f"Created Light: {light.data.name}")
         light.parent = obj
 
     if bpy.context.screen is not None:

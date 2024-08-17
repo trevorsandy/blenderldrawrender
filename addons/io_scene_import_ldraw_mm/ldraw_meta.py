@@ -277,33 +277,30 @@ def meta_lp_lc_camera(child_node, matrix):
         elif _params[0] == "position":
             (x, y, z) = map(float, _params[1:4])
             # _*_lp_lc_mod
-            # Convert LPub3D transform, switch Z and Y with -Z in the up direction
             if is_lpub_meta:
-                vector = matrix @ mathutils.Vector((x, z, -y))
-            else:
                 vector = matrix @ mathutils.Vector((x, y, z))
+            else:
+                vector = mathutils.Vector((x, y, z))
             # _*_mod_end
             camera.position = vector
             _params = _params[4:]
         elif _params[0] == "target_position":
             (x, y, z) = map(float, _params[1:4])
             # _*_lp_lc_mod
-            # Convert LPub3D transform, switch Z and Y with -Z in the up direction
             if is_lpub_meta:
-                vector = matrix @ mathutils.Vector((x, z, -y))
-            else:
                 vector = matrix @ mathutils.Vector((x, y, z))
+            else:
+                vector = mathutils.Vector((x, y, z))
             # _*_mod_end
             camera.target_position = vector
             _params = _params[4:]
         elif _params[0] == "up_vector":
             (x, y, z) = map(float, _params[1:4])
             # _*_lp_lc_mod
-            # Convert LPub3D transform, switch Z and Y with -Z in the up direction
             if is_lpub_meta:
-                vector = matrix @ mathutils.Vector((x, z, -y))
-            else:
                 vector = matrix @ mathutils.Vector((x, y, z))
+            else:
+                vector = mathutils.Vector((x, y, z))
             # _*_mod_end
             camera.up_vector = vector
             _params = _params[4:]
@@ -349,57 +346,66 @@ def meta_lp_lc_light(child_node, matrix):
     while len(_params) > 0:
         if _params[0] == "position":
             (x, y, z) = map(float, _params[1:4])
-            # Convert LPub3D transform, switch Z and Y with -Z in the up direction
             if is_lpub_meta:
-                vector = matrix @ mathutils.Vector((x, z, -y))
-            else:
                 vector = matrix @ mathutils.Vector((x, y, z))
+            else:
+                vector = mathutils.Vector((x, y, z))
             light.position = vector
             _params = _params[4:]
         elif _params[0] == "target_position":
             (x, y, z) = map(float, _params[1:4])
-            # Convert LPub3D transform, switch Z and Y with -Z in the up direction
             if is_lpub_meta:
-                vector = matrix @ mathutils.Vector((x, z, -y))
-            else:
                 vector = matrix @ mathutils.Vector((x, y, z))
+            else:
+                vector = mathutils.Vector((x, y, z))
             light.target_position = vector
             _params = _params[4:]
-        elif _params[0] == "color_rgb":
+        elif _params[0] == "rotation":
+            (x1, y1, z1, x2, y2, z2, x3, y3, z3) = map(float, _params[1:10])
+            light.target_position = light.matrix44ToEulerAngles(mathutils.Matrix((
+                (x1, y1, z1, 0),(x2, y2, z2, 0),(x3, y3, z3, 0),
+                (light.position.x, light.position.y, light.position.z, 1))))
+            _params = _params[10:]
+        elif _params[0] == "color" or _params[0] == "color_rgb":
             light.color = mathutils.Vector(
                 (float(_params[1]), float(_params[2]), float(_params[3])))
             _params = _params[4:]
-        elif _params[0] == "power":
+        elif _params[0] == "blender_power" or _params[0] == "power" or _params[0] == "strength":
             light.exponent = float(_params[1])
             _params = _params[2:]
-        elif _params[0] == "strength":
-            light.exponent = float(_params[1])
-            _params = _params[2:]
-        elif _params[0] == "angle":
+        elif  _params[0] == "blender_sun_angle" or  _params[0] == "blender_directional_angle" or _params[0] == "angle":
             light.factor_a = ImportOptions.import_scale * float(_params[1])
             _params = _params[2:]
-        elif _params[0] == "radius":
+        elif _params[0] == "blender_point_radius" or _params[0] == "blender_spot_radius" or _params[0] == "radius":
             light.factor_a = float(_params[1])
             _params = _params[2:]
-        elif _params[0] == "size":
-            light.factor_a = float(_params[1])
-            _params = _params[2:]
-        elif _params[0] == "width":
-            light.factor_a = float(_params[1])
-            _params = _params[2:]
-        elif _params[0] == "height":
-            light.factor_b = float(_params[1])
+        elif _params[0] == "spot_cone_angle" or _params[0] == "spot_size":
+            light.spot_size = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "spot_blend":
             light.factor_b = float(_params[1])
             _params = _params[2:]
-        elif _params[0] == "spot_size":
-            light.spot_size = float(_params[1])
+        elif _params[0] == "spot_penumbra_angle":
+            penumbra_angle = float(_params[1])
+            if penumbra_angle > 0:
+                light.factor_b = penumbra_angle / light.factor_b
             _params = _params[2:]
-        elif _params[0] == "specular":
+        elif _params[0] == "area_size" or _params[0] == "size":
+            light.factor_a = float(_params[1])
+            _params = _params[2:]
+        elif _params[0] == "area_size_x" or _params[0] == "width":
+            light.factor_a = float(_params[1])
+            _params = _params[2:]
+        elif _params[0] == "area_size_y" or _params[0] == "height":
+            light.factor_b = float(_params[1])
+            _params = _params[2:]
+        elif _params[0] == "area_shape" or _params[0] == "shape":
+            light.shape = _params[1].upper().strip()
+            _params = _params[2:]
+        elif _params[0] == "blender_specular" or _params[0] == "specular":
             light.specular = float(_params[1])
             _params = _params[2:]
-        elif _params[0] == "cutoff_distance":
+        elif _params[0] == "blender_cutoff_distance" or _params[0] == "cutoff_distance":
             light.use_cutoff = True
             light.cutoff_distance = float(_params[1])
             _params = _params[2:]
@@ -408,9 +414,6 @@ def meta_lp_lc_light(child_node, matrix):
             _params = _params[1:]
         elif _params[0] == "type":
             light.type = _params[1].upper().strip()
-            _params = _params[2:]
-        elif _params[0] == "shape":
-            light.shape = _params[1].upper().strip()
             _params = _params[2:]
         elif _params[0] == "name":
             name_args = clean_line.split("NAME ")

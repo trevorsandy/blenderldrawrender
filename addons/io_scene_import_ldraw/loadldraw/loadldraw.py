@@ -1913,6 +1913,33 @@ class LDrawLight:
         self.target_position  = mathutils.Vector((1.0, 0.0, 0.0))
         self.up_vector        = mathutils.Vector((0.0, 1.0, 0.0))
 
+    def matrix44ToEulerAngles(self, matrix):
+        """Convert LeoCAD ROTATION matrix to target_position euler angles"""
+
+        sin_pitch = -matrix[0][2]
+        cos_pitch = math.sqrt(1 - sin_pitch*sin_pitch)
+
+        if (math.fabs(cos_pitch) > 0.0005):
+            sin_roll = matrix[1][2] / cos_pitch
+            cos_roll = matrix[2][2] / cos_pitch
+            sin_yaw = matrix[0][1] / cos_pitch
+            cos_yaw = matrix[0][0] / cos_pitch
+        else:
+            sin_roll = -matrix[2][1]
+            cos_roll = matrix[1][1]
+            sin_yaw = 0.0
+            cos_yaw = 1.0
+
+        euler_angles = mathutils.Vector((math.atan2(sin_roll, cos_roll), math.atan2(sin_pitch, cos_pitch), math.atan2(sin_yaw, cos_yaw)))
+
+        if (euler_angles[0] < 0): euler_angles[0] += math.tau
+        if (euler_angles[1] < 0): euler_angles[1] += math.tau
+        if (euler_angles[2] < 0): euler_angles[2] += math.tau
+
+        angles_in_degrees = Math.scaleMatrix @ mathutils.Vector((math.degrees(euler_angles.x), math.degrees(euler_angles.y), math.degrees(euler_angles.z)))
+
+        return angles_in_degrees
+
     def createLightNode(self):
         lightData = bpy.data.lights.new(name=self.name, type=self.type)
         light = bpy.data.objects.new(self.name, lightData)
@@ -1934,9 +1961,11 @@ class LDrawLight:
             light.data.spot_blend       = self.factorB
         elif self.type == 'AREA':
             light.data.shape            = self.shape
-            light.data.size             = self.size
             if self.shape == 'RECTANGLE' or self.shape == 'ELLIPSE':
+                light.data.size         = self.factorA
                 light.data.size_y       = self.factorB
+            else:
+                light.data.size         = self.size
 
         light.location                  = self.position
 
@@ -2304,41 +2333,52 @@ class LDrawFile:
                                         light.target_position = Math.scaleMatrix @ mathutils.Vector(
                                             (float(parameters[1]), float(parameters[2]), float(parameters[3])))
                                     parameters = parameters[4:]
-                                elif parameters[0] == "COLOR_RGB":
+                                elif parameters[0] == "ROTATION":
+                                    (x1, y1, z1, x2, y2, z2, x3, y3, z3) = map(float, parameters[1:10])
+                                    light.target_position = light.matrix44ToEulerAngles(mathutils.Matrix((
+                                        (x1, y1, z1, 0),(x2, y2, z2, 0),(x3, y3, z3, 0),
+                                        (light.position.x, light.position.y, light.position.z, 1))))
+                                    parameters = parameters[10:]
+                                elif parameters[0] == "COLOR" or parameters[0] == "COLOR_RGB":
                                     light.color = mathutils.Vector(
                                         (float(parameters[1]), float(parameters[2]), float(parameters[3])))
                                     parameters = parameters[4:]
-                                elif parameters[0] == "POWER":
+                                elif parameters[0] == "BLENDER_POWER" or parameters[0] == "POWER" or parameters[0] == "STRENGTH":
                                     light.exponent = float(parameters[1])
                                     parameters = parameters[2:]
-                                elif parameters[0] == "STRENGTH":
-                                    light.exponent = float(parameters[1])
-                                    parameters = parameters[2:]
-                                elif parameters[0] == "ANGLE":
+                                elif parameters[0] == "BLENDER_SUN_ANGLE" or parameters[0] == "BLENDER_DIRECTIONAL_ANGLE" or parameters[0] == "ANGLE":
                                     light.factorA = globalScaleFactor * float(parameters[1])
                                     parameters = parameters[2:]
-                                elif parameters[0] == "RADIUS":
+                                elif parameters[0] == "BLENDER_POINT_RADIUS" or parameters[0] == "BLENDER_SPOT_RADIUS" or parameters[0] == "RADIUS":
                                     light.factorA = float(parameters[1])
                                     parameters = parameters[2:]
-                                elif parameters[0] == "SIZE":
-                                    light.factorA = float(parameters[1])
-                                    parameters = parameters[2:]
-                                elif parameters[0] == "WIDTH":
-                                    light.factorA = float(parameters[1])
-                                    parameters = parameters[2:]
-                                elif parameters[0] == "HEIGHT":
-                                    light.factorB = float(parameters[1])
+                                elif parameters[0] == "SPOT_CONE_ANGLE" or parameters[0] == "SPOT_SIZE":
+                                    light.spot_size = float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "SPOT_BLEND":
                                     light.factorB = float(parameters[1])
                                     parameters = parameters[2:]
-                                elif parameters[0] == "SPOT_SIZE":
-                                    light.spot_size = float(parameters[1])
+                                elif parameters[0] == "SPOT_PENUMBRA_ANGLE":
+                                    penumbra_angle = float(parameters[1])
+                                    if penumbra_angle > 0:
+                                        light.factorB = penumbra_angle / light.spot_size
                                     parameters = parameters[2:]
-                                elif parameters[0] == "SPECULAR":
+                                elif parameters[0] == "AREA_SIZE" or parameters[0] == "SIZE":
+                                    light.factorA = float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "AREA_SIZE_X" or parameters[0] == "WIDTH":
+                                    light.factorA = float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "AREA_SIZE_Y" or parameters[0] == "HEIGHT":
+                                    light.factorB = float(parameters[1])
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "AREA_SHAPE" or parameters[0] == "SHAPE":
+                                    light.shape = parameters[1].upper().strip()
+                                    parameters = parameters[2:]
+                                elif parameters[0] == "BLENDER_SPECULAR" or parameters[0] == "SPECULAR":
                                     light.specular = float(parameters[1])
                                     parameters = parameters[2:]
-                                elif parameters[0] == "CUTOFF_DISTANCE":
+                                elif parameters[0] == "BLENDER_CUTOFF_DISTANCE" or parameters[0] == "CUTOFF_DISTANCE":
                                     light.use_cutoff = True
                                     light.cutoff_distance = float(parameters[1])
                                     parameters = parameters[2:]
@@ -2347,9 +2387,6 @@ class LDrawFile:
                                     parameters = parameters[1:]
                                 elif parameters[0] == "TYPE":
                                     light.type = parameters[1].upper().strip()
-                                    parameters = parameters[2:]
-                                elif parameters[0] == "SHAPE":
-                                    light.shape = parameters[1].upper().strip()
                                     parameters = parameters[2:]
                                 elif parameters[0] == "NAME":
                                     light.name = "Imported {0}".format(line.split(" NAME ", 1)[1].strip())
@@ -5230,7 +5267,7 @@ def loadFromFile(context, filename, isFullFilepath=True):
     Parameters()
     
     if Configure.ldrawInstallDirectory == "":
-        printError("Could not find LDraw install directory".format(libraryType))
+        printError("Could not find LDraw install directory")
         return None
 
     LegoColours()
@@ -5425,11 +5462,13 @@ def loadFromFile(context, filename, isFullFilepath=True):
     for ob in globalLightsToAdd:
         light = ob.createLightNode()
         light.parent = rootOb
+        debugPrint("Created Light: {0}".format(light.data.name))
 
     # Add cameras to the scene
     for ob in globalCamerasToAdd:
         camera = ob.createCameraNode()
         camera.parent = rootOb
+        debugPrint("Created Camera: {0}".format(camera.data.name))
 
     globalObjectsToAdd = []
     globalCamerasToAdd = []
