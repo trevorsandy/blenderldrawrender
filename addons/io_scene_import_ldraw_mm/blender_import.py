@@ -74,6 +74,8 @@ def do_import(filepath, color_code="16", return_mesh=False):
 
     # _*_lp_lc_mod
     if not ldraw_object.top_empty is None:
+        if ldraw_file.actual_part_type is None:
+            ldraw_file.actual_part_type = 'Model'
         ldraw_props.set_props(ldraw_object.top_empty, ldraw_file, "16")
         mesh_objs = []
         top_obj = None

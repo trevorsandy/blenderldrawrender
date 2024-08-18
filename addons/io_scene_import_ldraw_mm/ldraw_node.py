@@ -128,7 +128,7 @@ class LDrawNode:
             for i in range(len(current_matrix)):
                 for j in range(len(current_matrix[i])):
                     current_matrix[i][j] = round(current_matrix[i][j], 6)
-                    print(current_matrix[i][j])
+                    # print(current_matrix[i][j])
             child_matrix = matrices.identity_matrix
         elif top_model:
             if merge_model:
@@ -257,13 +257,13 @@ class LDrawNode:
                         ldraw_meta.meta_group(child_node)
                     # _*_lp_lc_mod                        
                     elif child_node.meta_command == "leocad_camera":
-                        ldraw_meta.meta_lp_lc_camera(child_node, vertex_matrix)
+                        ldraw_meta.meta_lp_lc_camera(child_node, child_matrix)
                     elif child_node.meta_command == "lpub3d_camera":
-                        ldraw_meta.meta_lp_lc_camera(child_node, vertex_matrix)
+                        ldraw_meta.meta_lp_lc_camera(child_node, child_matrix)
                     elif child_node.meta_command == "leocad_light":
-                        ldraw_meta.meta_lp_lc_light(child_node, vertex_matrix)
+                        ldraw_meta.meta_lp_lc_light(child_node, child_matrix)
                     elif child_node.meta_command == "lpub3d_light":
-                        ldraw_meta.meta_lp_lc_light(child_node, vertex_matrix)
+                        ldraw_meta.meta_lp_lc_light(child_node, child_matrix)
                     # _*_mod_end
 
                 if self.texmap_next:

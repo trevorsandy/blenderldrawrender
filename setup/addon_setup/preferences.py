@@ -47,11 +47,13 @@ class Preferences():
                         self.__config[section].pop(popItem)
                         self.__updateIni = True
             elif section == "ImportLDrawMM":
-                addList = ['scalestrategy,mesh']
+                addList = ['studiocustompartspath,', 'scalestrategy,mesh']
                 addList += ['casesensitivefilesystem,True'] if sys.platform == "linux" else ['casesensitivefilesystem,False']
                 for addItem in addList:
                     pair = addItem.split(",")
                     if not self.__config.has_option(section, pair[0]):
+                        if (len(pair) == 1):
+                            pair.append('')
                         self.__config.set(section, pair[0], str(pair[1]))
                         self.__updateIni = True
                 popList = ['preservehierarchy', 'treatmodelswithsubpartsasparts', 'colorstrategy', 'gapscalestrategy', 'gaptarget']
@@ -67,6 +69,7 @@ class Preferences():
             self.__settings = dict()
             self.__default_settings = {
                 'add_environment': self.__config[self.__sectionName]['addenvironment'],
+                'studio_custom_parts_path': self.__config[self.__sectionName]['studiocustompartspath'],
                 'additional_search_paths': self.__config[self.__sectionName]['additionalsearchpaths'],
                 'bevel_edges': self.__config[self.__sectionName]['beveledges'],
                 'bevel_weight': self.__config[self.__sectionName]['bevelweight'],

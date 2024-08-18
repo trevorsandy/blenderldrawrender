@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update May 08, 2024
+Last Update August 18, 2024
 Copyright (c) 2023 by Toby Nelson
 Copyright (c) 2020 - 2024 by Trevor SANDY
 
@@ -139,11 +139,13 @@ class Preferences():
                         self.__config[section].pop(popItem)
                         self.__updateIni = True
             elif section == "ImportLDrawMM":
-                addList = ['scalestrategy,mesh']
+                addList = ['studiocustompartspath,', 'scalestrategy,mesh']
                 addList += ['casesensitivefilesystem,True'] if sys.platform == "linux" else ['casesensitivefilesystem,False']
                 for addItem in addList:
                     pair = addItem.split(",")
                     if not self.__config.has_option(section, pair[0]):
+                        if (len(pair) == 1):
+                            pair.append('')
                         self.__config.set(section, pair[0], str(pair[1]))
                         self.__updateIni = True
                 popList = ['preservehierarchy', 'treatmodelswithsubpartsasparts', 'colorstrategy', 'gapscalestrategy', 'gaptarget']

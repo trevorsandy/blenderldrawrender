@@ -80,12 +80,8 @@ class ImportSettings:
             _v = has_settings.get(k,v)
             if k == 'chosen_logo':
                 _lst = ImportOptions.chosen_logo_choices
-            elif k == 'color_strategy':
-                _lst = ImportOptions.color_strategy_choices
-            elif k == 'gap_scale_strategy':
-                _lst = ImportOptions.gap_scale_strategy_choices
-            elif k == 'gap_target':
-                _lst = ImportOptions.gap_target_choices
+            elif k == 'scale_strategy':
+                _lst = ImportOptions.scale_strategy_choices
             elif k == 'smooth_type':
                 _lst = ImportOptions.smooth_type_choices
             elif k == 'use_colour_scheme':
@@ -98,7 +94,7 @@ class ImportSettings:
                         _v = i
                         break
             cls.settings[k] = _v
-        helpers.write_json(cls.settings_path, cls.settings)
+        helpers.write_json(cls.settings_path, cls.settings, indent=4)
     # _*_mod_end
 
     @classmethod
