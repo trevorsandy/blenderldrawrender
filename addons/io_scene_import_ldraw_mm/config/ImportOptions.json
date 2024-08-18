@@ -15,8 +15,6 @@
   "environment_file": "",
   "frames_per_step": 3,
   "gap_scale": 0.997,
-  "gap_scale_strategy": "constraint",
-  "gap_target": "object",
   "import_cameras": true,
   "import_edges": false,
   "import_lights": true,

@@ -83,8 +83,6 @@ class Preferences():
                 'environment_file': self.__config[self.__sectionName]['environmentfile'],
                 'frames_per_step': self.__config[self.__sectionName]['framesperstep'],
                 'gap_scale': self.__config[self.__sectionName]['gapscale'],
-                'gap_scale_strategy': self.__config[self.__sectionName]['gapscalestrategy'],
-                'gap_target': self.__config[self.__sectionName]['gaptarget'],
                 'import_cameras': self.__config[self.__sectionName]['importcameras'],
                 'import_edges': self.__config[self.__sectionName]['importedges'],
                 'import_lights': self.__config[self.__sectionName]['importlights'],
