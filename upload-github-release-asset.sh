@@ -1,37 +1,48 @@
 #!/usr/bin/env bash
 #
 # Author: Trevor SANDY
-# Last Update July 05, 2023
+# Last Update September 29, 2024
 #
 # Adapted from original script by Stefan Buck
 # License: MIT
 #
-# Script to upload a release asset using the GitHub API v3.
-#
-# Example:
-#
-# cd /home/trevorsandy/projects/blenderldrawrender
-# env TAG=v1.4.3 DEV_OPS=1 ./upload-github-release-asset.sh
-#
-# env TAG=v1.4.3 SET_VERSION=True ./upload-github-release-asset.sh
-#
-# env TAG=v1.4.3 RELEASE_NOTE="Render LDraw v1.4.3" ./upload-github-release-asset.sh
-#
-# This script accepts the following parameters:
-# DEV_OPS         - Publish packaged archive to DevOps
-# DEV_OPS_DEST    - DevOps destination path
-# DEV_OPS_UNZIP   - Unzip the DevOps archive package
-# TAG             - Release tag
-# OWNER           - Repository owner
-# RELEASE         - Release label
-# RELEASE_NOTE    - Release note
-# REPO_NAME       - Repository
-# REPO_PATH       - Full path to the repository
-# REPO_BRANCH     - The specified repository branch
-# ASSET_NAME      - File name
-# API_TOKEN       - User GitHub Token (Use a local file containing your token)
-# SET_VERSION     - Update the version number in .py files and exit
-#
+function ShowHelp() {
+    echo
+    echo "Script to upload a release asset using the GitHub API v3."
+    echo
+    echo "Example:"
+    echo
+    echo "cd /home/trevorsandy/projects/blenderldrawrender"
+    echo "env TAG=v1.5.5 DEV_OPS=1 $0"
+    echo
+    echo "env TAG=v1.5.5 SET_VERSION=true $0"
+    echo
+    echo "env TAG=v1.5.5 RELEASE_NOTE=\"Render LDraw v1.5.5\" $0"
+    echo
+    echo "This script accepts the following parameters:"
+    echo "DEV_OPS         - Publish packaged archive to DevOps"
+    echo "DEV_OPS_DEST    - DevOps destination path"
+    echo "DEV_OPS_UNZIP   - Unzip the DevOps archive package"
+    echo "TAG             - Release tag"
+    echo "OWNER           - Repository owner"
+    echo "RELEASE         - Release label"
+    echo "RELEASE_NOTE    - Release note"
+    echo "REPO_NAME       - Repository"
+    echo "REPO_PATH       - Full path to the repository"
+    echo "REPO_BRANCH     - The specified repository branch"
+    echo "ASSET_NAME      - File name"
+    echo "API_TOKEN       - User GitHub Token (Use a local file containing your token)"
+    echo "SET_VERSION     - Update the version number in .py files and exit"
+    echo
+}
+
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -?|-h|--help) ShowHelp; exit 0 ;;
+        *) echo "Unknown parameter passed: '$1'. Use -? to show help."; exit 1 ;;
+    esac
+    shift
+done
 
 SCRIPT_NAME=$0
 SCRIPT_ARGS=$*
