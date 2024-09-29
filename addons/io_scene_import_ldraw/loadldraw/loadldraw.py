@@ -28,7 +28,7 @@ This module loads LDraw compatible files into Blender. Set the
 Options first, then call loadFromFile() function with the full
 filepath of a file to load.
 
-Accepts .mpd, .ldr, .l3b, and .dat files.
+Accepts .io, .mpd, .ldr, .l3b, and .dat files.
 
 Adapted from Import LDraw by Toby Nelson - tobymnelson@gmail.com
 """
@@ -46,8 +46,10 @@ import bmesh
 import time
 import platform
 import operator
-from zipfile import ZipFile
+import zipfile
+import tempfile
 
+from pprint import pprint
 
 # **************************************************************************************
 def internalPrint(message, is_error=False):
@@ -209,6 +211,14 @@ def getLayers(scene):
 # **************************************************************************************
 def getDiffuseColor(color):
     return color + (1.0,)
+
+# **************************************************************************************
+def ShowMessageBox(message = "", title = "Message Box", icon = 'INFO'):
+    def draw(self, context):
+        self.layout.label(text=message)
+
+    bpy.context.window_manager.popup_menu(draw, title = title, icon = icon)
+
 
 # **************************************************************************************
 # **************************************************************************************
@@ -380,10 +390,11 @@ class Configure:
     archiveSearchPaths = []
     loadedLibraries = []
     warningSuppression = {}
+    tempDir = None
     hasOfficialLibrary = False
     hasUnofficialLibrary = False
 
-    def __appendPath(path):
+    def appendPath(path):
         if os.path.exists(path):
             Configure.searchPaths.append(path)
 
@@ -395,27 +406,27 @@ class Configure:
 
         # Search official parts
         parts = os.path.join(Configure.ldrawInstallDirectory, "parts")
-        Configure.__appendPath(parts)
+        Configure.appendPath(parts)
         if haveArchiveLibraries is True:
             parts = "ldraw/parts"
             Configure.__appendArchivePath(parts)
 
         primitives = os.path.join(Configure.ldrawInstallDirectory, "p")
-        Configure.__appendPath(primitives)
+        Configure.appendPath(primitives)
         if haveArchiveLibraries is True:
             primitives = "ldraw/p"
             Configure.__appendArchivePath(primitives)
 
         if Options.resolution == "High":
             primitivesHigh = os.path.join(Configure.ldrawInstallDirectory, "p", "48")
-            Configure.__appendPath(primitivesHigh)
+            Configure.appendPath(primitivesHigh)
             if haveArchiveLibraries is True:
                 primitivesHigh = "ldraw/p/48"
                 Configure.__appendArchivePath(primitivesHigh)
             debugPrint("High-res primitives selected")
         elif Options.resolution == "Low":
             primitivesLow = os.path.join(Configure.ldrawInstallDirectory, "p", "8")
-            Configure.__appendPath(primitivesLow)
+            Configure.appendPath(primitivesLow)
             if haveArchiveLibraries is True:
                 primitivesLow = "ldraw/p/8"
                 Configure.__appendArchivePath(primitivesLow)
@@ -424,43 +435,52 @@ class Configure:
         # Search unofficial parts
         if Options.useUnofficialParts:
             parts = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "parts")
-            Configure.__appendPath(parts)
+            Configure.appendPath(parts)
             if haveArchiveLibraries is True:
                 parts = "parts"
                 Configure.__appendArchivePath(parts)
 
             primitives = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "p")
-            Configure.__appendPath(primitives)
+            Configure.appendPath(primitives)
             if haveArchiveLibraries is True:
                 primitives = "p"
                 Configure.__appendArchivePath(primitives)
 
             if Options.resolution == "High":
                 primitivesHigh = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "p", "48")
-                Configure.__appendPath(primitivesHigh)
+                Configure.appendPath(primitivesHigh)
                 if haveArchiveLibraries is True:
                     primitivesHigh = "p/48"
                     Configure.__appendArchivePath(primitivesHigh)
             elif Options.resolution == "Low":
                 primitivesLow = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "p", "8")
-                Configure.__appendPath(primitivesLow)
+                Configure.appendPath(primitivesLow)
                 if haveArchiveLibraries is True:
                     primitivesLow = "p/8"
                     Configure.__appendArchivePath(primitivesLow)
 
+            # Add 'Tente' parts too
+            Configure.appendPath(os.path.join(Configure.ldrawInstallDirectory, "tente", "parts"))
+
+            if Options.resolution == "High":
+                Configure.appendPath(os.path.join(Configure.ldrawInstallDirectory, "tente", "p", "48"))
+            elif Options.resolution == "Low":
+                Configure.appendPath(os.path.join(Configure.ldrawInstallDirectory, "tente", "p", "8"))
+            Configure.appendPath(os.path.join(Configure.ldrawInstallDirectory, "tente", "p"))
+
         # Search for parts in the 'models'
-        Configure.__appendPath(os.path.join(Configure.ldrawInstallDirectory, "models"))
+        Configure.appendPath(os.path.join(Configure.ldrawInstallDirectory, "models"))
 
         # Search LSynth parts
         if Options.useLSynthParts:
             if Options.LSynthDirectory != "":
-                Configure.__appendPath(Options.LSynthDirectory)
+                Configure.appendPath(Options.LSynthDirectory)
             else:
                 lsynth = os.path.join(Configure.ldrawInstallDirectory, "lsynth")
-                Configure.__appendPath(lsynth)                
+                Configure.appendPath(lsynth)                
                 if Options.useUnofficialParts:
                     lsynth = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "lsynth")
-                    Configure.__appendPath(lsynth)
+                    Configure.appendPath(lsynth)
                 if haveArchiveLibraries is True:
                     lsynth = "parts"
                     Configure.__appendArchivePath(lsynth)
@@ -470,17 +490,17 @@ class Configure:
         if Options.useLogoStuds:
             if Options.studLogoDirectory != "":
                 if Options.resolution == "Low":
-                    Configure.__appendPath(os.path.join(Options.studLogoDirectory, "8"))
-                Configure.__appendPath(Options.studLogoDirectory)
+                    Configure.appendPath(os.path.join(Options.studLogoDirectory, "8"))
+                Configure.appendPath(Options.studLogoDirectory)
             else:
                 parts = os.path.join(Configure.ldrawInstallDirectory, "parts")
-                Configure.__appendPath(parts)
+                Configure.appendPath(parts)
                 if haveArchiveLibraries is True:
                     parts = "ldraw/parts"
                     Configure.__appendArchivePath(parts)            
                 if Options.useUnofficialParts:
                     parts = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "parts")
-                    Configure.__appendPath(parts)
+                    Configure.appendPath(parts)
                     if haveArchiveLibraries is True:
                         parts = "parts"
                         Configure.__appendArchivePath(parts)
@@ -491,7 +511,7 @@ class Configure:
             for addl_path in addl_paths:
                 addl_path = os.path.expanduser(addl_path.strip("\"").strip("'"))
                 if addl_path.lower() not in {path.lower() for path in Configure.searchPaths} and os.path.exists(addl_path):
-                    Configure.__appendPath(addl_path)
+                    Configure.appendPath(addl_path)
                     debugPrint(f"Additional LDraw path to be used is: {addl_path}")
 
     def archiveLibraryFound(path):
@@ -500,7 +520,7 @@ class Configure:
         for libraryName in os.listdir(path):
             if libraryName.endswith(".zip") and libraryName not in Configure.loadedLibraries:
                 libraryPath = os.path.join(path, libraryName)
-                with ZipFile(libraryPath) as library:
+                with zipfile.ZipFile(libraryPath) as library:
                     if "ldraw/LDConfig.ldr" in library.namelist() and \
                        "ldraw/parts/1.dat" in library.namelist() and \
                        "ldraw/p/h2.dat" in library.namelist():
@@ -552,9 +572,9 @@ class Configure:
             home = os.path.join(os.environ['USERPROFILE'])
             home_split = os.path.splitdrive(home)
             ldrawPossibleDirectories = [
-            	os.path.join(home, "LDraw"),
-            	os.path.join(home, os.path.join("Desktop", "LDraw")),
-            	os.path.join(home, os.path.join("Documents", "LDraw")),
+                os.path.join(home, "LDraw"),
+                os.path.join(home, os.path.join("Desktop", "LDraw")),
+                os.path.join(home, os.path.join("Documents", "LDraw")),
                 os.path.join(os.environ["ProgramFiles"], "LDraw"),
                 os.path.join(os.environ["ProgramFiles(x86)"], "LDraw"),
                 os.path.join(os.environ["ProgramFiles"], "Studio 2.0/ldraw"),
@@ -562,10 +582,12 @@ class Configure:
             ]
         elif Configure.isMac():
             ldrawPossibleDirectories = [
+                "~/Library/LDraw/",
                 "~/ldraw/",
                 "/Applications/LDraw/",
                 "/Applications/ldraw/",
                 "/usr/local/share/ldraw",
+                "/Applications/Studio 2.0/ldraw",
             ]
         else:  # Default to Linux if not Windows or Mac
             ldrawPossibleDirectories = [
@@ -1253,9 +1275,9 @@ class FileSystem:
         "/HOME/Chris/I HOPE this doesn't exist"
         """
 
-        return FileSystem.__path_insensitive(path) or path
+        return FileSystem.__pathInsensitive(path) or path
 
-    def __path_insensitive(path):
+    def __pathInsensitive(path):
         """
         Recursive part of path_insensitive to do the work.
         """
@@ -1275,7 +1297,8 @@ class FileSystem:
             dirname = os.path.dirname(dirname)
 
         if not os.path.exists(dirname):
-            dirname = FileSystem.__path_insensitive(dirname)
+            debug_dirname = dirname
+            dirname = FileSystem.__pathInsensitive(dirname)
             if not dirname:
                 return
 
@@ -1926,7 +1949,7 @@ class LDrawLight:
 # **************************************************************************************
 class LDrawFile:
     """Stores the contents of a single LDraw file.
-    Specifically this represents an LDR, L3B, DAT or one '0 FILE' section of an MPD.
+    Specifically this represents an IO, LDR, L3B, DAT or one '0 FILE' section of an MPD.
     Splits up an MPD file into '0 FILE' sections and caches them."""
 
     def __loadLDrawFile(self, filepath, isFullFilepath, parentFilepath):
@@ -1948,6 +1971,40 @@ class LDrawFile:
                 filepath = result[1]
             else:
                 filepath = result
+
+        if os.path.splitext(filepath)[1] == ".io":
+            # Check if the file is encrypted (password protected)
+            is_encrypted = False
+            zf = zipfile.ZipFile(filepath)
+            for zinfo in zf.infolist():
+                is_encrypted |= zinfo.flag_bits & 0x1
+            if is_encrypted:
+                ShowMessageBox("Oops, this .io file is password protected", "Password protected files are not supported", 'ERROR')
+                return False
+
+            # Get a temporary directory. Store the TemporaryDirectory object in Configure so it's scope lasts long enough
+            Configure.tempDir = tempfile.TemporaryDirectory()
+            directory_to_extract_to = Configure.tempDir.name
+
+            # Decompress to temporary directory
+            with zipfile.ZipFile(filepath, 'r') as zip_ref:
+                zip_ref.extractall(directory_to_extract_to)
+
+            # It's the 'model.ldr' file we want to use
+            filepath = os.path.join(directory_to_extract_to, "model.ldr")
+
+            # Add the subdirectories of the directory to the search paths
+            Configure.appendPath(os.path.join(directory_to_extract_to, "CustomParts"))
+            Configure.appendPath(os.path.join(directory_to_extract_to, "CustomParts", "parts"))
+
+            if Options.resolution == "High":
+                Configure.appendPath(os.path.join(directory_to_extract_to, "CustomParts", "p", "48"))
+            elif Options.resolution == "Low":
+                Configure.appendPath(os.path.join(directory_to_extract_to, "CustomParts", "p", "8"))
+            Configure.appendPath(os.path.join(directory_to_extract_to, "CustomParts", "p"))
+            Configure.appendPath(os.path.join(directory_to_extract_to, "CustomParts", "s"))
+            Configure.appendPath(os.path.join(directory_to_extract_to, "CustomParts", "s", "s"))
+
         self.fullFilepath = filepath
 
         # Load text into local lines variable
@@ -2033,6 +2090,7 @@ class LDrawFile:
             "stud15.dat",
             "stud20.dat",
             "studa.dat",
+            "teton.dat",        # TENTE
             "stud-logo3.dat",   "stud-logo4.dat",   "stud-logo5.dat",
             "stud2-logo3.dat",  "stud2-logo4.dat",  "stud2-logo5.dat",
             "stud6-logo3.dat",  "stud6-logo4.dat",  "stud6-logo5.dat",
@@ -2043,6 +2101,7 @@ class LDrawFile:
             "stud15-logo3.dat", "stud15-logo4.dat", "stud15-logo5.dat",
             "stud20-logo3.dat", "stud20-logo4.dat", "stud20-logo5.dat",
             "studa-logo3.dat",  "studa-logo4.dat",  "studa-logo5.dat",
+            "studtente-logo.dat"    # TENTE
              )
 
     def __isStudLogo(filename):
@@ -2052,10 +2111,10 @@ class LDrawFile:
         filename = filename.replace("\\", os.path.sep)
         name = os.path.basename(filename).lower()
 
-        return name in ("logo3.dat", "logo4.dat", "logo5.dat")
+        return name in ("logo3.dat", "logo4.dat", "logo5.dat", "logotente.dat")
 
     def __init__(self, filename, isFullFilepath, parentFilepath, lines = None, isSubPart=False):
-        """Loads an LDraw file (LDR, L3B, DAT or MPD)"""
+        """Loads an LDraw file (IO, LDR, L3B, DAT or MPD)"""
 
         global globalCamerasToAdd
         global globalLightsToAdd
@@ -4076,7 +4135,7 @@ def parseParentsFile(file):
                             attach_points.append(attachPoint)
                             continue
                         else:
-                            print("ERROR: Bad attach point found on line %d" % (line_number,))
+                            debugPrint("ERROR: Bad attach point found on line %d" % (line_number,))
                             partsHierarchy = None
                             return
 
@@ -5197,6 +5256,7 @@ def loadFromFile(context, filename, isFullFilepath=True):
         addFileToCache("stud15-logo" + Options.logoStudVersion + ".dat", "stud15.dat")
         addFileToCache("stud20-logo" + Options.logoStudVersion + ".dat", "stud20.dat")
         addFileToCache("studa-logo"  + Options.logoStudVersion + ".dat", "studa.dat")
+        addFileToCache("studtente-logo.dat", "s\\teton.dat")     # TENTE
 
     # Load and parse file to create geometry
     filename = os.path.expanduser(filename)
@@ -5432,6 +5492,10 @@ def loadFromFile(context, filename, isFullFilepath=True):
         setupInstructionsLook()
     else:
         setupRealisticLook()
+
+    # Delete the temporary directory if there was one
+    if Configure.tempDir:
+        Configure.tempDir.cleanup()
 
     ldrawLoadElapsed = time.time() - startTime
     ldrawModelLoaded = True

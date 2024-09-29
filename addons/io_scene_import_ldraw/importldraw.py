@@ -221,7 +221,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     """Import LDraw - Import Operator."""
 
     bl_idname = "import_scene.lpub3d_import_ldraw"
-    bl_description = "Import LDraw model (.mpd/.ldr/.l3b/.dat)"
+    bl_description = "Import LDraw model (.io/.mpd/.ldr/.l3b/.dat)"
     bl_label = "Import LDraw Model"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
@@ -513,7 +513,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     # File type filter in file browser
     filename_ext = ".ldr"
     filter_glob: StringProperty(
-        default="*.mpd;*.ldr;*.l3b;*.dat",
+        default="*.io;*.mpd;*.ldr;*.l3b;*.dat",
         options={'HIDDEN'}
     )
     # End Hidden properties
