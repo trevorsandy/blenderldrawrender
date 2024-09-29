@@ -1,0 +1,27 @@
+---
+name: Feature Ticket
+about: Propose a feature or enhancement for LPub3D Import LDraw
+title: "[Feature] "
+labels: 'feature'
+assignees: ''
+
+---
+
+<!-- -----------------------------------------------------------------------------------------------
+Placeholders are within [square] brackets. PLEASE REPLACE these texts in this report. 
+I know them by heart, and don't need them repeated in every issue report. 
+Also, PLEASE DELETE any sections that you would leave empty.
+--------------------------------------------------------------------------------------------------->
+
+**Is your feature request related to unexpected behaviour?**
+
+[A clear and concise description of the behaviour. Ex. It is unintuitive to...]
+
+**Describe the solution you would expect**
+
+[A clear and concise description of the expected behaviour.]
+
+**Additional context**
+
+[Add any other context, screenshots or insights about the feature request here.
+Otherwise please delete this section.]

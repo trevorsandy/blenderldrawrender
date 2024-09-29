@@ -1,0 +1,71 @@
+---
+name: Issue Ticket
+about: Report unexpected behaviour with LPub3D Import LDraw
+title: "[Issue] "
+labels: 'Issue'
+assignees: ''
+
+---
+
+<!-- -----------------------------------------------------------------------------------------------
+Placeholders are within [square] brackets. PLEASE REPLACE these texts in this report. 
+I know them by heart, and don't need them repeated in every issue report. 
+Also, PLEASE DELETE any sections that you would leave empty.
+--------------------------------------------------------------------------------------------------->
+
+**Summary**
+
+[Briefly describe your issue here.]
+
+**LPub3D Import LDraw Version**
+
+  - Incarnation: LPub3D Import LDraw [LDrawBlenderRenderAddons.zip]
+  - Affected build version: [as per Release version v1.5.2]
+  - Blender version: [as per saved system information Blender 3.4.1]
+  - Python version: [as per Blener saved system information version 3.10.8]
+  - Known working build version: [as above, e.g. 1.4.8]
+
+**Runtime Environment**
+
+  - Operating system: [e.g. Windows 11 Pro 23H2 64 bit | macOS 14]
+  - Hardware architecture: [e.g. x86-64, arm64]
+  - CPU model: [e.g. Intel Core i7-5820K @ 3.30GHz]
+
+**Steps to Reproduce**
+
+ 1. [First step]
+ 2. [Second step]
+ 3. [Third step]
+ 4. [etc; please add or delete lines as appropriate]
+
+**Expected Behavior**
+
+[Please describe what you expected to happen.]
+
+**Actual Behavior**
+
+[Please describe what actually happened and insert any image attachments here.]
+
+**Output or example Input**<details>
+~~~
+[Please place any copyable log output, code snippet, or sample LDraw mpd/ldr content that reproducees the behaviour here.]
+~~~
+</details>
+
+**Additional context** (optional)
+
+[Please add any other context about the problem here, or delete this section.]
+
+**Workaround** (optional)
+
+[If you have managed to work around the issue, please describe that workaround here.
+Otherwise please delete this section.]
+
+**Suggested Solution** (optional)
+
+[If you have an idea how to solve the issue for good, please describe it here.
+Otherwise please delete this section.]
+
+<!-- -----------------------------------------------------------------------------------------------
+NOTE: Please take a moment to PREVIEW your report before submitting it.
+------------------------------------------------------------------------------------------------ -->
