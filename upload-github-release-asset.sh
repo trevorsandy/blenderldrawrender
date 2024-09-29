@@ -20,7 +20,7 @@ function ShowHelp() {
     echo "env TAG=v1.5.5 RELEASE_NOTE=\"Render LDraw v1.5.5\" $0"
     echo
     echo "This script accepts the following parameters:"
-    echo "DEV_OPS         - Publish packaged archive to DevOps"
+    echo "DEV_OPS         - Build and publish packaged archive to DevOps"
     echo "DEV_OPS_DEST    - DevOps destination path"
     echo "DEV_OPS_UNZIP   - Unzip the DevOps archive package"
     echo "TAG             - Release tag"
@@ -75,13 +75,16 @@ GH_RELEASE=${RELEASE:-Blender LDraw Render $(date +%d.%m.%Y)}
 GH_RELEASE_NOTE=${RELEASE_NOTE:-Initial release}
 GH_ASSET_NAME=${ASSET_NAME:-LDrawBlenderRenderAddons.zip}
 GH_API_TOKEN=${API_TOKEN:-$(git config --global github.token)}
-GH_SET_VERSION=${SET_VERSION:-False}
+GH_SET_VERSION=${SET_VERSION:-false}
+
 
 DEV_OPS_REL=${DEV_OPS:-}
+DEV_OPS_NO_UPLOAD=${NO_UPLOAD:-false}
 DEV_OPS_REL_UNZIP=${DEV_OPS_UNZIP:-}
 DEV_OPS_PUBLISH_DEST=${DEV_OPS_DEST:-/home/$GH_USER/projects/build-LPub3D-Desktop_Qt_5_15_2_MSVC2019_32bit-Debug/mainApp/32bit_debug/3rdParty/Blender}
 
 # Define variables.
+GH_DIR="$GH_REPO_PATH/.git"
 GH_API="https://api.github.com"
 GH_REPO="$GH_API/repos/$GH_OWNER/$GH_REPO_NAME"
 GH_TAGS="$GH_REPO/releases/tags/$GH_TAG"
@@ -97,8 +100,8 @@ function display_arguments
     echo "--Command Options:"
     [ -n "$SCRIPT_ARGS" ] && echo "--SCRIPT_ARGS...$SCRIPT_ARGS" || true
     echo "--TAG...........$GH_TAG"
-    if [ "$GH_SET_VERSION" = "True" ]; then
-        echo "--SET_VERSION...$GH_SET_VERSION"
+    if [ "$GH_SET_VERSION" = "true" ]; then
+        echo "--SET_VERSION...True"
     else
         echo "--OWNER.........$GH_OWNER"
         echo "--REPO_NAME.....$GH_REPO_NAME"
@@ -108,13 +111,22 @@ function display_arguments
         if [ -z "$TAG_EXIST" ]; then
             echo "--RELEASE.......$GH_RELEASE"
             echo "--RELEASE_NOTE..$GH_RELEASE_NOTE"
-            echo "--NEW RELEASE WILL BE CREATED"
+            echo "--RELEASE_TYPE..NEW RELEASE WILL BE CREATED"
         fi
         if [ -n "$DEV_OPS_REL" ]; then
-            echo "--PUBLISH RELEASE TO DEV OPS"
+            DEV_OPS_NO_UPLOAD=true
+            echo "--PUBLISH.......PUBLISH RELEASE TO DEV OPS"
             [ -n "$DEV_OPS_REL_UNZIP" ] && echo "--UNZIP DEV OPS RELEASE" || true
             echo "--DEV_OPS_DEST..$DEV_OPS_PUBLISH_DEST"
         fi
+        if [ "$DEV_OPS_NO_UPLOAD" = "true" ]; then
+            echo "--PUBLISH.......RELEASE NOT PUBLISHED"
+            echo "--UPLOAD_TO_GH..False"
+        else
+            echo "--PUBLISH.......PUBLISH RELEASE TO GITHUB"
+            echo "--UPLOAD_TO_GH..True"
+        fi
+
         echo "--GH_TAGS.......$GH_TAGS"
     fi
     echo
@@ -212,7 +224,7 @@ exec > >(tee -a ${LOG} )
 exec 2> >(tee -a ${LOG} >&2)
 
 # Get tag
-#GIT_DIR=$GH_REPO_PATH/.git git fetch --tags
+GIT_DIR=$GH_REPO_PATH/.git git fetch --tags
 VER_TAG=`GIT_DIR=$GH_REPO_PATH/.git git describe --tags --match v* --abbrev=0`
 if [[ "$GH_TAG" == 'LATEST' ]]; then
     echo && echo -n "Setting latest tag... "
@@ -242,31 +254,31 @@ if [[ ! $REPLY =~ ^[Yy]$ ]];then
 fi
 echo
 # Validate API Token [Place token in git config "git config --global github.token YOUR_TOKEN"]
-#[[ -z "$GH_API_TOKEN" ]] && echo && echo "GH_API_TOKEN not specified. Exiting." && exit 1
+[[ -z "$GH_API_TOKEN" ]] && echo && echo "GH_API_TOKEN not specified. Exiting." && exit 1
 
 # Update version information
-VER_TAG=${VER_TAG//./", "} # replace . with ", "
-VER_TAG=${VER_TAG/v/}      # replace v with ""
-echo "Updating .py files to version $VER_TAG"
-for GH_FILE in addons/io_scene_import_ldraw/__*.py addons/io_scene_import_ldraw_mm/__*.py addons/io_scene_render_ldraw/__*.py;
+PY_VER=${VER_TAG//./", "} # replace . with ", "
+PY_VER=${PY_VER/v/}      # replace v with ""
+echo "Updating .py files to version $PY_VER"
+for PY_FILE in addons/io_scene_import_ldraw/__*.py addons/io_scene_import_ldraw_mm/__*.py addons/io_scene_render_ldraw/__*.py;
 do
-    echo "Set version to '$VER_TAG' in file '$GH_FILE'"
-    if [ -f ${GH_FILE} -a -r ${GH_FILE} ]
+    echo "Set version to '$PY_VER' in file '$PY_FILE'"
+    if [ -f ${PY_FILE} -a -r ${PY_FILE} ]
     then
         if [ "$OS_NAME" = Darwin ]
         then
-            sed -i "" -e "s/^version = (.*/version = ($VER_TAG)/" \                           #__version__.py
-                      -e "s/^    \"version\": (.*/    \"version\": ($VER_TAG),/" "${GH_FILE}" #__init__.py
+            sed -i "" -e "s/^version = (.*/version = ($PY_VER)/" \                           #__version__.py
+                      -e "s/^    \"version\": (.*/    \"version\": ($PY_VER),/" "${PY_FILE}" #__init__.py
         else
-            sed -i -e "s/^version = (.*/version = ($VER_TAG)/" \
-                   -e "s/^    \"version\": (.*/    \"version\": ($VER_TAG),/" "${GH_FILE}"
+            sed -i -e "s/^version = (.*/version = ($PY_VER)/" \
+                   -e "s/^    \"version\": (.*/    \"version\": ($PY_VER),/" "${PY_FILE}"
         fi
     else
-        echo "ERROR: Cannot read ${GH_FILE} from ${GH_REPO_PATH}"
+        echo "ERROR: Cannot read ${PY_FILE} from ${GH_REPO_PATH}"
     fi
 done
 
-if [ "$GH_SET_VERSION" = "True" ]; then
+if [ "$GH_SET_VERSION" = "true" ]; then
     echo && echo "Finished." && echo
     exit 1
 fi
@@ -277,15 +289,16 @@ package_archive
 if [[ -n $DEV_OPS_REL && -f $GH_ASSET_NAME ]]; then
     declare -r p=Publish
     DEV_OPS_PUBLISH_SRC=$PWD
+    DEV_OPS_NO_UPLOAD=true
     echo -n "Publish package '$GH_ASSET_NAME' to Dev Ops..." && \
     ([ -d "$DEV_OPS_PUBLISH_DEST" ] || mkdir -p "$DEV_OPS_PUBLISH_DEST"; \
      cd "$DEV_OPS_PUBLISH_DEST" && cp -f "$DEV_OPS_PUBLISH_SRC/$GH_ASSET_NAME" .; \
      [ -n "$DEV_OPS_REL_UNZIP" ] && unzip -o "$GH_ASSET_NAME" || true) >$p.out 2>&1 && rm $p.out
     [ -f $p.out ] && echo "ERROR - failed to publish $GH_ASSET_NAME to Dev Ops" && tail -80 $p.out || echo "Success." && \
     echo "Publish Destination: $DEV_OPS_PUBLISH_DEST"
-    #rm "$LOG"
-    exit 1
 fi
+
+[ "$DEV_OPS_NO_UPLOAD" = "true" ] && echo "Finished." && echo && exit 0 || :
 
 # Commit changed files
 echo && echo "Commit changed files..."
@@ -300,7 +313,7 @@ GIT_DIR=$GH_REPO_PATH/.git git commit -m "$GH_RELEASE_NOTE"
 # Set latest tag or create release if specified tag does not exist
 if [[ -z "$TAG_EXIST" ]]; then
     echo && echo "Create release '$GH_RELEASE', version '$GH_TAG', for repo '$GH_REPO_NAME' on branch '$GH_REPO_BRANCH'" && echo
-    curl --data "$(generate_release_post_data)" "$GH_REPO/releases?access_token=$GH_API_TOKEN"
+    curl -H "$GH_AUTH" --data "$(generate_release_post_data)" "$GH_REPO/releases"
     GIT_DIR=$GH_REPO_PATH/.git git fetch --tags
     VER_TAG=`GIT_DIR=$GH_REPO_PATH/.git git describe --tags --match v* --abbrev=0`
 fi
@@ -321,7 +334,7 @@ GH_RELEASE_NOT_FOUND=$(echo -e "$GH_RESPONSE" | sed -n '2p')
 if [[ "$GH_RELEASE_NOT_FOUND" == *"Not Found"* ]]; then
     echo && echo "Release not found. Creating release '$GH_RELEASE', version '$GH_TAG', for repo '$GH_REPO_NAME' on branch '$GH_REPO_BRANCH'..." && echo
     GH_RELEASE_NOTE=$(git log -1 --pretty=%B)
-    curl --data "$(generate_release_post_data)" "$GH_REPO/releases?access_token=$GH_API_TOKEN"
+    curl -H "$GH_AUTH" --data "$(generate_release_post_data)" "$GH_REPO/releases"
     GH_RESPONSE=$(curl -sH "$GH_AUTH" $GH_TAGS)
 fi
 
