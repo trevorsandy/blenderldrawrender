@@ -904,7 +904,6 @@ class LegoColours:
 
         # Measure the perceived brightness of colour
         brightness = math.sqrt( 0.299*R*R + 0.587*G*G + 0.114*B*B )
-        print("RGB = {0},{1},{2} Brightness: {3}".format(R, G, B, brightness))
 
         # Dark colours have white lines
         if brightness < 0.03:
@@ -2356,7 +2355,10 @@ class BlenderMaterials:
     """Creates and stores a cache of materials for Blender"""
 
     __material_list = {}
-    __hasPrincipledShader = "ShaderNodeBsdfPrincipled" in [node.nodetype for node in getattr(bpy.types, "NODE_MT_category_SH_NEW_SHADER").category.items(None)]
+    if bpy.app.version >= (4, 0, 0):
+        __hasPrincipledShader = True
+    else:
+        __hasPrincipledShader = "ShaderNodeBsdfPrincipled" in [node.nodetype for node in getattr(bpy.types, "NODE_MT_category_SH_NEW_SHADER").category.items(None)]
 
     def __getGroupName(name):
         if Options.instructionsLook:
@@ -2564,14 +2566,23 @@ class BlenderMaterials:
         node = nodes.new('ShaderNodeBsdfPrincipled')
         node.location = x, y
         if Options.addSubsurface:
-            node.inputs['Subsurface'].default_value = subsurface
-            node.inputs['Subsurface Radius'].default_value = mathutils.Vector((sub_rad, sub_rad, sub_rad))
+            # Some inputs are renamed in Blender 4
+            if bpy.app.version >= (4, 0, 0):
+                node.inputs['Subsurface Weight'].default_value = subsurface
+                node.inputs['Coat Weight'].default_value = clearcoat
+                node.inputs['Coat Roughness'].default_value = clearcoat_roughness
+                node.inputs['Transmission Weight'].default_value = transmission
+            else:
+                # Blender 3.X or earlier
+                node.inputs['Subsurface'].default_value = subsurface
+                node.inputs['Clearcoat'].default_value = clearcoat
+                node.inputs['Clearcoat Roughness'].default_value = clearcoat_roughness
+                node.inputs['Transmission'].default_value = transmission
+
+        node.inputs['Subsurface Radius'].default_value = mathutils.Vector( (sub_rad, sub_rad, sub_rad) )
         node.inputs['Metallic'].default_value = metallic
         node.inputs['Roughness'].default_value = roughness
-        node.inputs['Clearcoat'].default_value = clearcoat
-        node.inputs['Clearcoat Roughness'].default_value = clearcoat_roughness
         node.inputs['IOR'].default_value = ior
-        node.inputs['Transmission'].default_value = transmission
         return node
 
     def __nodeHSV(nodes, h, s, v, x, y):
@@ -2892,18 +2903,56 @@ class BlenderMaterials:
         BlenderMaterials.__material_list = {}
 
     # **********************************************************************************
+    def addInputSocket(group, my_socket_type, myname):
+        if bpy.app.version >= (4, 0, 0):
+            if my_socket_type.endswith("FloatFactor"):
+                my_socket_type = my_socket_type[:-6]
+            elif my_socket_type.endswith("VectorDirection"):
+                my_socket_type = my_socket_type[:-9]
+            group.interface.new_socket(name=myname, in_out="INPUT", socket_type=my_socket_type)
+        else:
+            if my_socket_type.endswith("Vector"):
+                my_socket_type += "Direction"
+            group.inputs.new(my_socket_type, myname)
+
+    # **********************************************************************************
+    def addOutputSocket(group, my_socket_type, myname):
+        if bpy.app.version >= (4, 0, 0):
+            if my_socket_type.endswith("FloatFactor"):
+                my_socket_type = my_socket_type[:-6]
+            elif my_socket_type.endswith("VectorDirection"):
+                my_socket_type = my_socket_type[:-9]
+            group.interface.new_socket(name=myname, in_out="OUTPUT", socket_type=my_socket_type)
+        else:
+            if my_socket_type.endswith("Vector"):
+                my_socket_type += "Direction"
+            group.outputs.new(my_socket_type, myname)
+
+    # **********************************************************************************
+    def setDefaults(group, name, default_value, min_value, max_value):
+        if bpy.app.version >= (4, 0, 0):
+            group_inputs = group.nodes["Group Input"].outputs
+            group_inputs[name].default_value = default_value
+            # TODO: How to set min_value and max_value?
+        else:
+            group_inputs = group.inputs
+            group_inputs[name].default_value = default_value
+            group_inputs[name].min_value = min_value
+            group_inputs[name].max_value = max_value
+
+    # **********************************************************************************
     def __createGroup(name, x1, y1, x2, y2, createShaderOutput):
         group = bpy.data.node_groups.new(name, 'ShaderNodeTree')
 
         # create input node
         node_input = group.nodes.new('NodeGroupInput')
-        node_input.location = (x1, y1)
+        node_input.location = (x1,y1)
 
         # create output node
         node_output = group.nodes.new('NodeGroupOutput')
-        node_output.location = (x2, y2)
+        node_output.location = (x2,y2)
         if createShaderOutput:
-            group.outputs.new('NodeSocketShader', 'Shader')
+            BlenderMaterials.addOutputSocket(group, 'NodeSocketShader', 'Shader')
         return (group, node_input, node_output)
 
     # **********************************************************************************
@@ -2911,9 +2960,8 @@ class BlenderMaterials:
         if bpy.data.node_groups.get('Distance-To-Center') is None:
             debugPrint("createBlenderDistanceToCenterNodeGroup #create")
             # create a group
-            group, node_input, node_output = BlenderMaterials.__createGroup('Distance-To-Center', -930, 0, 240, 0,
-                                                                            False)
-            group.outputs.new('NodeSocketVectorDirection', 'Vector')
+            group, node_input, node_output = BlenderMaterials.__createGroup('Distance-To-Center', -930, 0, 240, 0, False)
+            BlenderMaterials.addOutputSocket(group, 'NodeSocketVectorDirection', 'Vector')
 
             # create nodes
             node_texture_coordinate = BlenderMaterials.__nodeTexCoord(group.nodes, -730, 0)
@@ -2942,18 +2990,17 @@ class BlenderMaterials:
             group.links.new(node_normalize.outputs['Vector'], node_multiply.inputs['Color2'])
             group.links.new(node_vector_subtraction1.outputs['Vector'], node_vector_subtraction2.inputs[0])
             group.links.new(node_multiply.outputs['Color'], node_vector_subtraction2.inputs[1])
-            group.links.new(node_vector_subtraction2.outputs['Vector'], node_output.inputs['Vector'])
+            group.links.new(node_vector_subtraction2.outputs['Vector'], node_output.inputs[0])
 
     # **********************************************************************************
     def __createBlenderVectorElementPowerNodeGroup():
         if bpy.data.node_groups.get('Vector-Element-Power') is None:
             debugPrint("createBlenderVectorElementPowerNodeGroup #create")
             # create a group
-            group, node_input, node_output = BlenderMaterials.__createGroup('Vector-Element-Power', -580, 0, 400, 0,
-                                                                            False)
-            group.inputs.new('NodeSocketFloat', 'Exponent')
-            group.inputs.new('NodeSocketVectorDirection', 'Vector')
-            group.outputs.new('NodeSocketVectorDirection', 'Vector')
+            group, node_input, node_output = BlenderMaterials.__createGroup('Vector-Element-Power', -580, 0, 400, 0, False)
+            BlenderMaterials.addInputSocket(group, 'NodeSocketFloat', 'Exponent')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketVectorDirection', 'Vector')
+            BlenderMaterials.addOutputSocket(group, 'NodeSocketVectorDirection', 'Vector')
 
             # create nodes
             node_separate_xyz = group.nodes.new('ShaderNodeSeparateXYZ')
@@ -2991,13 +3038,12 @@ class BlenderMaterials:
         if bpy.data.node_groups.get('Convert-To-Normals') is None:
             debugPrint("createBlenderConvertToNormalsNodeGroup #create")
             # create a group
-            group, node_input, node_output = BlenderMaterials.__createGroup('Convert-To-Normals', -490, 0, 400, 0,
-                                                                            False)
-            group.inputs.new('NodeSocketFloat', 'Vector Length')
-            group.inputs.new('NodeSocketFloat', 'Smoothing')
-            group.inputs.new('NodeSocketFloat', 'Strength')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
-            group.outputs.new('NodeSocketVectorDirection', 'Normal')
+            group, node_input, node_output = BlenderMaterials.__createGroup('Convert-To-Normals', -490, 0, 400, 0, False)
+            BlenderMaterials.addInputSocket(group, 'NodeSocketFloat', 'Vector Length')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketFloat', 'Smoothing')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketFloat', 'Strength')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketVectorDirection', 'Normal')
+            BlenderMaterials.addOutputSocket(group, 'NodeSocketVectorDirection', 'Normal')
 
             # create nodes
             node_power = BlenderMaterials.__nodeMath(group.nodes, 'POWER', -290, 150)
@@ -3029,9 +3075,9 @@ class BlenderMaterials:
             debugPrint("createBlenderConcaveWallsNodeGroup #create")
             # create a group
             group, node_input, node_output = BlenderMaterials.__createGroup('Concave Walls', -530, 0, 300, 0, False)
-            group.inputs.new('NodeSocketFloat', 'Strength')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
-            group.outputs.new('NodeSocketVectorDirection', 'Normal')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketFloat', 'Strength')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketVectorDirection', 'Normal')
+            BlenderMaterials.addOutputSocket(group, 'NodeSocketVectorDirection', 'Normal')
 
             # create nodes
             node_distance_to_center = group.nodes.new('ShaderNodeGroup')
@@ -3064,9 +3110,9 @@ class BlenderMaterials:
             debugPrint("createBlenderSlopeTextureNodeGroup #create")
             # create a group
             group, node_input, node_output = BlenderMaterials.__createGroup('Slope Texture', -530, 0, 300, 0, False)
-            group.inputs.new('NodeSocketFloat', 'Strength')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
-            group.outputs.new('NodeSocketVectorDirection', 'Normal')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketFloat', 'Strength')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketVectorDirection', 'Normal')
+            BlenderMaterials.addOutputSocket(group, 'NodeSocketVectorDirection', 'Normal')
 
             # create nodes
             node_texture_coordinate = BlenderMaterials.__nodeTexCoord(group.nodes, -300, 240)
@@ -3086,26 +3132,25 @@ class BlenderMaterials:
         if bpy.data.node_groups.get('PBR-Fresnel-Roughness') is None:
             debugPrint("createBlenderFresnelNodeGroup #create")
             # create a group
-            group, node_input, node_output = BlenderMaterials.__createGroup('PBR-Fresnel-Roughness', -530, 0, 300, 0,
-                                                                            False)
-            group.inputs.new('NodeSocketFloatFactor', 'Roughness')
-            group.inputs.new('NodeSocketFloat', 'IOR')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
-            group.outputs.new('NodeSocketFloatFactor', 'Fresnel Factor')
+            group, node_input, node_output = BlenderMaterials.__createGroup('PBR-Fresnel-Roughness', -530, 0, 300, 0, False)
+            BlenderMaterials.addInputSocket(group, 'NodeSocketFloatFactor', 'Roughness')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketFloat', 'IOR')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketVectorDirection', 'Normal')
+            BlenderMaterials.addOutputSocket(group, 'NodeSocketFloatFactor', 'Fresnel Factor')
 
             # create nodes
             node_fres = group.nodes.new('ShaderNodeFresnel')
-            node_fres.location = (110, 0)
+            node_fres.location = (110,0)
 
             node_mix = group.nodes.new('ShaderNodeMixRGB')
-            node_mix.location = (-80, -75)
+            node_mix.location = (-80,-75)
 
             node_bump = group.nodes.new('ShaderNodeBump')
-            node_bump.location = (-320, -172)
+            node_bump.location = (-320,-172)
             # node_bump.hide = True
 
             node_geom = group.nodes.new('ShaderNodeNewGeometry')
-            node_geom.location = (-320, -360)
+            node_geom.location = (-320,-360)
             # node_geom.hide = True
 
             # link nodes together
@@ -3123,11 +3168,11 @@ class BlenderMaterials:
             debugPrint("createBlenderReflectionNodeGroup #create")
             # create a group
             group, node_input, node_output = BlenderMaterials.__createGroup('PBR-Reflection', -530, 0, 300, 0, True)
-            group.inputs.new('NodeSocketShader', 'Shader')
-            group.inputs.new('NodeSocketFloatFactor', 'Roughness')
-            group.inputs.new('NodeSocketFloatFactor', 'Reflection')
-            group.inputs.new('NodeSocketFloat', 'IOR')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketShader', 'Shader')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketFloatFactor', 'Roughness')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketFloatFactor', 'Reflection')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketFloat', 'IOR')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketVectorDirection', 'Normal')
 
             node_fresnel_roughness = group.nodes.new('ShaderNodeGroup')
             node_fresnel_roughness.node_tree = bpy.data.node_groups['PBR-Fresnel-Roughness']
@@ -3163,24 +3208,17 @@ class BlenderMaterials:
             debugPrint("createBlenderDielectricNodeGroup #create")
             # create a group
             group, node_input, node_output = BlenderMaterials.__createGroup('PBR-Dielectric', -530, 70, 500, 0, True)
-            group.inputs.new('NodeSocketColor', 'Color')
-            group.inputs.new('NodeSocketFloatFactor', 'Roughness')
-            group.inputs.new('NodeSocketFloatFactor', 'Reflection')
-            group.inputs.new('NodeSocketFloatFactor', 'Transparency')
-            group.inputs.new('NodeSocketFloat', 'IOR')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
-            group.inputs['IOR'].default_value = 1.46
-            group.inputs['IOR'].min_value = 0.0
-            group.inputs['IOR'].max_value = 100.0
-            group.inputs['Roughness'].default_value = 0.2
-            group.inputs['Roughness'].min_value = 0.0
-            group.inputs['Roughness'].max_value = 1.0
-            group.inputs['Reflection'].default_value = 0.1
-            group.inputs['Reflection'].min_value = 0.0
-            group.inputs['Reflection'].max_value = 1.0
-            group.inputs['Transparency'].default_value = 0.0
-            group.inputs['Transparency'].min_value = 0.0
-            group.inputs['Transparency'].max_value = 1.0
+            BlenderMaterials.addInputSocket(group, 'NodeSocketColor','Color')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketFloatFactor','Roughness')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketFloatFactor','Reflection')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketFloatFactor','Transparency')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketFloat','IOR')
+            BlenderMaterials.addInputSocket(group, 'NodeSocketVectorDirection','Normal')
+
+            BlenderMaterials.setDefaults(group, 'IOR',          1.46, 0.0, 100.0)
+            BlenderMaterials.setDefaults(group, 'Roughness',    0.2,  0.0,   1.0)
+            BlenderMaterials.setDefaults(group, 'Reflection',   0.1,  0.0,   1.0)
+            BlenderMaterials.setDefaults(group, 'Transparency', 0.0,  0.0,   1.0)
 
             node_diffuse = group.nodes.new('ShaderNodeBsdfDiffuse')
             node_diffuse.location = (-110,145)
@@ -3218,14 +3256,23 @@ class BlenderMaterials:
             group.links.new(node_mix_shader.outputs['Shader'],  node_output.inputs['Shader'])
 
     # **********************************************************************************
+    def __getSubsurfaceColor(node):
+        if 'Subsurface Color' in node.inputs:
+            # Blender 3
+            return node.inputs['Subsurface Color']
+
+        # Blender 4 - Subsurface Colour has been removed, so just use the base colour instead
+        return node.inputs['Base Color']
+
+    # **********************************************************************************
     def __createBlenderLegoStandardNodeGroup():
         groupName = BlenderMaterials.__getGroupName('Lego Standard')
         if bpy.data.node_groups.get(groupName) is None:
             debugPrint("createBlenderLegoStandardNodeGroup #create")
             # create a group
-            group, node_input, node_output = BlenderMaterials.__createGroup(groupName, -250, 0, 250, 0, True)
-            group.inputs.new('NodeSocketColor', 'Color')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
+            group, node_input, node_output = BlenderMaterials.__createGroup(groupName, -250, 0, 300, 0, True)
+            BlenderMaterials.addInputSocket(group,'NodeSocketColor','Color')
+            BlenderMaterials.addInputSocket(group,'NodeSocketVectorDirection','Normal')
 
             if Options.instructionsLook:
                 node_emission = BlenderMaterials.__nodeEmission(group.nodes, 0, 0)
@@ -3236,8 +3283,7 @@ class BlenderMaterials:
                     node_main = BlenderMaterials.__nodePrincipled(group.nodes, 0.05, 0.05, 0.0, 0.1, 0.0, 0.0, 1.45, 0.0, 0, 0) # rollback realScale: group.nodes, 5 * globalScaleFactor, 0.05, 
                     output_name = 'BSDF'
                     color_name = 'Base Color'
-                    if Options.addSubsurface:
-                        group.links.new(node_input.outputs['Color'], node_main.inputs['Subsurface Color'])
+                    group.links.new(node_input.outputs['Color'], BlenderMaterials.__getSubsurfaceColor(node_main))
                 else:
                     node_main = BlenderMaterials.__nodeDielectric(group.nodes, 0.2, 0.1, 0.0, 1.46, 0, 0)
                     output_name = 'Shader'
@@ -3255,9 +3301,9 @@ class BlenderMaterials:
         if bpy.data.node_groups.get(groupName) is None:
             debugPrint("createBlenderLegoTransparentNodeGroup #create")
             # create a group
-            group, node_input, node_output = BlenderMaterials.__createGroup(groupName, -250, 0, 250, 0, True)
-            group.inputs.new('NodeSocketColor', 'Color')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
+            group, node_input, node_output = BlenderMaterials.__createGroup(groupName, -250, 0, 300, 0, True)
+            BlenderMaterials.addInputSocket(group,'NodeSocketColor','Color')
+            BlenderMaterials.addInputSocket(group,'NodeSocketVectorDirection','Normal')
 
             if Options.instructionsLook:
                 node_emission    = BlenderMaterials.__nodeEmission(group.nodes, 0, 0)
@@ -3300,9 +3346,9 @@ class BlenderMaterials:
         if bpy.data.node_groups.get(groupName) is None:
             debugPrint("createBlenderLegoTransparentFluorescentNodeGroup #create")
             # create a group
-            group, node_input, node_output = BlenderMaterials.__createGroup(groupName, -250, 0, 250, 0, True)
-            group.inputs.new('NodeSocketColor', 'Color')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
+            group, node_input, node_output = BlenderMaterials.__createGroup(groupName, -250, 0, 300, 0, True)
+            BlenderMaterials.addInputSocket(group,'NodeSocketColor','Color')
+            BlenderMaterials.addInputSocket(group,'NodeSocketVectorDirection','Normal')
 
             if Options.instructionsLook:
                 node_emission    = BlenderMaterials.__nodeEmission(group.nodes, 0, 0)
@@ -3353,10 +3399,9 @@ class BlenderMaterials:
         if bpy.data.node_groups.get(groupName) is None:
             debugPrint("createBlenderLegoRubberNodeGroup #create")
             # create a group
-            group, node_input, node_output = BlenderMaterials.__createGroup(groupName, 45 - 950, 340 - 50, 45 + 200,
-                                                                            340 - 5, True)
-            group.inputs.new('NodeSocketColor', 'Color')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
+            group, node_input, node_output = BlenderMaterials.__createGroup(groupName, 45-950, 340-50, 45+200, 340-5, True)
+            BlenderMaterials.addInputSocket(group,'NodeSocketColor','Color')
+            BlenderMaterials.addInputSocket(group,'NodeSocketVectorDirection','Normal')
 
             if BlenderMaterials.usePrincipledShader:
                 node_noise = BlenderMaterials.__nodeNoiseTexture(group.nodes, 250, 2, 0.0, 45-770, 340-200)
@@ -3389,8 +3434,8 @@ class BlenderMaterials:
             debugPrint("createBlenderLegoRubberTranslucentNodeGroup #create")
             # create a group
             group, node_input, node_output = BlenderMaterials.__createGroup(groupName, -250, 0, 250, 0, True)
-            group.inputs.new('NodeSocketColor', 'Color')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
+            BlenderMaterials.addInputSocket(group,'NodeSocketColor','Color')
+            BlenderMaterials.addInputSocket(group,'NodeSocketVectorDirection','Normal')
 
             if BlenderMaterials.usePrincipledShader:
                 node_noise = BlenderMaterials.__nodeNoiseTexture(group.nodes, 250, 2, 0.0, 45-770, 340-200)
@@ -3431,9 +3476,9 @@ class BlenderMaterials:
 
             # create a group
             group, node_input, node_output = BlenderMaterials.__createGroup(groupName, -450, 90, 250, 0, True)
-            group.inputs.new('NodeSocketColor', 'Color')
-            group.inputs.new('NodeSocketFloatFactor', 'Luminance')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
+            BlenderMaterials.addInputSocket(group,'NodeSocketColor','Color')
+            BlenderMaterials.addInputSocket(group,'NodeSocketFloatFactor','Luminance')
+            BlenderMaterials.addInputSocket(group,'NodeSocketVectorDirection','Normal')
 
             node_emit  = BlenderMaterials.__nodeEmission(group.nodes, -242, -123)
             node_mix   = BlenderMaterials.__nodeMix(group.nodes, 0.5, 0, 90)
@@ -3441,7 +3486,7 @@ class BlenderMaterials:
             if BlenderMaterials.usePrincipledShader:
                 node_main = BlenderMaterials.__nodePrincipled(group.nodes, 1.0, 0.05, 0.0, 0.5, 0.0, 0.03, 1.45, 0.0, -242, 154+240)
                 if Options.addSubsurface:
-                    group.links.new(node_input.outputs['Color'], node_main.inputs['Subsurface Color'])
+                    group.links.new(node_input.outputs['Color'],     BlenderMaterials.__getSubsurfaceColor(node_main))
                 group.links.new(node_input.outputs['Color'],     node_emit.inputs['Color'])
                 main_colour = 'Base Color'
             else:
@@ -3464,8 +3509,8 @@ class BlenderMaterials:
 
             # create a group
             group, node_input, node_output = BlenderMaterials.__createGroup(groupName, -450, 90, 250, 0, True)
-            group.inputs.new('NodeSocketColor', 'Color')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
+            BlenderMaterials.addInputSocket(group,'NodeSocketColor','Color')
+            BlenderMaterials.addInputSocket(group,'NodeSocketVectorDirection','Normal')
 
             if BlenderMaterials.usePrincipledShader:
                 node_hsv         = BlenderMaterials.__nodeHSV(group.nodes, 0.5, 0.9, 2.0, -90, 0)
@@ -3499,8 +3544,8 @@ class BlenderMaterials:
 
             # create a group
             group, node_input, node_output = BlenderMaterials.__createGroup(groupName, -450, 90, 630, 95, True)
-            group.inputs.new('NodeSocketColor', 'Color')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
+            BlenderMaterials.addInputSocket(group,'NodeSocketColor','Color')
+            BlenderMaterials.addInputSocket(group,'NodeSocketVectorDirection','Normal')
 
             if BlenderMaterials.usePrincipledShader:
                 node_principled  = BlenderMaterials.__nodePrincipled(group.nodes, 1.0, 0.25, 0.5, 0.2, 1.0, 0.2, 1.6, 0.0, 310, 95)
@@ -3521,7 +3566,7 @@ class BlenderMaterials:
                 group.links.new(node_sep_hsv.outputs['V'], node_multiply.inputs[0])
                 group.links.new(node_com_hsv.outputs['Color'], node_principled.inputs['Base Color'])
                 if Options.addSubsurface:
-                    group.links.new(node_com_hsv.outputs['Color'], node_principled.inputs['Subsurface Color'])
+                    group.links.new(node_com_hsv.outputs['Color'], BlenderMaterials.__getSubsurfaceColor(node_principled))
                 group.links.new(node_tex_coord.outputs['Object'], node_tex_wave.inputs['Vector'])
                 group.links.new(node_tex_wave.outputs['Fac'], node_color_ramp.inputs['Fac'])
                 group.links.new(node_color_ramp.outputs['Color'], node_multiply.inputs[1])
@@ -3549,8 +3594,8 @@ class BlenderMaterials:
 
             # create a group
             group, node_input, node_output = BlenderMaterials.__createGroup(groupName, -450, 90, 250, 0, True)
-            group.inputs.new('NodeSocketColor', 'Color')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
+            BlenderMaterials.addInputSocket(group,'NodeSocketColor','Color')
+            BlenderMaterials.addInputSocket(group,'NodeSocketVectorDirection','Normal')
 
             if BlenderMaterials.usePrincipledShader:
                 node_principled  = BlenderMaterials.__nodePrincipled(group.nodes, 0.0, 0.0, 0.8, 0.2, 0.0, 0.03, 1.45, 0.0, 310, 95)
@@ -3580,9 +3625,9 @@ class BlenderMaterials:
 
             # create a group
             group, node_input, node_output = BlenderMaterials.__createGroup(groupName, -450, 0, 410, 0, True)
-            group.inputs.new('NodeSocketColor', 'Color')
-            group.inputs.new('NodeSocketColor', 'Glitter Color')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
+            BlenderMaterials.addInputSocket(group,'NodeSocketColor','Color')
+            BlenderMaterials.addInputSocket(group,'NodeSocketColor','Glitter Color')
+            BlenderMaterials.addInputSocket(group,'NodeSocketVectorDirection','Normal')
 
             if BlenderMaterials.usePrincipledShader:
                 node_voronoi     = BlenderMaterials.__nodeVoronoi(group.nodes, 100, -222, 310)
@@ -3631,9 +3676,9 @@ class BlenderMaterials:
 
             # create a group
             group, node_input, node_output = BlenderMaterials.__createGroup(groupName, -450, 0, 410, 0, True)
-            group.inputs.new('NodeSocketColor', 'Color')
-            group.inputs.new('NodeSocketColor', 'Speckle Color')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
+            BlenderMaterials.addInputSocket(group,'NodeSocketColor','Color')
+            BlenderMaterials.addInputSocket(group,'NodeSocketColor','Speckle Color')
+            BlenderMaterials.addInputSocket(group,'NodeSocketVectorDirection','Normal')
 
             if BlenderMaterials.usePrincipledShader:
                 node_voronoi     = BlenderMaterials.__nodeVoronoi(group.nodes, 50, -222, 310)
@@ -3682,8 +3727,8 @@ class BlenderMaterials:
 
             # create a group
             group, node_input, node_output = BlenderMaterials.__createGroup(groupName, -450, 0, 350, 0, True)
-            group.inputs.new('NodeSocketColor', 'Color')
-            group.inputs.new('NodeSocketVectorDirection', 'Normal')
+            BlenderMaterials.addInputSocket(group,'NodeSocketColor','Color')
+            BlenderMaterials.addInputSocket(group,'NodeSocketVectorDirection','Normal')
 
             if BlenderMaterials.usePrincipledShader:
                 node_principled = BlenderMaterials.__nodePrincipled(group.nodes, 1.0, 0.05, 0.0, 0.5, 0.0, 0.03, 1.45, 0.0, 45-270, 340-210)
@@ -3692,7 +3737,7 @@ class BlenderMaterials:
 
                 group.links.new(node_input.outputs['Color'], node_principled.inputs['Base Color'])
                 if Options.addSubsurface:
-                    group.links.new(node_input.outputs['Color'], node_principled.inputs['Subsurface Color'])
+                    group.links.new(node_input.outputs['Color'], BlenderMaterials.__getSubsurfaceColor(node_principled))
                 group.links.new(node_input.outputs['Normal'], node_principled.inputs['Normal'])
                 group.links.new(node_input.outputs['Normal'], node_translucent.inputs['Normal'])
                 group.links.new(node_principled.outputs[0], node_mix.inputs[1])
@@ -3782,14 +3827,6 @@ def addSharpEdges(bm, geometry, filename):
                     edgeIndices[(e0, e1)] = True
                     edgeIndices[(e1, e0)] = True
 
-        # Find layer for bevel weights
-        if 'BevelWeight' in bm.edges.layers.bevel_weight:
-            bwLayer = bm.edges.layers.bevel_weight['BevelWeight']
-        elif '' in bm.edges.layers.bevel_weight:
-            bwLayer = bm.edges.layers.bevel_weight['']
-        else:
-            bwLayer = None
-
         # Find the appropriate mesh edges and make them sharp (i.e. not smooth)
         for meshEdge in bm.edges:
             v0 = meshEdge.verts[0].index
@@ -3798,11 +3835,26 @@ def addSharpEdges(bm, geometry, filename):
                 # Make edge sharp
                 meshEdge.smooth = False
 
-                # Add bevel weight
-                if bwLayer is not None:
-                    meshEdge[bwLayer] = 1.0
+        # Set bevel weights
+        if bpy.app.version < (4, 0, 0):
+            # Blender 3
+            # Find layer for bevel weights
+            if 'BevelWeight' in bm.edges.layers.bevel_weight:
+                bwLayer = bm.edges.layers.bevel_weight['BevelWeight']
+            elif '' in bm.edges.layers.bevel_weight:
+                bwLayer = bm.edges.layers.bevel_weight['']
+            else:
+                bwLayer = None
 
-        # Alternative: ob.data.edges[0].bevel_weight = 1.0
+            for meshEdge in bm.edges:
+                v0 = meshEdge.verts[0].index
+                v1 = meshEdge.verts[1].index
+                if (v0, v1) in edgeIndices:
+                    # Add bevel weight
+                    if bwLayer is not None:
+                        meshEdge[bwLayer] = 1.0
+
+        return edgeIndices
 
 # Commented this next section out as it fails for certain pieces.
 
@@ -4367,28 +4419,29 @@ def createBlenderObjectsFromNode(node,
             if hasattr(ob.data, "use_customdata_edge_bevel"):
                 ob.data.use_customdata_edge_bevel = True
             else:
-                # Add to scene
-                linkToScene(ob)
+                if bpy.app.version < (4, 0, 0):
+                    # Add to scene
+                    linkToScene(ob)
 
-                # Blender 3.4 removed 'ob.data.use_customdata_edge_bevel', so this seems to be the alternative:
-                # See https://blender.stackexchange.com/a/270716
-                area_type = 'VIEW_3D' # change this to use the correct Area Type context you want to process in
-                areas  = [area for area in bpy.context.window.screen.areas if area.type == area_type]
+                    # Blender 3.4 removed 'ob.data.use_customdata_edge_bevel', so this seems to be the alternative:
+                    # See https://blender.stackexchange.com/a/270716
+                    area_type = 'VIEW_3D' # change this to use the correct Area Type context you want to process in
+                    areas  = [area for area in bpy.context.window.screen.areas if area.type == area_type]
 
-                if len(areas) <= 0:
-                    raise ValueError(f"Make sure an Area of type {area_type} is open or visible on your screen!")
-                selectObject(ob)
-                bpy.ops.object.mode_set(mode='EDIT')
+                    if len(areas) <= 0:
+                        raise Exception(f"Make sure an Area of type {area_type} is open or visible on your screen!")
+                    selectObject(ob)
+                    bpy.ops.object.mode_set(mode='EDIT')
 
-                with bpy.context.temp_override(
-                    window=bpy.context.window,
-                    area=areas[0],
-                    regions=[region for region in areas[0].regions if region.type == 'WINDOW'][0],
-                    screen=bpy.context.window.screen):
-                    bpy.ops.mesh.customdata_bevel_weight_edge_add()
-                bpy.ops.object.mode_set(mode='OBJECT')
+                    with bpy.context.temp_override(
+                        window=bpy.context.window,
+                        area=areas[0],
+                        regions=[region for region in areas[0].regions if region.type == 'WINDOW'][0],
+                        screen=bpy.context.window.screen):
+                        bpy.ops.mesh.customdata_bevel_weight_edge_add()
+                    bpy.ops.object.mode_set(mode='OBJECT')
 
-                unlinkFromScene(ob)
+                    unlinkFromScene(ob)
 
         # The lines out of an empty shown in the viewport are scaled to a reasonable size
         ob.empty_display_size = 5 * globalScaleFactor # rollback realScale: 250.0 * globalScaleFactor
@@ -4456,10 +4509,21 @@ def createBlenderObjectsFromNode(node,
             if recalculateNormals:
                 bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
 
-            # Add sharp edges with edge weights
-            addSharpEdges(bm, geometry, name)
+            # Add sharp edges (and edge weights in Blender 3)
+            edgeIndices = addSharpEdges(bm, geometry, name)
 
             bm.to_mesh(ob.data)
+
+            # In Blender 4, set the edge weights (on ob.data rather than bm these days)
+            if (bpy.app.version >= (4, 0, 0)) and edgeIndices:
+                # Blender 4
+                bevel_weight_attr = ob.data.attributes.new("bevel_weight_edge", "FLOAT", "EDGE")
+                for idx, meshEdge in enumerate(bm.edges):
+                    v0 = meshEdge.verts[0].index
+                    v1 = meshEdge.verts[1].index
+                    if (v0, v1) in edgeIndices:
+                        bevel_weight_attr.data[idx].value = 1.0
+
             bm.clear()
             bm.free()
 
@@ -4573,7 +4637,7 @@ def setupLineset(lineset, thickness, group):
         lineset.linestyle.color_modifiers.new('LegoMaterial', 'MATERIAL')
 
     # Use square caps
-    lineset.linestyle.caps = 'SQUARE'  # Can be 'ROUND', 'BUTT', or 'SQUARE'
+    lineset.linestyle.caps = 'SQUARE'       # Can be 'ROUND', 'BUTT', or 'SQUARE'
 
     # Draw inside the edge of the object
     lineset.linestyle.thickness_position = 'INSIDE'
@@ -4634,8 +4698,9 @@ def setupRealisticLook():
         if scene.camera is not None:
             scene.camera.data.type = 'PERSP'
 
-        # For Blender Render, reset to opaque background
-        render.alpha_mode = 'SKY'
+        # For Blender Render, reset to opaque background (Not available in Blender 3.5.1 or higher.)
+        if hasattr(render, "alpha_mode"):
+            render.alpha_mode = 'SKY'
 
         # Turn off cycles transparency
         scene.cycles.film_transparent = False
@@ -4681,6 +4746,21 @@ def setupRealisticLook():
                 links = scene.node_tree.links
                 links.new(rl.outputs[0], zCombine.inputs[0])
 
+    removeCollection('Black Edged Bricks Collection')
+    removeCollection('White Edged Bricks Collection')
+    removeCollection('Solid Bricks Collection')
+    removeCollection('Transparent Bricks Collection')
+
+# **************************************************************************************
+def removeCollection(name, remove_collection_objects=False):
+    coll = bpy.data.collections.get(name)
+    if coll:
+        if remove_collection_objects:
+            obs = [o for o in coll.objects if o.users == 1]
+            while obs:
+                bpy.data.objects.remove(obs.pop())
+
+        bpy.data.collections.remove(coll)
 
 # **************************************************************************************
 def createCollection(scene, name):
@@ -4865,19 +4945,30 @@ def setupInstructionsLook():
     zCombine.use_alpha = True
     zCombine.use_antialias_z = True
 
+    if "Set Alpha" in scene.node_tree.nodes:
+        setAlpha = scene.node_tree.nodes["Set Alpha"]
+    else:
+        setAlpha = scene.node_tree.nodes.new('CompositorNodeSetAlpha')
+    setAlpha.inputs[1].default_value = 0.75
+
     composite = scene.node_tree.nodes["Composite"]
-    composite.location = (750, 400)
-    zCombine.location = (500, 500)
-    transLayer.location = (250, 300)
-    solidLayer.location = (250, 600)
+    composite.location = (950, 400)
+    zCombine.location = (750, 500)
+    transLayer.location = (300, 300)
+    solidLayer.location = (300, 600)
+    setAlpha.location = (580, 370)
 
     links = scene.node_tree.links
     links.new(solidLayer.outputs[0], zCombine.inputs[0])
     links.new(solidLayer.outputs[2], zCombine.inputs[1])
-    links.new(transLayer.outputs[0], zCombine.inputs[2])
+    links.new(transLayer.outputs[0], setAlpha.inputs[0])
+    links.new(setAlpha.outputs[0], zCombine.inputs[2])
     links.new(transLayer.outputs[2], zCombine.inputs[3])
     links.new(zCombine.outputs[0], composite.inputs[0])
-    links.new(zCombine.outputs[1], composite.inputs[2])
+
+    # Blender 3 only: link the Z from the Z Combine to the composite. This is not present in Blender 4.
+    if bpy.app.version < (4, 0, 0):
+        links.new(zCombine.outputs[1], composite.inputs[2])
 
 
 # **************************************************************************************
@@ -4919,10 +5010,10 @@ def iterateCameraPosition(camera, render, vcentre3d, moveCamera):
         p1 = mp_matrix @ mathutils.Vector((point.x, point.y, point.z, 1))
         if isOrtho:
             point2d = (p1.x, p1.y)
-        elif abs(p1.w) < 1e-8:
+        elif abs(p1.w)<1e-8:
             continue
         else:
-            point2d = (p1.x / p1.w, p1.y / p1.w)
+            point2d = (p1.x/p1.w, p1.y/p1.w)
         minX = min(point2d[0], minX)
         minY = min(point2d[1], minY)
         maxX = max(point2d[0], maxX)
