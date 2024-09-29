@@ -14,7 +14,7 @@ Users can select from two available import modules:
 + LDraw import MM module adapted from [Export LDraw](https://github.com/cuddlyogre/ExportLDraw) by Matthew Morrison [cuddlyogre] (cuddlyogre@gmail.com)
 
 ## Render Features ##
-+ Available for Blender 2.82 and later.
++ Available for Blender 2.82 up to at least Blender 4.
 + **Mac**, **Windows** and **Linux** supported.
 + **MPD** file compatible.
 + **Render settings configurable** from LPub3D user interface.
@@ -26,7 +26,7 @@ Users can select from two available import modules:
 + **Specify exr 'environment' file** to load custom backdrop and ground plane
 
 ## Import Features ##
-+ Available for Blender 2.82 and later.
++ Available for Blender 2.82 up to at least Blender 4.
 + **Mac**, **Windows** and **Linux** supported.
 + **MPD** file compatible.
 + **Import settings configurable** from LPub3D user interface.
