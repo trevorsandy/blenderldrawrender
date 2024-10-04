@@ -8,27 +8,22 @@ from . import group
 def create_light(light, empty=None, collection=None):
     blender_light = bpy.data.lights.new(light.name, light.type)
 
-    blender_light.color                = light.color
-    blender_light.energy               = light.exponent
-    blender_light.specular_factor      = light.specular
-    blender_light.use_custom_distance  = light.use_cutoff
-    blender_light.cutoff_distance      = light.cutoff_distance
-    blender_light.use_shadow           = light.use_shadow
-    if light.type == 'POINT':
-        blender_light.shadow_soft_size = light.factor_a
-    elif light.type == 'SUN' or light.type == 'DIRECTIONAL':
-        blender_light.angle            = math.radians(light.factor_a)
-    elif light.type == 'SPOT':
-        blender_light.spot_size        = math.radians(light.spot_size)
-        blender_light.shadow_soft_size = light.factor_a
-        blender_light.spot_blend       = light.factor_b
-    elif light.type == 'AREA':
-        blender_light.shape            = light.shape
-        if light.shape == 'RECTANGLE' or light.shape == 'ELLIPSE':
-            blender_light.size         = light.factor_a
-            blender_light.size_y       = light.factor_b
-        else:
-            blender_light.size         = light.size
+    blender_light.color                 = light.color
+    blender_light.energy                = light.exponent
+    blender_light.specular_factor       = light.specular
+    blender_light.use_custom_distance   = light.use_cutoff
+    blender_light.cutoff_distance       = light.cutoff_distance
+    blender_light.use_shadow            = light.use_shadow
+    blender_light.data.angle            = math.radians(light.sun_angle)
+    blender_light.data.shadow_soft_size = light.shadow_radius
+    blender_light.data.spot_size        = math.radians(light.spot_size)
+    blender_light.data.spot_blend       = light.spot_blend
+    blender_light.data.shape            = light.shape
+    if light.type == 'AREA' and (light.shape == 'RECTANGLE' or light.shape == 'ELLIPSE'):
+        blender_light.data.size         = light.area_size_x
+        blender_light.data.size_y       = light.area_size_y
+    else:
+        blender_light.data.size         = light.size
 
     light.position[0] = light.position[0] * ImportOptions.import_scale
     light.position[1] = light.position[1] * ImportOptions.import_scale

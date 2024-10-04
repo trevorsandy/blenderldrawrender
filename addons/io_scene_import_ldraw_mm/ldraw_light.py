@@ -10,8 +10,11 @@ class LDrawLight:
         self.name             = 'Light'
         self.type             = 'POINT'
         self.shape            = 'SQUARE'
-        self.factor_a         = 0.0
-        self.factor_b         = 0.0
+        self.sun_angle        = 0.0
+        self.shadow_radius    = 0.0
+        self.spot_blend       = 0.0
+        self.area_size_x      = 0.0
+        self.area_size_y      = 0.0
         self.size             = 0.25
         self.exponent         = 10
         self.specular         = 1.0

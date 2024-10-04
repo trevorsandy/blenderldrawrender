@@ -374,30 +374,30 @@ def meta_lp_lc_light(child_node, matrix):
             light.exponent = float(_params[1])
             _params = _params[2:]
         elif  _params[0] == "blender_sun_angle" or  _params[0] == "blender_directional_angle" or _params[0] == "angle":
-            light.factor_a = ImportOptions.import_scale * float(_params[1])
+            light.sun_angle = ImportOptions.import_scale * float(_params[1])
             _params = _params[2:]
         elif _params[0] == "blender_point_radius" or _params[0] == "blender_spot_radius" or _params[0] == "radius":
-            light.factor_a = float(_params[1])
+            light.shadow_radius = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "spot_cone_angle" or _params[0] == "spot_size":
             light.spot_size = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "spot_blend":
-            light.factor_b = float(_params[1])
+            light.spot_blend = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "spot_penumbra_angle":
             penumbra_angle = float(_params[1])
             if penumbra_angle > 0:
-                light.factor_b = penumbra_angle / light.factor_b
+                light.spot_blend = penumbra_angle / light.spot_size
             _params = _params[2:]
         elif _params[0] == "area_size" or _params[0] == "size":
-            light.factor_a = float(_params[1])
+            light.size = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "area_size_x" or _params[0] == "width":
-            light.factor_a = float(_params[1])
+            light.area_size_x = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "area_size_y" or _params[0] == "height":
-            light.factor_b = float(_params[1])
+            light.area_size_y = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "area_shape" or _params[0] == "shape":
             light.shape = _params[1].upper().strip()

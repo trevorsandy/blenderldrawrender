@@ -1897,8 +1897,12 @@ class LDrawLight:
     def __init__(self):
         self.type             = 'POINT'
         self.shape            = 'SQUARE'
-        self.factorA          = 0.0
-        self.factorB          = 0.0
+        self.sun_angle        = 0.0
+        self.shadow_radius    = 0.0
+        self.spot_blend       = 0.0
+        self.area_size        = 0.0
+        self.area_size_x      = 0.0
+        self.area_size_y      = 0.0
         self.size             = 0.25
         self.exponent         = 10
         self.specular         = 1.0
@@ -1951,21 +1955,16 @@ class LDrawLight:
         light.data.use_custom_distance  = self.use_cutoff
         light.data.cutoff_distance      = self.cutoff_distance
         light.data.use_shadow           = self.use_shadow
-        if self.type == 'POINT':
-            light.data.shadow_soft_size = self.factorA
-        elif self.type == 'SUN' or self.type == 'DIRECTIONAL':
-            light.data.angle            = math.radians(self.factorA)
-        elif self.type == 'SPOT':
-            light.data.spot_size        = math.radians(self.spot_size)
-            light.data.shadow_soft_size = self.factorA
-            light.data.spot_blend       = self.factorB
-        elif self.type == 'AREA':
-            light.data.shape            = self.shape
-            if self.shape == 'RECTANGLE' or self.shape == 'ELLIPSE':
-                light.data.size         = self.factorA
-                light.data.size_y       = self.factorB
-            else:
-                light.data.size         = self.size
+        light.data.angle                = math.radians(self.sun_angle)
+        light.data.shadow_soft_size     = self.shadow_radius
+        light.data.spot_size            = math.radians(self.spot_size)
+        light.data.spot_blend           = self.spot_blend
+        light.data.shape                = self.shape
+        if self.type == 'AREA' and (self.shape == 'RECTANGLE' or self.shape == 'ELLIPSE'):
+            light.data.size             = self.area_size_x
+            light.data.size_y           = self.area_size_y
+        else:
+            light.data.size             = self.size
 
         light.location                  = self.position
 
@@ -2347,30 +2346,30 @@ class LDrawFile:
                                     light.exponent = float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "BLENDER_SUN_ANGLE" or parameters[0] == "BLENDER_DIRECTIONAL_ANGLE" or parameters[0] == "ANGLE":
-                                    light.factorA = globalScaleFactor * float(parameters[1])
+                                    light.sun_angle = globalScaleFactor * float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "BLENDER_POINT_RADIUS" or parameters[0] == "BLENDER_SPOT_RADIUS" or parameters[0] == "RADIUS":
-                                    light.factorA = float(parameters[1])
+                                    light.shadow_radius = float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "SPOT_CONE_ANGLE" or parameters[0] == "SPOT_SIZE":
                                     light.spot_size = float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "SPOT_BLEND":
-                                    light.factorB = float(parameters[1])
+                                    light.spot_blend = float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "SPOT_PENUMBRA_ANGLE":
                                     penumbra_angle = float(parameters[1])
                                     if penumbra_angle > 0:
-                                        light.factorB = penumbra_angle / light.spot_size
+                                        light.spot_blend = penumbra_angle / light.spot_size
                                     parameters = parameters[2:]
                                 elif parameters[0] == "AREA_SIZE" or parameters[0] == "SIZE":
-                                    light.factorA = float(parameters[1])
+                                    light.size = float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "AREA_SIZE_X" or parameters[0] == "WIDTH":
-                                    light.factorA = float(parameters[1])
+                                    light.area_size_x = float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "AREA_SIZE_Y" or parameters[0] == "HEIGHT":
-                                    light.factorB = float(parameters[1])
+                                    light.area_size_y = float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "AREA_SHAPE" or parameters[0] == "SHAPE":
                                     light.shape = parameters[1].upper().strip()
