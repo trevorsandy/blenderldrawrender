@@ -1,8 +1,8 @@
 """
 Trevor SANDY
 Last Update July 06, 2023
-Copyright (c) 2023 by Matthew Morrison
-Copyright (c) 2023 by Trevor SANDY
+Copyright (c) 2024 by Matthew Morrison
+Copyright (c) 2024 by Trevor SANDY
 
 LPub3D Import LDraw GPLv2 license.
 
@@ -28,7 +28,7 @@ bl_info = {
     "name": "LPub3D Import LDraw MM",
     "description": "Import LDraw models in .mpd .ldr .l3b and .dat formats",
     "author": "Matthew Morrison <cuddlyogre@gmail.com>, Trevor SANDY <trevor.sandy@gmail.com>",
-    "version": (1, 5, 5),
+    "version": (1, 5, 6),
     "blender": (2, 82, 0),
     "location": "File > Import",
     "warning": "",

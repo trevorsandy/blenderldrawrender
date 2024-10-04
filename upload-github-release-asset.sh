@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Author: Trevor SANDY
-# Last Update September 29, 2024
+# Last Update October 04, 2024
 #
 # Adapted from original script by Stefan Buck
 # License: MIT
@@ -17,22 +17,24 @@ function ShowHelp() {
     echo
     echo "env TAG=v1.5.5 SET_VERSION=true $0"
     echo
-    echo "env TAG=v1.5.5 RELEASE_NOTE=\"Render LDraw v1.5.5\" $0"
+    echo "env TAG=v1.5.5 COMMIT_NOTE=\"Render LDraw v1.5.5\" $0"
     echo
     echo "This script accepts the following parameters:"
-    echo "DEV_OPS         - Build and publish packaged archive to DevOps"
-    echo "DEV_OPS_DEST    - DevOps destination path"
-    echo "DEV_OPS_UNZIP   - Unzip the DevOps archive package"
-    echo "TAG             - Release tag"
-    echo "OWNER           - Repository owner"
-    echo "RELEASE         - Release label"
-    echo "RELEASE_NOTE    - Release note"
-    echo "REPO_NAME       - Repository"
-    echo "REPO_PATH       - Full path to the repository"
-    echo "REPO_BRANCH     - The specified repository branch"
-    echo "ASSET_NAME      - File name"
-    echo "API_TOKEN       - User GitHub Token (Use a local file containing your token)"
-    echo "SET_VERSION     - Update the version number in .py files and exit"
+    echo "DEV_OPS      - Build and publish packaged archive to DevOps"
+    echo "NO_COMMIT    - Do not commit a new tag for DevOps build - only update .py files"
+    echo "NO_UPLOAD    - Do not upload DevOps build to GitHub repository - no tag will be created"
+    echo "UNZIP        - Unzip the DevOps build archive package - requires PUBLISH_DEST"
+    echo "PUBLISH_DEST - Publish the DevOps build to this destination path"
+    echo "TAG          - Release tag"
+    echo "OWNER        - GitHub Repository owner"
+    echo "RELEASE      - Release label"
+    echo "COMMIT_NOTE  - Commit note"
+    echo "REPO_NAME    - GitHub Repository"
+    echo "REPO_PATH    - Full path to GitHub the repository"
+    echo "REPO_BRANCH  - The specified GitHub repository branch"
+    echo "ASSET_NAME   - Build archive package file name"
+    echo "API_TOKEN    - User GitHub Token (Use a local file containing your token)"
+    echo "SET_VERSION  - Update the version number in .py files and exit - do not build or publish"
     echo
 }
 
@@ -72,16 +74,16 @@ GH_REPO_NAME=${REPO_NAME:-blenderldrawrender}
 GH_REPO_BRANCH=${REPO_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}
 GH_REPO_PATH=${REPO_PATH:-/home/$GH_USER/projects/$GH_REPO_NAME}
 GH_RELEASE=${RELEASE:-Blender LDraw Render $(date +%d.%m.%Y)}
-GH_RELEASE_NOTE=${RELEASE_NOTE:-Initial release}
+GH_COMMIT_NOTE=${COMMIT_NOTE:-Render LDraw ${GH_TAG:1}}
 GH_ASSET_NAME=${ASSET_NAME:-LDrawBlenderRenderAddons.zip}
 GH_API_TOKEN=${API_TOKEN:-$(git config --global github.token)}
 GH_SET_VERSION=${SET_VERSION:-false}
 
-
 DEV_OPS_REL=${DEV_OPS:-}
+DEV_OPS_NO_COMMIT=${NO_COMMIT:-}
 DEV_OPS_NO_UPLOAD=${NO_UPLOAD:-false}
-DEV_OPS_REL_UNZIP=${DEV_OPS_UNZIP:-}
-DEV_OPS_PUBLISH_DEST=${DEV_OPS_DEST:-/home/$GH_USER/projects/build-LPub3D-Desktop_Qt_5_15_2_MSVC2019_32bit-Debug/mainApp/32bit_debug/3rdParty/Blender}
+DEV_OPS_REL_UNZIP=${UNZIP:-}
+DEV_OPS_PUBLISH_DEST=${PUBLISH_DEST:-/home/$GH_USER/projects/build-LPub3D-Desktop_Qt_5_15_2_MSVC2019_32bit-Debug/mainApp/32bit_debug/3rdParty/Blender}
 
 # Define variables.
 GH_DIR="$GH_REPO_PATH/.git"
@@ -99,35 +101,40 @@ function display_arguments
     echo
     echo "--Command Options:"
     [ -n "$SCRIPT_ARGS" ] && echo "--SCRIPT_ARGS...$SCRIPT_ARGS" || true
-    echo "--TAG...........$GH_TAG"
+    echo "--TAG.............$GH_TAG"
     if [ "$GH_SET_VERSION" = "true" ]; then
-        echo "--SET_VERSION...True"
+        echo "--SET_VERSION.....True"
     else
-        echo "--OWNER.........$GH_OWNER"
-        echo "--REPO_NAME.....$GH_REPO_NAME"
-        echo "--REPO_PATH.....$GH_REPO_PATH"
-        echo "--REPO_BRANCH...$GH_REPO_BRANCH"
-        echo "--ASSET_NAME....$GH_ASSET_NAME"
+        echo "--OWNER...........$GH_OWNER"
+        echo "--REPO_NAME.......$GH_REPO_NAME"
+        echo "--REPO_PATH.......$GH_REPO_PATH"
+        echo "--REPO_BRANCH.....$GH_REPO_BRANCH"
+        echo "--ASSET_NAME......$GH_ASSET_NAME"
         if [ -z "$TAG_EXIST" ]; then
-            echo "--RELEASE.......$GH_RELEASE"
-            echo "--RELEASE_NOTE..$GH_RELEASE_NOTE"
-            echo "--RELEASE_TYPE..NEW RELEASE WILL BE CREATED"
+            echo "--RELEASE.........$GH_RELEASE"
+            echo "--RELEASE_TYPE....New Release Will Be Created"
         fi
+		if [ -z "$DEV_OPS_NO_COMMIT" ]; then
+            echo "--COMMIT_NOTE.....$GH_COMMIT_NOTE"
+			echo "--COMMIT CHANGES..True"
+		else
+			echo "--COMMIT CHANGES..False"
+		fi
         if [ -n "$DEV_OPS_REL" ]; then
             DEV_OPS_NO_UPLOAD=true
-            echo "--PUBLISH.......PUBLISH RELEASE TO DEV OPS"
-            [ -n "$DEV_OPS_REL_UNZIP" ] && echo "--UNZIP DEV OPS RELEASE" || true
-            echo "--DEV_OPS_DEST..$DEV_OPS_PUBLISH_DEST"
+            echo "--PUBLISH.........Publish Release To Dev Ops"
+            [ -n "$DEV_OPS_REL_UNZIP" ] && echo "--Unzip DevOps Release" || true
+            echo "--DEV_OPS_DEST....$DEV_OPS_PUBLISH_DEST"
         fi
         if [ "$DEV_OPS_NO_UPLOAD" = "true" ]; then
-            echo "--PUBLISH.......RELEASE NOT PUBLISHED"
-            echo "--UPLOAD_TO_GH..False"
+            echo "--PUBLISH.........Release Not Published"
+            echo "--UPLOAD_TO_GH....False"
         else
-            echo "--PUBLISH.......PUBLISH RELEASE TO GITHUB"
-            echo "--UPLOAD_TO_GH..True"
+            echo "--PUBLISH.........Publish Release To Github"
+            echo "--UPLOAD_TO_GH....True"
         fi
 
-        echo "--GH_TAGS.......$GH_TAGS"
+        echo "--GH_TAGS.........$GH_TAGS"
     fi
     echo
 }
@@ -298,19 +305,37 @@ if [[ -n $DEV_OPS_REL && -f $GH_ASSET_NAME ]]; then
     echo "Publish Destination: $DEV_OPS_PUBLISH_DEST"
 fi
 
-[ "$DEV_OPS_NO_UPLOAD" = "true" ] && echo "Finished." && echo && exit 0 || :
-
-# Commit changed files
-echo && echo "Commit changed files..."
-git add .
-GH_RELEASE_NOTE="LPub3D Render LDraw $VER_TAG"
+if [ -z "$DEV_OPS_NO_COMMIT" ]; then
+    echo -n "Converting files from CRLF to LF..." && \
+    ( find . \
+    -not -path "./.git/*" \
+    -not -path "./.vscode/*" \
+    -not -wholename '*loadldraw/__init__.py' \
+    -not -wholename '*modelglobals/__init__.py' \
+    -not -wholename '*config/.keep' \
+    -not -name '*.blend' \
+    -not -name '*.png' \
+    -not -name '*.jpg' \
+    -not -name '*.exr' \
+    -not -name '*.pdf' \
+    -not -name '*.zip' \
+    -not -name '*.gif' \
+    -type f -print0 | xargs -0 dos2unix -q ) && \
+    echo "Done" || echo "Failed"
+    # Commit changed files
+    echo && echo "Commit changed files..."
+    git add .
 cat << pbEOF >$GH_DIR/COMMIT_EDITMSG
-$GH_RELEASE_NOTE
+$GH_COMMIT_NOTE
 
 pbEOF
-GIT_DIR=$GH_REPO_PATH/.git git commit -m "$GH_RELEASE_NOTE"
+    GIT_DIR=$GH_REPO_PATH/.git git commit -m "$GH_COMMIT_NOTE"
+fi
 
-# Set latest tag or create release if specified tag does not exist
+# Stop here if not uploading build
+if [ "$DEV_OPS_NO_UPLOAD" = "true" ]; then echo && echo "Finished." && echo && exit 0; fi
+
+# Set latest tag or create release tag if specified tag does not exist
 if [[ -z "$TAG_EXIST" ]]; then
     echo && echo "Create release '$GH_RELEASE', version '$GH_TAG', for repo '$GH_REPO_NAME' on branch '$GH_REPO_BRANCH'" && echo
     curl -H "$GH_AUTH" --data "$(generate_release_post_data)" "$GH_REPO/releases"
@@ -333,7 +358,7 @@ echo "INFO: Response $GH_RESPONSE" && echo
 GH_RELEASE_NOT_FOUND=$(echo -e "$GH_RESPONSE" | sed -n '2p')
 if [[ "$GH_RELEASE_NOT_FOUND" == *"Not Found"* ]]; then
     echo && echo "Release not found. Creating release '$GH_RELEASE', version '$GH_TAG', for repo '$GH_REPO_NAME' on branch '$GH_REPO_BRANCH'..." && echo
-    GH_RELEASE_NOTE=$(git log -1 --pretty=%B)
+    GH_COMMIT_NOTE=$(git log -1 --pretty=%B)
     curl -H "$GH_AUTH" --data "$(generate_release_post_data)" "$GH_REPO/releases"
     GH_RESPONSE=$(curl -sH "$GH_AUTH" $GH_TAGS)
 fi

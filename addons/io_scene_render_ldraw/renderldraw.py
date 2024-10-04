@@ -2,7 +2,7 @@
 """
 Trevor SANDY
 Last Update August 01, 2023
-Copyright (c) 2020 - 2023 by Trevor SANDY
+Copyright (c) 2020 - 2024 by Trevor SANDY
 
 LPub3D Render LDraw GPLv2 license.
 
