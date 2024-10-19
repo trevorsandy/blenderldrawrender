@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Author: Trevor SANDY
-# Last Update October 04, 2024
+# Last Update October 19, 2024
 #
 # Adapted from original script by Stefan Buck
 # License: MIT
@@ -40,16 +40,15 @@ function ShowHelp() {
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-        -?|-h|--help) ShowHelp; exit 0 ;;
-        *) echo "Unknown parameter passed: '$1'. Use -? to show help."; exit 1 ;;
+        -h|--help) ShowHelp; exit 0 ;;
+        *) echo "Unknown parameter passed: '$1'. Use to show help."; exit 1 ;;
     esac
     shift
 done
 
 SCRIPT_NAME=$0
 SCRIPT_ARGS=$*
-HOME_DIR=$PWD
-OS_NAME=`uname`
+OS_NAME=$(uname)
 
 echo && echo $SCRIPT_NAME && echo
 
@@ -76,6 +75,7 @@ GH_REPO_PATH=${REPO_PATH:-/home/$GH_USER/projects/$GH_REPO_NAME}
 GH_RELEASE=${RELEASE:-Blender LDraw Render $(date +%d.%m.%Y)}
 GH_COMMIT_NOTE=${COMMIT_NOTE:-Render LDraw ${GH_TAG:1}}
 GH_ASSET_NAME=${ASSET_NAME:-LDrawBlenderRenderAddons.zip}
+GH_ASSET_SHA_NAME=${GH_ASSET_NAME}.sha256
 GH_API_TOKEN=${API_TOKEN:-$(git config --global github.token)}
 GH_SET_VERSION=${SET_VERSION:-false}
 
@@ -91,8 +91,6 @@ GH_API="https://api.github.com"
 GH_REPO="$GH_API/repos/$GH_OWNER/$GH_REPO_NAME"
 GH_TAGS="$GH_REPO/releases/tags/$GH_TAG"
 GH_AUTH="Authorization: token $GH_API_TOKEN"
-WGET_ARGS="--content-disposition --auth-no-challenge --no-cookie"
-CURL_ARGS="-LJO#"
 TAG_EXIST=""
 
 # Arguments display
@@ -114,12 +112,12 @@ function display_arguments
             echo "--RELEASE.........$GH_RELEASE"
             echo "--RELEASE_TYPE....New Release Will Be Created"
         fi
-		if [ -z "$DEV_OPS_NO_COMMIT" ]; then
+        if [ -z "$DEV_OPS_NO_COMMIT" ]; then
             echo "--COMMIT_NOTE.....$GH_COMMIT_NOTE"
-			echo "--COMMIT CHANGES..True"
-		else
-			echo "--COMMIT CHANGES..False"
-		fi
+            echo "--COMMIT CHANGES..True"
+        else
+            echo "--COMMIT CHANGES..False"
+        fi
         if [ -n "$DEV_OPS_REL" ]; then
             DEV_OPS_NO_UPLOAD=true
             echo "--PUBLISH.........Publish Release To Dev Ops"
@@ -168,16 +166,16 @@ function mv_exr ()
 function package_archive
 {
     echo && echo "Creating release package..."
-    if [ -f $GH_ASSET_NAME ];then
-        rm $GH_ASSET_NAME
+    if [ -f "$GH_ASSET_NAME" ];then
+        rm "$GH_ASSET_NAME"
     fi
-    cd $GH_REPO_PATH
+    cd "$GH_REPO_PATH" || :
 
     mv_exr addons/io_scene_import_ldraw/loadldraw/background.exr exr/ && \
     mv_exr background.exr addons/io_scene_import_ldraw/loadldraw/ && \
     echo && echo "  Replaced background.exr LFS link." && echo
 
-    zip -r $GH_ASSET_NAME  \
+    zip -r "$GH_ASSET_NAME"  \
     setup \
     addons/io_scene_import_ldraw/ \
     addons/io_scene_import_ldraw_mm/ \
@@ -208,11 +206,11 @@ function package_archive
 }
 
 # Set working directory
-cd $GH_REPO_PATH
+cd "$GH_REPO_PATH" || :
 
 # Logger
 ME="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
-CWD=`pwd`
+CWD=$(pwd)
 f="${CWD}/$ME"
 ext=".log"
 if [[ -e "$f$ext" ]] ; then
@@ -232,21 +230,21 @@ exec 2> >(tee -a ${LOG} >&2)
 
 # Get tag
 GIT_DIR=$GH_REPO_PATH/.git git fetch --tags
-VER_TAG=`GIT_DIR=$GH_REPO_PATH/.git git describe --tags --match v* --abbrev=0`
+VER_TAG=$(GIT_DIR=$GH_REPO_PATH/.git git describe --tags --match v* --abbrev=0)
 if [[ "$GH_TAG" == 'LATEST' ]]; then
     echo && echo -n "Setting latest tag... "
     GH_TAGS="$GH_REPO/releases/latest"
     GH_TAG=$VER_TAG
     TAG_EXIST=$GH_TAG
-    echo $VER_TAG
+    echo "$VER_TAG"
 else
     echo && echo -n "Getting specified tag... "
     VER_TAG=$GH_TAG
     if GIT_DIR=$GH_REPO_PATH/.git git rev-parse $GH_TAG >/dev/null 2>&1; then
         TAG_EXIST=$GH_TAG
-        echo $VER_TAG
+        echo "$VER_TAG"
     else
-        echo tag $VER_TAG not found - will be created.
+        echo tag "$VER_TAG" not found - will be created.
     fi
 fi
 
@@ -270,7 +268,7 @@ echo "Updating .py files to version $PY_VER"
 for PY_FILE in addons/io_scene_import_ldraw/__*.py addons/io_scene_import_ldraw_mm/__*.py addons/io_scene_render_ldraw/__*.py;
 do
     echo "Set version to '$PY_VER' in file '$PY_FILE'"
-    if [ -f ${PY_FILE} -a -r ${PY_FILE} ]
+    if [[ -f ${PY_FILE} && -r ${PY_FILE} ]]
     then
         if [ "$OS_NAME" = Darwin ]
         then
@@ -340,7 +338,7 @@ if [[ -z "$TAG_EXIST" ]]; then
     echo && echo "Create release '$GH_RELEASE', version '$GH_TAG', for repo '$GH_REPO_NAME' on branch '$GH_REPO_BRANCH'" && echo
     curl -H "$GH_AUTH" --data "$(generate_release_post_data)" "$GH_REPO/releases"
     GIT_DIR=$GH_REPO_PATH/.git git fetch --tags
-    VER_TAG=`GIT_DIR=$GH_REPO_PATH/.git git describe --tags --match v* --abbrev=0`
+    VER_TAG=$(GIT_DIR=$GH_REPO_PATH/.git git describe --tags --match v* --abbrev=0)
 fi
 # VER_TAG=$GH_TAG    #ENABLE FOR TEST
 echo && echo "Retrieved tag: '$GH_TAG'" && echo
@@ -376,14 +374,46 @@ if [ "$GH_ASSET_ID" = "" ]; then
 else
     echo "Asset id: '$GH_ASSET_ID'" && echo
     echo "Deleting asset $GH_ASSET_NAME ($GH_ASSET_ID)..."
-    curl "$GITHUB_OAUTH_BASIC" -X "DELETE" -H "$GH_AUTH" "$GH_REPO/releases/assets/$GH_ASSET_ID"
+    curl -X "DELETE" -H "$GH_AUTH" "$GH_REPO/releases/assets/$GH_ASSET_ID"
 fi
 
-# Prepare and upload the specified asset
-echo && echo "Uploading asset $GH_ASSET_NAME ($GH_ASSET_ID)..."
-# Construct upload URL
-GH_ASSET="https://uploads.github.com/repos/$GH_OWNER/$GH_REPO_NAME/releases/$GH_RELEASE_ID/assets?name=$(basename $GH_ASSET_NAME)"
-# Upload asset
-curl "$GITHUB_OAUTH_BASIC" --data-binary @"$GH_ASSET_NAME" -H "$GH_AUTH" -H "Content-Type: application/octet-stream" $GH_ASSET
+# Get ID of the asset sha based on given file name.
+echo && echo -n "Retrieving asset sha id... "
+GH_ASSET_SHA_ID="$(echo $GH_RESPONSE | jq -r '.assets[] | select(.name == '\"$GH_ASSET_SHA_NAME\"').id')"
+if [ "$GH_ASSET_SHA_ID" = "" ]; then
+    echo "Asset id for $GH_ASSET_SHA_NAME not found so no need to overwrite"
+else
+    echo "Asset id: '$GH_ASSET_SHA_ID'" && echo
+    echo "Deleting asset sha $GH_ASSET_SHA_NAME ($GH_ASSET_SHA_ID)..."
+    curl -X "DELETE" -H "$GH_AUTH" "$GH_REPO/releases/assets/$GH_ASSET_SHA_ID"
+fi
+
+# Prepare SHA hash file
+echo && echo -n "Creating $GH_ASSET_SHA_NAME hash file..."
+sha256sum "$GH_ASSET_NAME" > "$GH_ASSET_SHA_NAME" && echo "OK" || \
+echo "ERROR - Failed"
+
+# Prepare and upload the asset and respective asset sha files
+if [[ -f "$GH_ASSET_NAME" && -f "$GH_ASSET_SHA_NAME" ]]; then
+
+echo && echo "Uploading asset sha $GH_ASSET_SHA_NAME, ID: $GH_ASSET_SHA_ID..."
+
+GH_ASSET_URL=https://uploads.github.com/repos/$GH_OWNER/$GH_REPO_NAME/releases/$GH_RELEASE_ID/assets
+
+GH_ASSET="${GH_ASSET_URL}?name=$(basename "$GH_ASSET_NAME").sha256"
+
+curl --data-binary @"$GH_ASSET_SHA_NAME" -H "$GH_AUTH" -H "Content-Type: application/x-www-form-urlencoded" "$GH_ASSET"
+
+echo && echo "Uploading asset $GH_ASSET_NAME, ID: $GH_ASSET_ID..."
+
+GH_ASSET="${GH_ASSET_URL}?name=$(basename "$GH_ASSET_NAME")"
+
+curl --data-binary @"$GH_ASSET_NAME" -H "$GH_AUTH" -H "Content-Type: application/octet-stream" "$GH_ASSET"
+
+else
+
+echo && echo "ERROR - Could not find $GH_ASSET_SHA_NAME or $GH_ASSET_NAME - No upload performed."
+
+fi
 
 echo && echo "Finished." && echo
