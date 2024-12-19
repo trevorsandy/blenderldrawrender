@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update August 01, 2023
+Last Update December 19, 2024
 Copyright (c) 2020 - 2024 by Trevor SANDY
 
 LPub3D Render LDraw GPLv2 license.
@@ -38,6 +38,7 @@ from io_scene_import_ldraw_mm import filesystem
 from .modelglobals import model_globals
 from bpy.props import (StringProperty,
                        IntProperty,
+                       FloatProperty,
                        EnumProperty,
                        BoolProperty
                        )
@@ -184,10 +185,10 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
         default=prefs.get('resolutionheight', 600) if use_ldraw_import else prefs.get('resolution_height', 600)
     )
 
-    render_percentage: IntProperty(
+    render_percentage: FloatProperty(
         name="Render Percentage",
         description="Specify the percentage of the render size at which to generate the image",
-        default=prefs.get('renderpercentage', 100) if use_ldraw_import else prefs.get('render_percentage', 100)
+        default=prefs.get('renderpercentage', 100.0) if use_ldraw_import else prefs.get('render_percentage', 100.0)
     )
 
     overwrite_image: BoolProperty(
@@ -376,7 +377,7 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
 
         active_scene = bpy.context.scene
         if self.render_percentage is not None:
-            active_scene.render.resolution_percentage = self.render_percentage
+            active_scene.render.resolution_percentage = int(self.render_percentage)
         # end if
         if self.resolution_width is not None:
             active_scene.render.resolution_x = self.resolution_width
