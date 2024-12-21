@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update August 19, 2023
+Last Update December 18, 2024
 Copyright (c) 2024 by Toby Nelson
 Copyright (c) 2020 - 2024 by Trevor SANDY
 
@@ -4780,9 +4780,13 @@ def setupRealisticLook():
             scene.cycles.glossy_bounces = 20
 
         #  See Enable eevee transparency https://github.com/TobyLobster/ImportLDraw/pull/46/
-        scene.eevee.use_ssr = True
-        scene.eevee.use_ssr_refraction = True
-        scene.eevee.use_taa_reprojection = True
+        #  Update bpy.context.scene.eevee for 4.3+
+        if bpy.app.version < (4, 3):
+            bpy.context.scene.eevee.use_ssr = True
+            bpy.context.scene.eevee.use_ssr_refraction = True
+            bpy.context.scene.eevee.use_taa_reprojection = True
+        else:
+            bpy.context.scene.eevee.use_raytracing = True
 
     # Check layer names to see if we were previously rendering instructions and change settings back.
     layerNames = getLayerNames(scene)
