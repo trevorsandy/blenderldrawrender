@@ -2,35 +2,56 @@ import os
 import sys
 import json
 import copy
+import datetime
 import configparser
 from pathlib import Path
 from shutil import copyfile
 
-from . import handle_fatal_error
-
 class Preferences():
-    """Marshall LDraw Blender settings."""
+    """Marshall LDraw Blender addon settings."""
 
     __sectionKey = "TN"
     __sectionName = "ImportLDraw"
     __updateIni = False
     __configFile = None
+    __timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-4]
+    __importPath = os.path.abspath(os.path.join(Path(__file__).parent, "..", "io_scene_import_ldraw"))
+    __importMMPath = os.path.abspath(os.path.join(Path(__file__).parent, "..", "io_scene_import_ldraw_mm"))
+    __defaultPrefsFile = os.path.join(__importPath, "config", "ImportLDrawPreferences.ini")
+    __defaultMMPrefsFile = os.path.join(__importMMPath, "config", "ImportOptions.json")
+    __defaultConfigFile = os.path.join(os.path.dirname(__file__), "config", "LDrawRendererPreferences.ini")
 
-    def __init__(self, configfile, prefsfile, sectionkey):
 
-        self.__sectionKey = sectionkey
+    def __init__(self, configfile=None, prefsfile=None, sectionkey=None):
+        if sectionkey.__ne__(None):
+            self.__sectionKey = sectionkey
         if self.__sectionKey == "MM":
             self.__sectionName = "ImportLDrawMM"
-        assert prefsfile != "", "Preferences file path was not specified."
-        self.__configFile = configfile
+        if prefsfile.__ne__(None) and os.path.isfile(prefsfile):
+            self.__prefsFile = prefsfile
+        elif self.__sectionKey == "TN":
+            self.__prefsFile = self.__defaultPrefsFile
+        elif self.__sectionKey == "MM":
+            self.__prefsFile = self.__defaultMMPrefsFile
+        
+        assert self.__prefsFile != "", "Import Preferences file was not specified."
+
+        if configfile.__ne__(None) and os.path.isfile(configfile):
+            self.__configFile = configfile
+        elif os.path.isfile(self.__defaultConfigFile):
+            self.__configFile = self.__defaultConfigFile
+        else:
+            self.__configFile = self.__defaultPrefsFile
+
+        assert self.__configFile != "", "Configuration Preferences file was not specified."
 
         self.__config = configparser.RawConfigParser()
         self.__prefsRead = self.__config.read(self.__configFile)
-        if self.__prefsRead and not self.__config[self.__sectionName]:
+        if self.__prefsRead and self.__sectionName not in self.__config:
             self.__prefsRead = False
 
-        # If the ImportLDrawPreferences.ini includes attributes from an older version that
-        # has been changed or removed, or if the Python addon version is newer than the version
+        # When self.__configFile includes attributes from an older version that has been
+        # changed or removed, or if the Python addon version is newer than the version
         # defined in the calling application, the following attributes are updated.
         # Version 1.5 and later attribute updates:
         for section in self.__config.sections():
@@ -62,12 +83,13 @@ class Preferences():
                         self.__config[section].pop(popItem)
                         self.__updateIni = True
 
-        self.__prefsFilepath = prefsfile
+        if self.__updateIni:
+            self.save_config_ini()
 
-        self.__default_settings = {}
-        if self.__sectionKey == "MM":
-            self.__settings = dict()
-            self.__default_settings = {
+        self.__config_mm = {}
+
+        if self.__sectionKey == "MM" and self.__sectionName in self.__config:
+            self.__config_mm = {
                 'add_environment': self.__config[self.__sectionName]['addenvironment'],
                 'studio_custom_parts_path': self.__config[self.__sectionName]['studiocustompartspath'],
                 'additional_search_paths': self.__config[self.__sectionName]['additionalsearchpaths'],
@@ -131,63 +153,118 @@ class Preferences():
                 'use_freestyle_edges': self.__config[self.__sectionName]['usefreestyleedges'],
                 'verbose': self.__config[self.__sectionName]['verbose']
             }
+        else:
+            self.__config_mm = self.read_json(self.__defaultMMPrefsFile)
+
+    def preferences_print(self, message, is_error=False):
+        """Print output with identification timestamp."""
+        message = f"{self.__timestamp} [renderldraw] {message}"
+        if is_error:
+            sys.stderr.write(f"{message}\n")
+            sys.stderr.flush()
+        else:
+            sys.stdout.write(f"{message}\n")
+            sys.stdout.flush()
+
+    def get(self, option, default):
+        if self.__sectionKey == "MM":
+            return self.evaluate_value(self.__config_mm[option])
+        else:
+            if not self.__prefsRead:
+                return default
+            if type(default) is bool:
+                return self.__config.getboolean(self.__sectionName, option, fallback=default)
+            elif type(default) is float:
+                return self.__config.getfloat(self.__sectionName, option, fallback=default)
+            elif type(default) is int:
+                return self.__config.getint(self.__sectionName, option, fallback=default)
+            else:
+                return self.__config.get(self.__sectionName, option, fallback=default)
 
     def set(self, option, value):
-        if self.__sectionName not in self.__config:
-            self.__config[self.__sectionName] = {}
-        self.__config[self.__sectionName][option] = str(value)
-
+        if self.__sectionKey == "MM":
+            self.__config_mm[option] = str(value)
+        else:
+            if self.__sectionName not in self.__config:
+                self.__config[self.__sectionName] = {}
+            self.__config[self.__sectionName][option] = str(value)
+    
     def save(self):
+        """Save the current configuration settings."""
         if self.__sectionKey == "MM":
             self.__settings = {}
-            for k, v in self.__default_settings.items():
-                value = self.__config[self.__sectionName][k.replace("_", "").lower()]
-                self.__settings[k] = self.evaluate_value(value)
-            self.write_json()
+            for k, v in self.__config_mm.items():
+                self.__settings[k] = self.evaluate_value(v)
+            return self.write_json()
         else:
-            self.write_ini()
+            return self.write_ini()
 
     def save_config_ini(self):
+        """Save LDraw configuration settings if attributes updated."""
         if self.__updateIni:
-            self.__prefsFilepath = self.__configFile
-            self.write_ini(True)
+            savePrefsFile = self.__prefsFile
+            self.__prefsFile = self.__configFile
+            result = self.write_ini(configini=True)
+            self.__prefsFile = savePrefsFile
+            self.__updateIni = False
+            return result
 
     def write_ini(self, configini=False):
         try:
-            folder = os.path.dirname(self.__prefsFilepath)
+            folder = os.path.dirname(self.__prefsFile)
             Path(folder).mkdir(parents=True, exist_ok=True)
             config = copy.deepcopy(self.__config)
             if not configini:
                 for section in config.sections():
                     if section != self.__sectionName:
                         config.remove_section(section)
-            with open(self.__prefsFilepath, 'w', encoding='utf-8', newline="\n") as configFile:
+            with open(self.__prefsFile, 'w', encoding='utf-8', newline="\n") as configFile:
                 config.write(configFile)
             return True
         except OSError as e:
-            handle_fatal_error(f"Could not save INI preferences. I/O error({e.errno}): {e.strerror}")
+            self.preferences_print(f"ERROR: Could not save INI preferences. I/O error({e.errno}): {e.strerror}", True)
         except Exception:
-            handle_fatal_error(f"Could not save INI preferences. Unexpected error: {sys.exc_info()[0]}")
+            self.preferences_print(f"ERROR: Could not save INI preferences. Unexpected error: {sys.exc_info()[0]}", True)
         return False
 
     def write_json(self):
         try:
-            folder = os.path.dirname(self.__prefsFilepath)
+            folder = os.path.dirname(self.__prefsFile)
             Path(folder).mkdir(parents=True, exist_ok=True)
-            with open(self.__prefsFilepath, 'w', encoding='utf-8', newline="\n") as configFile:
+            with open(self.__prefsFile, 'w', encoding='utf-8', newline="\n") as configFile:
                 configFile.write(json.dumps(self.__settings, indent=2))
             return True
         except OSError as e:
-            print(f"Could not save JSON preferences. I/O error({e.errno}): {e.strerror}")
+            self.preferences_print(f"ERROR: Could not save JSON preferences. OS error({e.errno}): {e.strerror}", True)
         except Exception:
-            print(f"Could not save JSON preferences. Unexpected error: {sys.exc_info()[0]}")
+            self.preferences_print(f"ERROR: Could not save JSON preferences. Unexpected error: {sys.exc_info()[0]}", True)
         return False
+    
+    def read_json(self, filepath):
+        try:
+            with open(filepath, 'r', encoding='utf-8') as file:
+                return json.load(file)
+        except Exception as e:
+            self.preferences_print(f"ERROR: ({e})", True)
+            import traceback
+            print(traceback.format_exc())
+            empty_config_mm = {}
+            return empty_config_mm
 
     def copy_ldraw_parameters(self, ldraw_parameters_file, addon_ldraw_parameters_file):
         try:
             copyfile(ldraw_parameters_file, addon_ldraw_parameters_file)
         except IOError as e:
-            print(f"Could not Copy LDraw parameters. I/O error({e.errno}): {e.strerror}")
+            self.preferences_print(f"WARNING: Could not Copy LDraw parameters. I/O error({e.errno}): {e.strerror}")
+
+    def getEnvironmentFile(self):
+        return os.path.abspath(os.path.join(self.__importPath, 'loadldraw', 'background.exr'))
+
+    def getLSynthPath(self):
+        return os.path.abspath(os.path.join(self.__importPath, 'lsynth'))
+
+    def getLStudsPath(self):
+        return os.path.abspath(os.path.join(self.__importPath, 'studs'))
 
     def evaluate_value(self, x):
         if x == 'True':
@@ -198,6 +275,8 @@ class Preferences():
             return int(x)
         elif self.is_float(x):
             return float(x)
+        elif "\\" in x:
+            return x.replace("\\\\", os.path.sep).replace("\\", os.path.sep)
         else:
             return x
 
