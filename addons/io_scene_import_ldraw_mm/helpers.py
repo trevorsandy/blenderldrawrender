@@ -93,24 +93,6 @@ def read_json(filepath, default=None):
 
 
 # _*_lp_lc_mod
-def read_ini(ini_file, default=None):
-    assert ini_file != "", "LDrawRendererPreferences.ini file was not specified."
-    try:
-        section_name = 'ImportLDrawMM'
-        config = configparser.RawConfigParser()
-        read = config.read(ini_file)
-        if read and config[section_name]:
-            for section in config.sections():
-                if section != section_name:
-                    config.remove_section(section)
-            return config
-        else:
-            return default
-    except Exception as e:
-        print(e)
-        return default
-
-
 def valid_lines(f):
     """Skip blank and commented lines"""
     for l in f:
@@ -133,38 +115,6 @@ def valid_value(value, decimal=False):
             except ValueError:
                 return False
     return True
-
-
-def evaluate_value(x):
-    if x == 'True':
-        return True
-    elif x == 'False':
-        return False
-    elif is_int(x):
-        return int(x)
-    elif is_float(x):
-        return float(x)
-    else:
-        return x
-
-
-def is_float(x):
-    try:
-        f = float(x)
-    except (TypeError, ValueError):
-        return False
-    else:
-        return True
-
-
-def is_int(x):
-    try:
-        f = float(x)
-        i = int(f)
-    except (TypeError, ValueError):
-        return False
-    else:
-        return f == i
 
 
 def render_print(message,is_error=False):
