@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update August 18, 2024
+Last Update December 22, 2024
 Copyright (c) 2024 by Toby Nelson
 Copyright (c) 2020 - 2024 by Trevor SANDY
 
@@ -39,18 +39,16 @@ if "bpy" in locals():
 else:
     from .loadldraw import loadldraw
 
-import configparser
-import sys
 import os
-import copy
 import bpy
 from bpy.props import (StringProperty,
                        FloatProperty,
-                       IntProperty,
                        EnumProperty,
                        BoolProperty
                        )
 from bpy_extras.io_utils import ImportHelper
+
+from io_scene_render_ldraw.preferences import Preferences
 
 """
 Default preferences file:
@@ -101,122 +99,6 @@ useArchiveLibrary             = False
 verbose                       = 0
 """
 
-class Preferences():
-    """Import LDraw - Preferences"""
-
-    __sectionName = 'ImportLDraw'
-    __updateIni = False   
-
-    def __init__(self, preferencesfile):
-        if preferencesfile.__ne__(""):
-            self.__prefsFilepath = preferencesfile
-            loadldraw.debugPrint("-----Preferences Import Settings-----")
-            loadldraw.debugPrint(f"Preferences file:    {self.__prefsFilepath}")
-        else:
-            self.__prefsPath = os.path.dirname(__file__)
-            self.__prefsFilepath = os.path.join(self.__prefsPath, "config", "ImportLDrawPreferences.ini")
-
-        self.__config = configparser.RawConfigParser()
-        self.__prefsRead = self.__config.read(self.__prefsFilepath)
-        if self.__prefsRead and not self.__config[Preferences.__sectionName]:
-            self.__prefsRead = False
-
-        # If the ImportLDrawPreferences.ini includes attributes from an older version that
-        # has been changed or removed, or if the Python addon version is newer than the version
-        # defined in the calling application, the following attributes are updated.
-        # Version 1.5 and later attribute updates:
-        for section in self.__config.sections():
-            if section == "ImportLDraw":
-                addList = ['realgapwidth,0.0002', 'realscale,0.02']
-                for addItem in addList:
-                    pair = addItem.split(",")
-                    if not self.__config.has_option(section, pair[0]):
-                        self.__config.set(section, pair[0], str(pair[1]))
-                        self.__updateIni = True
-                popList = ['gapwidth', 'scale']
-                for popItem in popList:
-                    if self.__config.has_option(section, popItem):
-                        self.__config[section].pop(popItem)
-                        self.__updateIni = True
-            elif section == "ImportLDrawMM":
-                addList = ['studiocustompartspath,', 'scalestrategy,mesh']
-                addList += ['casesensitivefilesystem,True'] if sys.platform == "linux" else ['casesensitivefilesystem,False']
-                for addItem in addList:
-                    pair = addItem.split(",")
-                    if not self.__config.has_option(section, pair[0]):
-                        if (len(pair) == 1):
-                            pair.append('')
-                        self.__config.set(section, pair[0], str(pair[1]))
-                        self.__updateIni = True
-                popList = ['preservehierarchy', 'treatmodelswithsubpartsasparts', 'colorstrategy', 'gapscalestrategy', 'gaptarget']
-                for popItem in popList:
-                    if self.__config.has_option(section, popItem):
-                        self.__config[section].pop(popItem)
-                        self.__updateIni = True           
-
-    def get(self, option, default):
-        if not self.__prefsRead:
-            return default
-
-        if type(default) is bool:
-            return self.__config.getboolean(Preferences.__sectionName, option, fallback=default)
-        elif type(default) is float:
-            return self.__config.getfloat(Preferences.__sectionName, option, fallback=default)
-        elif type(default) is int:
-            return self.__config.getint(Preferences.__sectionName, option, fallback=default)
-        else:
-            return self.__config.get(Preferences.__sectionName, option, fallback=default)
-
-    def set(self, option, value):
-        if not (Preferences.__sectionName in self.__config):
-            self.__config[Preferences.__sectionName] = {}
-        self.__config[Preferences.__sectionName][option] = str(value)
-
-    def save(self, configini=False):
-        try:
-            config = copy.deepcopy(self.__config)
-            if not configini:
-                for section in config.sections():
-                    if section != self.__sectionName:
-                        config.remove_section(section)
-            with open(self.__prefsFilepath, 'w') as configfile:
-                config.write(configfile)
-            return True
-        except OSError as e:
-            loadldraw.debugPrint(f"WARNING: Could not save preferences. I/O error({e.errno}): {e.strerror}")
-        except Exception:
-            loadldraw.debugPrint(f"WARNING: Could not save preferences. Unexpected error: {sys.exc_info()[0]}")
-        return False
-    
-    def save_config_ini(self):
-        if self.__updateIni:
-            self.save(True)
-
-    def saveSettings(self, preferencesfile):
-        try:
-            config = copy.deepcopy(self.__config)
-            for section in config.sections():
-                if section != self.__sectionName:
-                    config.remove_section(section)            
-            with open(preferencesfile, 'w') as configfile:
-                config.write(configfile)
-            return True
-        except OSError as e:
-            loadldraw.debugPrint(f"WARNING: Could not save preferences. I/O error({e.errno}): {e.strerror}")
-        except Exception:
-            loadldraw.debugPrint(f"WARNING: Could not save preferences. Unexpected error: {sys.exc_info()[0]}")
-        return False
-
-    def getEnvironmentFile(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), 'loadldraw', 'background.exr'))
-
-    def getLSynthPath(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), 'lsynth'))
-
-    def getLStudsPath(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), 'studs'))
-
-
 class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     """Import LDraw - Import Operator."""
 
@@ -231,7 +113,8 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     ldraw_model_file_loaded = False
 
     # Initialize the preferences system
-    prefs = Preferences("")
+    prefsFile = os.path.join(os.path.dirname(__file__), "config", "ImportLDrawPreferences.ini")
+    prefs = Preferences(prefsFile)
 
     # Properties - specified from preferences function
     ldrawPath: StringProperty(
@@ -510,6 +393,11 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         options={'HIDDEN'}
     )
 
+    renderLDraw:  BoolProperty(
+        default=False,
+        options={"HIDDEN"}
+    )
+
     # File type filter in file browser
     filename_ext = ".ldr"
     filter_glob: StringProperty(
@@ -588,15 +476,10 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         from io_scene_render_ldraw.modelglobals import model_globals
         model_globals.init()
 
-        use_lpub_settings = False
-        if self.preferencesFile != "":
+        if self.renderLDraw or self.preferencesFile != "":
+            if str(os.path.basename(self.preferencesFile)).lower != str(os.path.basename(self.prefsFile)).lower:
+                loadldraw.debugPrint(f"Invalid import settings file {os.path.basename(self.prefsFile)}.", True)
             loadldraw.debugPrint("-----Import Settings-----")
-            loadldraw.debugPrint(f"Preferences file:    {self.preferencesFile}")
-            use_lpub_settings = os.path.basename(self.preferencesFile) != "ImportLDrawPreferences.ini"
-        else:
-            loadldraw.debugPrint("------Import LDraw-------")
-
-        if use_lpub_settings:
             ImportLDrawOps.prefs = Preferences(self.preferencesFile)
             # Update properties with the reinitialized preferences
             self.addEnvironment          = ImportLDrawOps.prefs.get("addEnvironment",       self.addEnvironment)
@@ -612,7 +495,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             self.defaultColour           = ImportLDrawOps.prefs.get("defaultColour",        self.defaultColour)
             self.environmentFile         = ImportLDrawOps.prefs.get("environmentFile",      self.environmentFile)
             self.flatten                 = ImportLDrawOps.prefs.get("flattenHierarchy",     self.flatten)
-            self.minifigHierarchy        = ImportLDrawOps.prefs.set("minifigHierarchy",     self.minifigHierarchy)
+            self.minifigHierarchy        = ImportLDrawOps.prefs.get("minifigHierarchy",     self.minifigHierarchy)
             self.gapWidthMM              = ImportLDrawOps.prefs.get("realGapWidth",         self.gapWidthMM / 1000)
             self.importCameras           = ImportLDrawOps.prefs.get("importCameras",        self.importCameras)
             self.importLights            = ImportLDrawOps.prefs.get("importLights",         self.importLights)
@@ -640,7 +523,8 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             self.useUnofficialParts      = ImportLDrawOps.prefs.get("useUnofficialParts",   self.useUnofficialParts)
             self.verbose                 = ImportLDrawOps.prefs.get("verbose",              self.verbose)
         else:
-            ImportLDrawOps.prefs = Preferences("")
+            loadldraw.debugPrint("------Import LDraw-------")
+            ImportLDrawOps.prefs = Preferences(self.prefsFile)
 
         if self.useColourScheme == "custom":
             assert self.customLDConfigFile != "", "Custom LDraw colour (LDConfig) file path not specified."
