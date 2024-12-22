@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update July 30, 2023
+Last Update December 22, 2024
 Copyright (c) 2020 - 2023 by Trevor SANDY
 
 LPub3D Blender LDraw Addon GPLv2 license.
@@ -53,13 +53,14 @@ from shutil import rmtree
 
 import bpy
 
-setup_dir = Path(__file__).parent / "setup"
+setup_dir = os.path.join(Path(__file__).parent, "setup")
 sys.path.append(str(setup_dir))
 
 import addon_setup
-
-from addon_setup.preferences import Preferences
 from addon_setup.arguments import BlenderArgumentParser
+setup_dir = os.path.join(Path(__file__).parent, "addons")
+sys.path.append(str(setup_dir))
+from io_scene_render_ldraw.preferences import Preferences
 
 def install_ldraw_addon(argv):
     """Install LDraw Render addons"""
@@ -101,44 +102,40 @@ def install_ldraw_addon(argv):
     # Addon installation folder
     blender_addons_path = bpy.utils.user_resource('SCRIPTS', path="addons")
 
-    # Define path to LDraw addon install script
-    install_script_path = os.getcwd()
-
     # Set LDraw directory in default preference file
     ldraw_path = os.environ.get('LDRAW_DIRECTORY')
 
-    # Set renderer preferences file path - future use
+    # Set LDraw renderer preferences file path
     config_file = os.path.join(
-        install_script_path, "setup/addon_setup/config/LDrawRendererPreferences.ini")
+        blender_addons_path, "io_scene_render_ldraw/config/LDrawRendererPreferences.ini")
 
-    # Set LDraw parameters file
-    ldraw_parameters_file = os.path.join(
-        install_script_path, "setup/addon_setup/config/BlenderLDrawParameters.lst")
-
-    # Save user preferences and LDraw directory to ImportLDraw
+    # Save LDraw renderer preferences and LDraw directory to ImportLDraw
     pref_file = os.path.join(
         blender_addons_path, "io_scene_import_ldraw/config/ImportLDrawPreferences.ini")
     prefs = Preferences(config_file.replace('/', os.path.sep),
-                        pref_file.replace('/', os.path.sep), 'TN')
+                        pref_file.replace('/', os.path.sep), 'TN', True)
     if ldraw_path != "":
-        prefs.set('ldrawdirectory', ldraw_path)
+        prefs.set('ldrawdirectory', ldraw_path.replace('/', os.path.sep))
+    environment_file = os.path.join(
+        blender_addons_path, "io_scene_import_ldraw/loadldraw/background.exr")
+    prefs.set('environmentfile', environment_file.replace('/', os.path.sep))
+    lsynth_directory = os.path.join(
+        blender_addons_path, "io_scene_import_ldraw/lsynth")
+    prefs.set('lsynthdirectory', lsynth_directory.replace('/', os.path.sep))
+    studlogo_directory = os.path.join(
+        blender_addons_path, "io_scene_import_ldraw/studs")
+    prefs.set('studlogodirectory', studlogo_directory.replace('/', os.path.sep))
     prefs.save()
 
-    # Save user preferences and LDraw directory to ImportLDrawMM
+    # Save LDraw renderer preferences and LDraw directory to ImportLDrawMM
     pref_file = os.path.join(
         blender_addons_path, "io_scene_import_ldraw_mm/config/ImportOptions.json")
     prefs = Preferences(config_file.replace('/', os.path.sep),
-                        pref_file.replace('/', os.path.sep), 'MM')
+                        pref_file.replace('/', os.path.sep), 'MM', True)
     if ldraw_path != "":
-        prefs.set('ldrawpath', ldraw_path)
+        prefs.set('ldrawpath', ldraw_path.replace('/', os.path.sep))
+    prefs.set('environmentfile', environment_file.replace('/', os.path.sep))
     prefs.save()
-
-    prefs.save_config_ini()
-
-    # Save LDraw parameters to ImportLDraw
-    addon_ldraw_parameters_file = os.path.join(
-        blender_addons_path, "io_scene_render_ldraw/config/LDrawParameters.lst")
-    prefs.copy_ldraw_parameters(ldraw_parameters_file, addon_ldraw_parameters_file)
 
     # Cleanup pycache
     for addon_path in map(lambda item: item[0], addons_to_load):
@@ -148,12 +145,6 @@ def install_ldraw_addon(argv):
 
     # Export setup paths
     if (not options.disable_ldraw_import and not options.disable_ldraw_addons):
-        environment_file = os.path.join(
-            blender_addons_path, "io_scene_import_ldraw/loadldraw/background.exr")
-        lsynth_directory = os.path.join(
-            blender_addons_path, "io_scene_import_ldraw/lsynth")
-        studlogo_directory = os.path.join(
-            blender_addons_path, "io_scene_import_ldraw/studs")
         print(f"DATA: ENVIRONMENT_FILE: {environment_file.replace('/', os.path.sep)}")
         print(f"DATA: LSYNTH_DIRECTORY: {lsynth_directory.replace('/', os.path.sep)}")
         print(f"DATA: STUDLOGO_DIRECTORY: {studlogo_directory.replace('/', os.path.sep)}")
