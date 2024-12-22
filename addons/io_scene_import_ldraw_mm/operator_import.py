@@ -413,6 +413,11 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         options={'HIDDEN'}
     )
 
+    renderLDraw: bpy.props.BoolProperty(
+        default=False,
+        options={"HIDDEN"}
+    )
+
     #def invoke(self, context, _event):
     #    context.window_manager.fileselect_add(self)
     #    ImportSettings.load_settings()
@@ -446,23 +451,22 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         # bpy.ops.object.mode_set(mode='OBJECT')
 
         # _*_lp_lc_mod
+        # Confirm minimum Blender version
+        if bpy.app.version < (2, 82, 0):
+            self.report({'ERROR'}, 'The ImportLDraw addon requires Blender 2.82 or greater.')
+            return {'FINISHED'}
+
         print("")
-        use_lpub_settings = False
-        if self.preferences_file != "":
-            ImportSettings.debugPrint("=====Import MM Settings====")
-            ImportSettings.debugPrint(f"Preferences file:    {self.preferences_file}")
-            use_lpub_settings = str(os.path.basename(self.preferences_file)).endswith(".ini")
-            if use_lpub_settings:
-                IMPORT_OT_do_ldraw_import.prefs = ImportSettings.get_ini_settings(self.preferences_file)
-        else:
-            ImportSettings.debugPrint("=====Import LDraw MM=======")
 
         # Initialize model globals
         self.ldraw_model_file_loaded = model_globals.LDRAW_MODEL_LOADED
         model_globals.init()
 
-        if use_lpub_settings or self.preferences_file != "":
-
+        if self.renderLDraw or self.preferences_file != "":
+            if str(os.path.basename(self.preferences_file)).lower != str(os.path.basename(ImportSettings.settings_path)).lower:
+                ImportSettings.debugPrint(f"Invalid import MM settings file {os.path.basename(self.preferences_file)}.", True)
+            ImportSettings.debugPrint("=====Import MM Settings====")
+            IMPORT_OT_do_ldraw_import.prefs = ImportSettings.get_settings()
             self.ldraw_path              = IMPORT_OT_do_ldraw_import.prefs.get("ldraw_path", self.ldraw_path)
             self.studio_ldraw_path       = IMPORT_OT_do_ldraw_import.prefs.get("studio_ldraw_path", self.studio_ldraw_path)
             self.studio_custom_parts_path= IMPORT_OT_do_ldraw_import.prefs.get("studio_custom_parts_path", self.studio_custom_parts_path)
@@ -525,6 +529,8 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
 
             self.profile                 = IMPORT_OT_do_ldraw_import.prefs.get("profile", self.profile)
             self.verbose                 = IMPORT_OT_do_ldraw_import.prefs.get("verbose", self.verbose)
+        else:
+            ImportSettings.debugPrint("=====Import LDraw MM=======")
 
         if self.preferences_file == "":
 

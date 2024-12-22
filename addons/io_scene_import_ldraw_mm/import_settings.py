@@ -119,19 +119,9 @@ class ImportSettings:
         return cls.default_settings.get('environment_file')
 
     @classmethod
-    def get_ini_settings(cls, ini_settings_file):
-        section_name = 'ImportLDrawMM'
-        ini_settings = helpers.read_ini(ini_settings_file, cls.default_settings)
-        assert ini_settings is not None, "INI Settings is not defined."
-        for k, v in cls.default_settings.items():
-            value = ini_settings[section_name][k.replace("_", "").lower()]
-            cls.settings[k] = helpers.evaluate_value(value)
-        return cls.settings
-
-    @classmethod
-    def debugPrint(cls, message):
+    def debugPrint(cls, message, is_error=False):
         """Debug print"""
 
         if cls.settings.get('verbose'):
-            helpers.render_print(message)
+            helpers.render_print(message, is_error)
     # _*_mod_end
