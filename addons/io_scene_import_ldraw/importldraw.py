@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update December 22, 2024
+Last Update December 25, 2024
 Copyright (c) 2024 by Toby Nelson
 Copyright (c) 2020 - 2024 by Trevor SANDY
 
@@ -113,8 +113,8 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     ldraw_model_file_loaded = False
 
     # Initialize the preferences system
-    prefsFile = os.path.join(os.path.dirname(__file__), "config", "ImportLDrawPreferences.ini")
-    prefs = Preferences(prefsFile)
+    preferencesFile = os.path.join(os.path.dirname(__file__), "config", "ImportLDrawPreferences.ini")
+    prefs = Preferences(preferencesFile)
 
     # Properties - specified from preferences function
     ldrawPath: StringProperty(
@@ -383,11 +383,6 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         default=prefs.get("verbose", True)
     )
 
-    preferencesFile: StringProperty(
-        default=r"",
-        options={'HIDDEN'}
-    )
-
     modelFile: StringProperty(
         default=r"",
         options={'HIDDEN'}
@@ -476,11 +471,9 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         from io_scene_render_ldraw.modelglobals import model_globals
         model_globals.init()
 
-        if self.renderLDraw or self.preferencesFile != "":
-            if str(os.path.basename(self.preferencesFile)).lower != str(os.path.basename(self.prefsFile)).lower:
-                loadldraw.debugPrint(f"Invalid import settings file {os.path.basename(self.prefsFile)}.", True)
+        ImportLDrawOps.prefs = Preferences(self.preferencesFile)
+        if self.renderLDraw:
             loadldraw.debugPrint("-----Import Settings-----")
-            ImportLDrawOps.prefs = Preferences(self.preferencesFile)
             # Update properties with the reinitialized preferences
             self.addEnvironment          = ImportLDrawOps.prefs.get("addEnvironment",       self.addEnvironment)
             self.addGaps                 = ImportLDrawOps.prefs.get("gaps",                 self.addGaps)
@@ -524,15 +517,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             self.verbose                 = ImportLDrawOps.prefs.get("verbose",              self.verbose)
         else:
             loadldraw.debugPrint("------Import LDraw-------")
-            ImportLDrawOps.prefs = Preferences(self.prefsFile)
-
-        if self.useColourScheme == "custom":
-            assert self.customLDConfigFile != "", "Custom LDraw colour (LDConfig) file path not specified."
-
-        if self.preferencesFile == "":
-
             # Read current preferences from the UI and save them
-
             ImportLDrawOps.prefs.set("customLDConfigFile",     self.customLDConfigFile)
             ImportLDrawOps.prefs.set("environmentFile",        self.environmentFile)
             ImportLDrawOps.prefs.set("addEnvironment",         self.addEnvironment)
@@ -569,6 +554,9 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             ImportLDrawOps.prefs.set("verbose",                self.verbose)
 
         ImportLDrawOps.prefs.save()
+
+        if self.useColourScheme == "custom":
+            assert self.customLDConfigFile != "", "Custom LDraw colour (LDConfig) file path not specified."
 
         # Set bpy related variables here since it isn't available immediately on Blender startup
         loadldraw.hasCollections = hasattr(bpy.data, "collections")
