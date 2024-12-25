@@ -408,11 +408,6 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         **ImportSettings.settings_dict('verbose'),
     )
 
-    preferences_file: bpy.props.StringProperty(
-        default=r"",
-        options={'HIDDEN'}
-    )
-
     renderLDraw: bpy.props.BoolProperty(
         default=False,
         options={"HIDDEN"}
@@ -462,9 +457,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         self.ldraw_model_file_loaded = model_globals.LDRAW_MODEL_LOADED
         model_globals.init()
 
-        if self.renderLDraw or self.preferences_file != "":
-            if str(os.path.basename(self.preferences_file)).lower != str(os.path.basename(ImportSettings.settings_path)).lower:
-                ImportSettings.debugPrint(f"Invalid import MM settings file {os.path.basename(self.preferences_file)}.", True)
+        if self.renderLDraw:
             ImportSettings.debugPrint("=====Import MM Settings====")
             self.prefs = ImportSettings.get_settings()
             self.ldraw_path              = self.prefs.get("ldraw_path", self.ldraw_path)
