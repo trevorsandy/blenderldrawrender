@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update December 22, 2024
+Last Update December 28, 2024
 Copyright (c) 2020 - 2024 by Trevor SANDY
 
 LPub3D Render LDraw GPLv2 license.
@@ -42,8 +42,7 @@ from bpy.props import (StringProperty,
                        IntProperty,
                        FloatProperty,
                        EnumProperty,
-                       BoolProperty
-                       )
+                       BoolProperty)
 
 units = (
     # sequence of quadruples, first element is multiplier to apply to
@@ -129,8 +128,8 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
     image_file_name = 'rendered_ldraw_image.png'
     image_directory = os.path.abspath(os.path.expanduser('~'))
     image_file_path = os.path.join(image_directory, image_file_name)
+    config_file = os.path.join(os.path.dirname(__file__), "config", "LDrawRendererPreferences.ini")
     blender_addons_path = bpy.utils.user_resource('SCRIPTS', path="addons")
-    config_file = os.path.join(blender_addons_path, "io_scene_render_ldraw/config/LDrawRendererPreferences.ini")
 
     ldraw_model_loaded = False
 
@@ -156,12 +155,12 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
 
 
     
-    if use_ldraw_import:
-        prefs = Preferences(None, None, "TN")
-        preferences_folder = os.path.join(blender_addons_path, "io_scene_import_ldraw", "config")
-    else:
+    if not use_ldraw_import:
         prefs = Preferences(None, None, "MM")
         preferences_folder = os.path.join(blender_addons_path, "io_scene_import_ldraw_mm", "config")
+    else:
+        prefs = Preferences(None, None, "TN")
+        preferences_folder = os.path.join(blender_addons_path, "io_scene_import_ldraw", "config")
 
     model_file: StringProperty(
         name="",
@@ -452,7 +451,7 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
         """Import parameter settings when running from command line or LDraw file already loaded."""
 
         if self.use_ldraw_import_mm:
-            if self.ldraw_model_loaded or (self.cli_render and not self.import_only):
+            if self.ldraw_model_loaded:
                 self.resolution_width        = ImportSettings.get_setting("resolution_width")
                 self.resolution_height       = ImportSettings.get_setting("resolution_height")
                 self.render_percentage       = ImportSettings.get_setting("render_percentage")
@@ -466,7 +465,7 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
             self.blend_file              = ImportSettings.get_setting("blend_file")
             self.verbose                 = ImportSettings.get_setting("verbose")
         elif self.use_ldraw_import:
-            if self.ldraw_model_loaded or (self.cli_render and not self.import_only):
+            if self.ldraw_model_loaded:
                 self.resolution_width        = ImportLDrawOps.prefs.get('resolutionwidth',  self.resolution_width)
                 self.resolution_height       = ImportLDrawOps.prefs.get('resolutionheight', self.resolution_height)
                 self.render_percentage       = ImportLDrawOps.prefs.get('renderpercentage', self.render_percentage)
@@ -554,8 +553,8 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
         self.debugPrint(f"Search_Addl_Paths:   {self.search_additional_paths}")
 
         if self.ldraw_model_loaded:
-            self.model_file  = model_globals.LDRAW_MODEL_FILE
-            self.image_file  = model_globals.LDRAW_IMAGE_FILE
+            self.model_file = model_globals.LDRAW_MODEL_FILE
+            self.image_file = model_globals.LDRAW_IMAGE_FILE
             if self.image_file == "":
                 self.image_file = self.model_file + '.png'
             self.debugPrint(f"Loaded Model File:   {self.model_file}")
@@ -688,9 +687,6 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
                 if self.cli_render:
                     self.add_environment = RenderLDrawOps.prefs.get('addenvironment', self.add_environment)
                 else:
-                    RenderLDrawOps.prefs.set('resolutionwidth',       self.resolution_width)
-                    RenderLDrawOps.prefs.set('resolutionheight',      self.resolution_height)
-                    RenderLDrawOps.prefs.set('renderPercentage',      self.render_percentage)
                     RenderLDrawOps.prefs.set('searchadditionalpaths', self.search_additional_paths)
                     RenderLDrawOps.prefs.set('uselook',               self.use_look)
                     RenderLDrawOps.prefs.set('addenvironment',        self.add_environment)
@@ -703,16 +699,18 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
                     RenderLDrawOps.prefs.set('blendfiletrusted',      self.blendfile_trusted)
                     RenderLDrawOps.prefs.set('blendfile',             self.blend_file)
                     RenderLDrawOps.prefs.set('verbose',               self.verbose)
+
             RenderLDrawOps.prefs.save()
+
             self.debugPrintPreferences()
 
             self.preferences_file = import_preferences_file.replace('/', os.path.sep)
 
             if self.use_ldraw_import_mm:
-                kwargs = {'preferences_file': self.preferences_file, 'filepath': self.model_file, 'renderLDraw': True}
+                kwargs = {'filepath': self.model_file, 'renderLDraw': True}
                 load_result = bpy.ops.import_scene.lpub3d_import_ldraw_mm('EXEC_DEFAULT', **kwargs)
             elif self.use_ldraw_import:
-                kwargs = {'preferencesFile': self.preferences_file, 'modelFile': self.model_file, 'renderLDraw': True}
+                kwargs = {'modelFile': self.model_file, 'renderLDraw': True}
                 load_result = bpy.ops.import_scene.lpub3d_import_ldraw('EXEC_DEFAULT', **kwargs)
 
             if self.cli_render:
