@@ -105,7 +105,6 @@ class ImportSettings:
                 v = _v
             cls.settings[k] = v
 
-    # _*_lp_lc_mod
     @classmethod
     def save_settings(cls, has_settings):
         settings = {}
