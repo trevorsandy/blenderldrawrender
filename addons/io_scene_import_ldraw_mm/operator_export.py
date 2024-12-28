@@ -13,11 +13,11 @@ from . import ldraw_export
 class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
     """Export an LDraw model File"""
 
-	# _*_lp_lc_mod
+    # _*_lp_lc_mod
     bl_idname = "export_scene.lpub3d_export_ldraw_mm"
     bl_description = "Export LDraw model (.ldr/.dat)"
     bl_label = "Export LDraw MM"
-	# _*_mod_end
+    # _*_mod_end
     bl_options = {'PRESET'}
 
     # TODO: set export filename to current obj ldraw part_name
@@ -33,7 +33,7 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
             # ('.mpd', 'mpd', 'Export as multi-part document'),
         ),
         default='.ldr',
-    	# _*_mod_end
+        # _*_mod_end
     )
 
     filter_glob: bpy.props.StringProperty(
@@ -60,7 +60,7 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
         **ImportSettings.settings_dict('studio_custom_parts_path'),
     )
 
-	# _*_lp_lc_mod
+    # _*_lp_lc_mod
     use_colour_scheme: bpy.props.EnumProperty(
         name="Colour scheme options",
         description="Colour scheme options",
@@ -201,7 +201,7 @@ class EXPORT_OT_do_ldraw_export(bpy.types.Operator, ExportHelper):
 def build_export_menu(self, context):
     # _*_lp_lc_mod
     self.layout.operator(EXPORT_OT_do_ldraw_export.bl_idname, text="LPub3D Export LDraw MM (.ldr/.mpd/.dat)")
-	# _*_mod_end
+    # _*_mod_end
 
 classesToRegister = [
     EXPORT_OT_do_ldraw_export,
@@ -215,7 +215,7 @@ def register():
     bpy.utils.register_class(EXPORT_OT_do_ldraw_export)
     # _*_lp_lc_mod
     bpy.types.TOPBAR_MT_file_export.prepend(build_export_menu)
-	# _*_mod_end
+    # _*_mod_end
 
 def unregister():
     bpy.utils.unregister_class(EXPORT_OT_do_ldraw_export)

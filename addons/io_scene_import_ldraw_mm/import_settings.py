@@ -13,7 +13,7 @@ class ImportSettings:
     filesystem_defaults = FileSystem.defaults
     ldraw_color_defaults = LDrawColor.defaults
     import_options_defaults = ImportOptions.defaults
-	# _*_lp_lc_mod    
+    # _*_lp_lc_mod    
     lpub3d_defaults = {
         'overwrite_image': True,
         'transparent_background': False,
@@ -29,7 +29,7 @@ class ImportSettings:
     }
     # _*_mod_end
 
-	# _*_lp_lc_mod
+    # _*_lp_lc_mod
     default_settings = {
         **filesystem_defaults,
         **ldraw_color_defaults,
@@ -105,6 +105,7 @@ class ImportSettings:
                 v = _v
             cls.settings[k] = v
 
+    # _*_lp_lc_mod
     @classmethod
     def save_settings(cls, has_settings):
         settings = {}
@@ -136,7 +137,7 @@ class ImportSettings:
         for k, v in cls.import_options_defaults.items():
             setattr(ImportOptions, k, cls.settings[k])
 
-	# _*_lp_lc_mod
+    # _*_lp_lc_mod
     @classmethod
     def get_settings(cls):
         cls.load_settings()

@@ -22,9 +22,9 @@ def locate_ldraw():
     # Get list of possible ldraw installation directories for the platform
     if platform == "win32":
         ldrawPossibleDirectories = [
-        	os.path.join(os.environ['USERPROFILE'], "LDraw"),
-        	os.path.join(os.environ['USERPROFILE'], os.path.join("Desktop", "LDraw")),
-        	os.path.join(os.environ['USERPROFILE'], os.path.join("Documents", "LDraw")),
+            os.path.join(os.environ['USERPROFILE'], "LDraw"),
+            os.path.join(os.environ['USERPROFILE'], os.path.join("Desktop", "LDraw")),
+            os.path.join(os.environ['USERPROFILE'], os.path.join("Documents", "LDraw")),
             os.path.join(os.environ["ProgramFiles"], "LDraw"),
             os.path.join(os.environ["ProgramFiles(x86)"], "LDraw"),
             os.path.join(f"{Path.home().drive}:{os.path.sep}", "LDraw"),

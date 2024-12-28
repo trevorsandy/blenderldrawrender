@@ -16,8 +16,8 @@ class ExportOptions:
     defaults["ngon_handling"] = "triangulate"
     ngon_handling = defaults["ngon_handling"]
 
-	# _*_lp_lc_mod
-	# moved to export_type_choices
+    # _*_lp_lc_mod
+    # moved to export_type_choices
     #defaults["selection_only"] = True
     #selection_only = defaults["selection_only"]
     # _*_mod_end
@@ -25,7 +25,7 @@ class ExportOptions:
     defaults["export_precision"] = 2
     export_precision = defaults["export_precision"]
 
-	# _*_lp_lc_mod
+    # _*_lp_lc_mod
     export_type_choices = (
         ("model_parts_only", "Model Parts", "Export top model collection parts" ),
         ("selection_only", "Selection", "Export selected items"),
