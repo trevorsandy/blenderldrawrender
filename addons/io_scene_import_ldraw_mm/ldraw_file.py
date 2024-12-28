@@ -66,7 +66,7 @@ class LDrawFile:
         """Reads the color values from the LDConfig.ldr file. For details of the
         LDraw color system see: http://www.ldraw.org/article/547"""
 
-		# _*_lp_lc_mod
+        # _*_lp_lc_mod
         # if the LDCfgalt.ldr is not found, look for LDConfig.ldr
         # the Stud.io library doesn't have LDCfgalt.ldr,
         # so if use_colour_scheme_value() == alt and prefer_studio set filename to default_ldconfig
@@ -101,7 +101,7 @@ class LDrawFile:
         # We overwrite the standard LDraw colours if we have better LGEO colours.
         if LDrawColor.use_colour_scheme_value() == "lgeo":
             LDrawColor.set_lgeo_colors(FileSystem.read_lgeo_colors())
-		# _*_mod_end
+        # _*_mod_end
 
         # import all materials
         # from .blender_materials import BlenderMaterials
@@ -514,7 +514,7 @@ class LDrawFile:
         return False
 
     # https://www.leocad.org/docs/meta.html
-	# _*_lp_lc_mod
+    # _*_lp_lc_mod
     def __line_lp_lc(self, clean_line):
         meta = "!LPUB"
         name = "lpub3d"

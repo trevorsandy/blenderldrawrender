@@ -389,7 +389,7 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         **ImportSettings.settings_dict('bevel_segments'),
     )
 
-	# _*_lp_lc_mod
+    # _*_lp_lc_mod
     search_additional_paths: bpy.props.BoolProperty(
         name="Search Additional Paths",
         description="Search additional LDraw paths (automatically set for fade previous steps and highlight step)",
