@@ -272,7 +272,26 @@ class FileSystem:
                 ldraw_roots.append(os.path.join(cls.studio_ldraw_path))
                 ldraw_roots.append(os.path.join(cls.ldraw_path, "unofficial"))
                 ldraw_roots.append(os.path.join(cls.studio_ldraw_path, "unofficial"))
-
+        
+        # _*_lp_lc_mod
+        if cls.search_additional_paths and cls.additional_search_paths != "":
+            additional_paths = cls.additional_search_paths.replace("\"", "").strip().split(",")
+            for additional_path in additional_paths:
+                path = additional_path.replace("\\", os.path.sep).replace("/", os.path.sep).lower()
+                if path not in {path.lower() for path in cls.search_dirs}:
+                    subfolders = [entry.name for entry in os.scandir(path) if entry.is_dir()]
+                    if subfolders:
+                        for folder in subfolders:
+                            if folder in ['parts', 'p']:
+                                if os.path.join(path) not in ldraw_roots:
+                                    ldraw_roots.append(os.path.join(path))
+                            else:
+                                cls.append_search_path(os.path.join(path, folder))
+                    else:
+                        cls.append_search_path(os.path.join(path))
+                    helpers.render_print(f"Additional LDraw path: {path}", False)
+        # _*_mod_end
+                    
         for root in ldraw_roots:
             path = root
             cls.append_search_path(path, root=True)
