@@ -5,6 +5,12 @@ shortcut_types = ["shortcut", "unofficial_shortcut", "un-official shortcut"]
 subpart_types = ["subpart", "un-official subpart", "unofficial_subpart"]
 primitive_types = ["primitive", "un-official primitive"]
 plain_stud_names = ["stud.dat", "stud2.dat"]
+# _*_lp_lc_mod
+ldraw_props_part_type_items = [
+    'Model', 'Unofficial_Model', 'Part', 'Unofficial_Part', 'Shortcut', 'Unofficial_Shortcut',
+    'Submodel', 'Unofficial_Submodel', 'Subpart', 'Unofficial_Subpart', 'Primitive', 'Unofficial_Primitive'
+]
+# _*_mod_end
 
 stud_names = [
     "stud.dat", "stud-logo.dat", "stud-logo2.dat", "stud-logo3.dat", "stud-logo4.dat", "stud-logo5.dat",

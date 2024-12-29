@@ -343,9 +343,11 @@ class LDrawFile:
 
         for part_type_prefix in ["0 Unofficial ", "0 Un-official "]:
             try:
-                index = strip_line.index(part_type_prefix)
+                # _*_lp_lc_mod
+                index = strip_line.lower().index(part_type_prefix.lower())
                 parts = clean_line.split(maxsplit=1)
-                self.actual_part_type = parts[1].strip()
+                self.actual_part_type = self.determine_actual_part_type(parts[1].strip())
+                # _*_mod_end
                 self.part_type = self.determine_part_type(self.actual_part_type)
                 in_part_type = True
             except ValueError as e:
@@ -710,6 +712,16 @@ class LDrawFile:
             return "configuration"
         return "part"
 
+    # _*_lp_lc_mod
+    @staticmethod
+    def determine_actual_part_type(actual_part_type):
+        _actual_part_type = actual_part_type.replace("-","").replace(" ","_").lower()
+        for v in ldraw_part_types.ldraw_props_part_type_items:
+            if _actual_part_type == v.lower():
+                return v
+        return actual_part_type
+    # _*_mod_end
+    
     # TODO: move to varaibles to prevent list lookups
     def is_configuration(self):
         return self.part_type in ldraw_part_types.configuration_types

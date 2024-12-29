@@ -107,6 +107,7 @@ class LDrawProps(bpy.types.PropertyGroup):
         ('Unofficial_Primitive', 'Unofficial Primitive', ''),
         ('Unknown', 'Unknown', ''),
     )
+
     part_type: bpy.props.EnumProperty(
         name="Part type",
         description="LDraw part type",
