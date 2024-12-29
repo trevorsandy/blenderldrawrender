@@ -210,9 +210,14 @@ def do_import(filepath, color_code="16", return_mesh=False):
 
 
 def __scene_setup():
-    bpy.context.scene.eevee.use_ssr = True
-    bpy.context.scene.eevee.use_ssr_refraction = True
-    bpy.context.scene.eevee.use_taa_reprojection = True
+    # _*_lp_lc_mod
+    if bpy.app.version < (4, 3):
+        bpy.context.scene.eevee.use_ssr = True
+        bpy.context.scene.eevee.use_ssr_refraction = True
+        bpy.context.scene.eevee.use_taa_reprojection = True
+    else:
+        bpy.context.scene.eevee.use_raytracing = True
+    # _*_mod_end
 
     # https://blender.stackexchange.com/a/146838
     # TODO: use line art modifier with grease pencil object
@@ -394,9 +399,15 @@ def __setup_realistic_look():
     if (scene.cycles.glossy_bounces < 20):
         scene.cycles.glossy_bounces = 20
 
-    bpy.context.scene.eevee.use_ssr = True
-    bpy.context.scene.eevee.use_ssr_refraction = True
-    bpy.context.scene.eevee.use_taa_reprojection = True       
+    # _*_lp_lc_mod
+    #  Update bpy.context.scene.eevee for 4.3+
+    if bpy.app.version < (4, 3):
+        bpy.context.scene.eevee.use_ssr = True
+        bpy.context.scene.eevee.use_ssr_refraction = True
+        bpy.context.scene.eevee.use_taa_reprojection = True
+    else:
+        bpy.context.scene.eevee.use_raytracing = True
+    # _*_mod_end  
 
 # Check layer names to see if we were previously rendering instructions and change settings back.
     layer_names = __get_layer_names(scene)
