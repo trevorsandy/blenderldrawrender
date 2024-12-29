@@ -413,6 +413,11 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         options={'HIDDEN'}
     )
 
+    renderLDraw: bpy.props.BoolProperty(
+        default=False,
+        options={"HIDDEN"}
+    )
+
     #def invoke(self, context, _event):
     #    context.window_manager.fileselect_add(self)
     #    ImportSettings.load_settings()
@@ -446,159 +451,158 @@ class IMPORT_OT_do_ldraw_import(bpy.types.Operator, ImportHelper):
         # bpy.ops.object.mode_set(mode='OBJECT')
 
         # _*_lp_lc_mod
+        # Confirm minimum Blender version
+        if bpy.app.version < (2, 82, 0):
+            self.report({'ERROR'}, 'The ImportLDraw addon requires Blender 2.82 or greater.')
+            return {'FINISHED'}
+
         print("")
-        use_lpub_settings = False
-        if self.preferences_file != "":
-            ImportSettings.debugPrint("=====Import MM Settings====")
-            ImportSettings.debugPrint(f"Preferences file:    {self.preferences_file}")
-            use_lpub_settings = str(os.path.basename(self.preferences_file)).endswith(".ini")
-            if use_lpub_settings:
-                IMPORT_OT_do_ldraw_import.prefs = ImportSettings.get_ini_settings(self.preferences_file)
-        else:
-            ImportSettings.debugPrint("=====Import LDraw MM=======")
 
         # Initialize model globals
         self.ldraw_model_file_loaded = model_globals.LDRAW_MODEL_LOADED
         model_globals.init()
 
-        if use_lpub_settings or self.preferences_file != "":
+        if self.renderLDraw or self.preferences_file != "":
+            if str(os.path.basename(self.preferences_file)).lower != str(os.path.basename(ImportSettings.settings_path)).lower:
+                ImportSettings.debugPrint(f"Invalid import MM settings file {os.path.basename(self.preferences_file)}.", True)
+            ImportSettings.debugPrint("=====Import MM Settings====")
+            self.prefs = ImportSettings.get_settings()
+            self.ldraw_path              = self.prefs.get("ldraw_path", self.ldraw_path)
+            self.studio_ldraw_path       = self.prefs.get("studio_ldraw_path", self.studio_ldraw_path)
+            self.studio_custom_parts_path= self.prefs.get("studio_custom_parts_path", self.studio_custom_parts_path)
 
-            self.ldraw_path              = IMPORT_OT_do_ldraw_import.prefs.get("ldraw_path", self.ldraw_path)
-            self.studio_ldraw_path       = IMPORT_OT_do_ldraw_import.prefs.get("studio_ldraw_path", self.studio_ldraw_path)
-            self.studio_custom_parts_path= IMPORT_OT_do_ldraw_import.prefs.get("studio_custom_parts_path", self.studio_custom_parts_path)
+            self.add_environment         = self.prefs.get("add_environment", self.add_environment)
+            self.environment_file        = self.prefs.get("environment_file", self.environment_file)
+            self.import_cameras          = self.prefs.get("import_cameras", self.import_cameras)
+            self.position_camera         = self.prefs.get("position_camera", self.position_camera)
+            self.camera_border_percent   = self.prefs.get("camera_border_percent", self.camera_border_percent)
+            self.import_lights           = self.prefs.get("import_lights", self.import_lights)
+            self.search_additional_paths = self.prefs.get("search_additional_paths", self.search_additional_paths)
+            self.case_sensitive_filesystem = self.prefs.get("case_sensitive_filesystem", self.case_sensitive_filesystem)            
 
-            self.add_environment         = IMPORT_OT_do_ldraw_import.prefs.get("add_environment", self.add_environment)
-            self.environment_file        = IMPORT_OT_do_ldraw_import.prefs.get("environment_file", self.environment_file)
-            self.import_cameras          = IMPORT_OT_do_ldraw_import.prefs.get("import_cameras", self.import_cameras)
-            self.position_camera         = IMPORT_OT_do_ldraw_import.prefs.get("position_camera", self.position_camera)
-            self.camera_border_percent   = IMPORT_OT_do_ldraw_import.prefs.get("camera_border_percent", self.camera_border_percent)
-            self.import_lights           = IMPORT_OT_do_ldraw_import.prefs.get("import_lights", self.import_lights)
-            self.search_additional_paths = IMPORT_OT_do_ldraw_import.prefs.get("search_additional_paths", self.search_additional_paths)
-            self.case_sensitive_filesystem = IMPORT_OT_do_ldraw_import.prefs.get("case_sensitive_filesystem", self.case_sensitive_filesystem)            
+            self.custom_ldconfig_file    = self.prefs.get("custom_ldconfig_file",   self.custom_ldconfig_file)
+            self.additional_search_paths = self.prefs.get("additional_search_paths", self.additional_search_paths)
 
-            self.custom_ldconfig_file    = IMPORT_OT_do_ldraw_import.prefs.get("custom_ldconfig_file",   self.custom_ldconfig_file)
-            self.additional_search_paths = IMPORT_OT_do_ldraw_import.prefs.get("additional_search_paths", self.additional_search_paths)
+            self.prefer_studio           = self.prefs.get("prefer_studio", self.prefer_studio)
+            self.prefer_unofficial       = self.prefs.get("prefer_unofficial", self.prefer_unofficial)
+            self.use_colour_scheme       = ImportSettings.get_enum("use_colour_scheme", self.use_colour_scheme)
+            self.resolution              = ImportSettings.get_enum("resolution", self.resolution)
+            self.display_logo            = self.prefs.get("display_logo", self.display_logo)
+            self.chosen_logo             = ImportSettings.get_enum("chosen_logo", self.chosen_logo)
 
-            self.prefer_studio           = IMPORT_OT_do_ldraw_import.prefs.get("prefer_studio", self.prefer_studio)
-            self.prefer_unofficial       = IMPORT_OT_do_ldraw_import.prefs.get("prefer_unofficial", self.prefer_unofficial)
-            self.use_colour_scheme       = IMPORT_OT_do_ldraw_import.prefs.get("use_colour_scheme", self.use_colour_scheme)
-            self.resolution              = IMPORT_OT_do_ldraw_import.prefs.get("resolution", self.resolution)
-            self.display_logo            = IMPORT_OT_do_ldraw_import.prefs.get("display_logo", self.display_logo)
-            self.chosen_logo             = IMPORT_OT_do_ldraw_import.prefs.get("chosen_logo", self.chosen_logo)
+            self.scale_strategy          = ImportSettings.get_enum("scale_strategy", self.scale_strategy)
+            self.import_scale            = self.prefs.get("import_scale", self.import_scale)
+            self.parent_to_empty         = self.prefs.get("parent_to_empty", self.parent_to_empty)
+            self.make_gaps               = self.prefs.get("make_gaps", self.make_gaps)
+            self.gap_scale               = self.prefs.get("gap_scale", self.gap_scale)
 
-            self.scale_strategy          = IMPORT_OT_do_ldraw_import.prefs.get("scale_strategy", self.scale_strategy)
-            self.import_scale            = IMPORT_OT_do_ldraw_import.prefs.get("import_scale", self.import_scale)
-            self.parent_to_empty         = IMPORT_OT_do_ldraw_import.prefs.get("parent_to_empty", self.parent_to_empty)
-            self.make_gaps               = IMPORT_OT_do_ldraw_import.prefs.get("make_gaps", self.make_gaps)
-            self.gap_scale               = IMPORT_OT_do_ldraw_import.prefs.get("gap_scale", self.gap_scale)
+            self.bevel_edges             = self.prefs.get("bevel_edges", self.bevel_edges)
+            self.bevel_weight            = self.prefs.get("bevel_weight", self.bevel_weight)
+            self.bevel_width             = self.prefs.get("bevel_width", self.bevel_width)
+            self.bevel_segments          = self.prefs.get("bevel_segments", self.bevel_segments)
 
-            self.bevel_edges             = IMPORT_OT_do_ldraw_import.prefs.get("bevel_edges", self.bevel_edges)
-            self.bevel_weight            = IMPORT_OT_do_ldraw_import.prefs.get("bevel_weight", self.bevel_weight)
-            self.bevel_width             = IMPORT_OT_do_ldraw_import.prefs.get("bevel_width", self.bevel_width)
-            self.bevel_segments          = IMPORT_OT_do_ldraw_import.prefs.get("bevel_segments", self.bevel_segments)
+            self.remove_doubles          = self.prefs.get("remove_doubles", self.remove_doubles)
+            self.merge_distance          = self.prefs.get("merge_distance", self.merge_distance)
+            self.smooth_type             = ImportSettings.get_enum("smooth_type", self.smooth_type)
+            self.shade_smooth            = self.prefs.get("shade_smooth", self.shade_smooth)
+            self.recalculate_normals     = self.prefs.get("recalculate_normals", self.recalculate_normals)
+            self.triangulate             = self.prefs.get("triangulate", self.triangulate)
 
-            self.remove_doubles          = IMPORT_OT_do_ldraw_import.prefs.get("remove_doubles", self.remove_doubles)
-            self.merge_distance          = IMPORT_OT_do_ldraw_import.prefs.get("merge_distance", self.merge_distance)
-            self.smooth_type             = IMPORT_OT_do_ldraw_import.prefs.get("smooth_type", self.smooth_type)
-            self.shade_smooth            = IMPORT_OT_do_ldraw_import.prefs.get("shade_smooth", self.shade_smooth)
-            self.recalculate_normals     = IMPORT_OT_do_ldraw_import.prefs.get("recalculate_normals", self.recalculate_normals)
-            self.triangulate             = IMPORT_OT_do_ldraw_import.prefs.get("triangulate", self.triangulate)
+            self.meta_bfc                = self.prefs.get("meta_bfc", self.meta_bfc)
+            self.meta_texmap             = self.prefs.get("meta_texmap", self.meta_texmap)
+            self.meta_group              = self.prefs.get("meta_group", self.meta_group)
+            self.meta_print_write        = self.prefs.get("meta_print_write", self.meta_print_write)
+            self.meta_step               = self.prefs.get("meta_step", self.meta_step)
+            self.meta_step_groups        = self.prefs.get("meta_step_groups", self.meta_step_groups)
+            self.starting_step_frame     = self.prefs.get("starting_step_frame", self.starting_step_frame)
+            self.frames_per_step         = self.prefs.get("frames_per_step", self.frames_per_step)
+            self.set_end_frame           = self.prefs.get("set_end_frame", self.set_end_frame)
+            self.meta_clear              = self.prefs.get("meta_clear", self.meta_clear)
+            #self.meta_pause              = self.prefs.get("meta_pause", self.meta_pause)
+            self.meta_save               = self.prefs.get("meta_save", self.meta_save )
+            self.set_timeline_markers    = self.prefs.get("set_timeline_markers", self.set_timeline_markers)
 
-            self.meta_bfc                = IMPORT_OT_do_ldraw_import.prefs.get("meta_bfc", self.meta_bfc)
-            self.meta_texmap             = IMPORT_OT_do_ldraw_import.prefs.get("meta_texmap", self.meta_texmap)
-            self.meta_group              = IMPORT_OT_do_ldraw_import.prefs.get("meta_group", self.meta_group)
-            self.meta_print_write        = IMPORT_OT_do_ldraw_import.prefs.get("meta_print_write", self.meta_print_write)
-            self.meta_step               = IMPORT_OT_do_ldraw_import.prefs.get("meta_step", self.meta_step)
-            self.meta_step_groups        = IMPORT_OT_do_ldraw_import.prefs.get("meta_step_groups", self.meta_step_groups)
-            self.starting_step_frame     = IMPORT_OT_do_ldraw_import.prefs.get("starting_step_frame", self.starting_step_frame)
-            self.frames_per_step         = IMPORT_OT_do_ldraw_import.prefs.get("frames_per_step", self.frames_per_step)
-            self.set_end_frame           = IMPORT_OT_do_ldraw_import.prefs.get("set_end_frame", self.set_end_frame)
-            self.meta_clear              = IMPORT_OT_do_ldraw_import.prefs.get("meta_clear", self.meta_clear)
-            #self.meta_pause              = IMPORT_OT_do_ldraw_import.prefs.get("meta_pause", self.meta_pause)
-            self.meta_save               = IMPORT_OT_do_ldraw_import.prefs.get("meta_save", self.meta_save )
-            self.set_timeline_markers    = IMPORT_OT_do_ldraw_import.prefs.get("set_timeline_markers", self.set_timeline_markers)
+            self.use_freestyle_edges     = self.prefs.get("use_freestyle_edges", self.use_freestyle_edges)
+            self.import_edges            = self.prefs.get("import_edges", self.import_edges)
+            self.treat_shortcut_as_model = self.prefs.get("treat_shortcut_as_model", self.treat_shortcut_as_model)
+            self.no_studs                = self.prefs.get("no_studs", self.no_studs)
 
-            self.use_freestyle_edges     = IMPORT_OT_do_ldraw_import.prefs.get("use_freestyle_edges", self.use_freestyle_edges)
-            self.import_edges            = IMPORT_OT_do_ldraw_import.prefs.get("import_edges", self.import_edges)
-            self.treat_shortcut_as_model = IMPORT_OT_do_ldraw_import.prefs.get("treat_shortcut_as_model", self.treat_shortcut_as_model)
-            self.no_studs                = IMPORT_OT_do_ldraw_import.prefs.get("no_studs", self.no_studs)
+            self.profile                 = self.prefs.get("profile", self.profile)
+            self.verbose                 = self.prefs.get("verbose", self.verbose)
+        else:
+            ImportSettings.debugPrint("=====Import LDraw MM=======")
 
-            self.profile                 = IMPORT_OT_do_ldraw_import.prefs.get("profile", self.profile)
-            self.verbose                 = IMPORT_OT_do_ldraw_import.prefs.get("verbose", self.verbose)
+            self.prefs["ldraw_path"]              = self.ldraw_path
+            self.prefs["studio_ldraw_path"]       = self.studio_ldraw_path
+            self.prefs["studio_custom_parts_path"]= self.studio_custom_parts_path
 
-        if self.preferences_file == "":
+            self.prefs['add_environment']         = self.add_environment
+            self.prefs['environment_file']        = self.environment_file
+            self.prefs['import_cameras']          = self.import_cameras
+            self.prefs['position_camera']         = self.position_camera
+            self.prefs['camera_border_percent']   = self.camera_border_percent
+            self.prefs['import_lights']           = self.import_lights
+            self.prefs['search_additional_paths'] = self.search_additional_paths
+            self.prefs['case_sensitive_filesystem'] = self.case_sensitive_filesystem            
 
-            IMPORT_OT_do_ldraw_import.prefs["ldraw_path"]              = self.ldraw_path
-            IMPORT_OT_do_ldraw_import.prefs["studio_ldraw_path"]       = self.studio_ldraw_path
-            IMPORT_OT_do_ldraw_import.prefs["studio_custom_parts_path"]= self.studio_custom_parts_path
+            self.prefs['custom_ldconfig_file']    = self.custom_ldconfig_file
+            self.prefs['additional_search_paths'] = self.additional_search_paths
 
-            IMPORT_OT_do_ldraw_import.prefs['add_environment']         = self.add_environment
-            IMPORT_OT_do_ldraw_import.prefs['environment_file']        = self.environment_file
-            IMPORT_OT_do_ldraw_import.prefs['import_cameras']          = self.import_cameras
-            IMPORT_OT_do_ldraw_import.prefs['position_camera']         = self.position_camera
-            IMPORT_OT_do_ldraw_import.prefs['camera_border_percent']   = self.camera_border_percent
-            IMPORT_OT_do_ldraw_import.prefs['import_lights']           = self.import_lights
-            IMPORT_OT_do_ldraw_import.prefs['search_additional_paths'] = self.search_additional_paths
-            IMPORT_OT_do_ldraw_import.prefs['case_sensitive_filesystem'] = self.case_sensitive_filesystem            
+            self.prefs["prefer_studio"]           = self.prefer_studio
+            self.prefs["prefer_unofficial"]       = self.prefer_unofficial
+            self.prefs["use_colour_scheme"]       = ImportSettings.get_enum(self.use_colour_scheme)
+            self.prefs["resolution"]              = ImportSettings.get_enum(self.resolution)
+            self.prefs["display_logo"]            = self.display_logo
+            self.prefs["chosen_logo"]             = ImportSettings.get_enum(self.chosen_logo)
 
-            IMPORT_OT_do_ldraw_import.prefs['custom_ldconfig_file']    = self.custom_ldconfig_file
-            IMPORT_OT_do_ldraw_import.prefs['additional_search_paths'] = self.additional_search_paths
+            self.prefs["scale_strategy"]          = ImportSettings.get_enum(self.scale_strategy)
+            self.prefs["import_scale"]            = self.import_scale
+            self.prefs["parent_to_empty"]         = self.parent_to_empty
+            self.prefs["make_gaps"]               = self.make_gaps
+            self.prefs["gap_scale"]               = self.gap_scale
 
-            IMPORT_OT_do_ldraw_import.prefs["prefer_studio"]           = self.prefer_studio
-            IMPORT_OT_do_ldraw_import.prefs["prefer_unofficial"]       = self.prefer_unofficial
-            IMPORT_OT_do_ldraw_import.prefs["use_colour_scheme"]       = self.use_colour_scheme
-            IMPORT_OT_do_ldraw_import.prefs["resolution"]              = self.resolution
-            IMPORT_OT_do_ldraw_import.prefs["display_logo"]            = self.display_logo
-            IMPORT_OT_do_ldraw_import.prefs["chosen_logo"]             = self.chosen_logo
+            self.prefs["bevel_edges"]             = self.bevel_edges
+            self.prefs["bevel_weight"]            = self.bevel_weight
+            self.prefs["bevel_width"]             = self.bevel_width
+            self.prefs["bevel_segments"]          = self.bevel_segments
 
-            IMPORT_OT_do_ldraw_import.prefs["scale_strategy"]          = self.scale_strategy
-            IMPORT_OT_do_ldraw_import.prefs["import_scale"]            = self.import_scale
-            IMPORT_OT_do_ldraw_import.prefs["parent_to_empty"]         = self.parent_to_empty
-            IMPORT_OT_do_ldraw_import.prefs["make_gaps"]               = self.make_gaps
-            IMPORT_OT_do_ldraw_import.prefs["gap_scale"]               = self.gap_scale
+            self.prefs["remove_doubles"]          = self.remove_doubles
+            self.prefs["merge_distance"]          = self.merge_distance
+            self.prefs["smooth_type"]             = ImportSettings.get_enum(self.smooth_type)
+            self.prefs["shade_smooth"]            = self.shade_smooth
+            self.prefs["recalculate_normals"]     = self.recalculate_normals
+            self.prefs["triangulate"]             = self.triangulate
 
-            IMPORT_OT_do_ldraw_import.prefs["bevel_edges"]             = self.bevel_edges
-            IMPORT_OT_do_ldraw_import.prefs["bevel_weight"]            = self.bevel_weight
-            IMPORT_OT_do_ldraw_import.prefs["bevel_width"]             = self.bevel_width
-            IMPORT_OT_do_ldraw_import.prefs["bevel_segments"]          = self.bevel_segments
+            self.prefs["meta_bfc"]                = self.meta_bfc
+            self.prefs["meta_texmap"]             = self.meta_texmap
+            self.prefs["meta_group"]              = self.meta_group
+            self.prefs["meta_print_write"]        = self.meta_print_write
+            self.prefs["meta_step"]               = self.meta_step
+            self.prefs["meta_step_groups"]        = self.meta_step_groups
+            self.prefs["starting_step_frame"]     = self.starting_step_frame
+            self.prefs["frames_per_step"]         = self.frames_per_step
+            self.prefs["set_end_frame"]           = self.set_end_frame
+            self.prefs["meta_clear"]              = self.meta_clear
+           #self.prefs["meta_pause"]             = self.meta_pause
+            self.prefs["meta_save"]               = self.meta_save
+            self.prefs["set_timeline_markers"]    = self.set_timeline_markers
 
-            IMPORT_OT_do_ldraw_import.prefs["remove_doubles"]          = self.remove_doubles
-            IMPORT_OT_do_ldraw_import.prefs["merge_distance"]          = self.merge_distance
-            IMPORT_OT_do_ldraw_import.prefs["smooth_type"]             = self.smooth_type
-            IMPORT_OT_do_ldraw_import.prefs["shade_smooth"]            = self.shade_smooth
-            IMPORT_OT_do_ldraw_import.prefs["recalculate_normals"]     = self.recalculate_normals
-            IMPORT_OT_do_ldraw_import.prefs["triangulate"]             = self.triangulate
+            self.prefs["use_freestyle_edges"]     = self.use_freestyle_edges
+            self.prefs["import_edges"]            = self.import_edges
+            self.prefs["treat_shortcut_as_model"] = self.treat_shortcut_as_model
+            self.prefs["no_studs"]                = self.no_studs
 
-            IMPORT_OT_do_ldraw_import.prefs["meta_bfc"]                = self.meta_bfc
-            IMPORT_OT_do_ldraw_import.prefs["meta_texmap"]             = self.meta_texmap
-            IMPORT_OT_do_ldraw_import.prefs["meta_group"]              = self.meta_group
-            IMPORT_OT_do_ldraw_import.prefs["meta_print_write"]        = self.meta_print_write
-            IMPORT_OT_do_ldraw_import.prefs["meta_step"]               = self.meta_step
-            IMPORT_OT_do_ldraw_import.prefs["meta_step_groups"]        = self.meta_step_groups
-            IMPORT_OT_do_ldraw_import.prefs["starting_step_frame"]     = self.starting_step_frame
-            IMPORT_OT_do_ldraw_import.prefs["frames_per_step"]         = self.frames_per_step
-            IMPORT_OT_do_ldraw_import.prefs["set_end_frame"]           = self.set_end_frame
-            IMPORT_OT_do_ldraw_import.prefs["meta_clear"]              = self.meta_clear
-           #IMPORT_OT_do_ldraw_import.prefs["meta_pause"]             = self.meta_pause
-            IMPORT_OT_do_ldraw_import.prefs["meta_save"]               = self.meta_save
-            IMPORT_OT_do_ldraw_import.prefs["set_timeline_markers"]    = self.set_timeline_markers
-
-            IMPORT_OT_do_ldraw_import.prefs["use_freestyle_edges"]     = self.use_freestyle_edges
-            IMPORT_OT_do_ldraw_import.prefs["import_edges"]            = self.import_edges
-            IMPORT_OT_do_ldraw_import.prefs["treat_shortcut_as_model"] = self.treat_shortcut_as_model
-            IMPORT_OT_do_ldraw_import.prefs["no_studs"]                = self.no_studs
-
-            IMPORT_OT_do_ldraw_import.prefs["profile"]                 = self.profile
-            IMPORT_OT_do_ldraw_import.prefs["verbose"]                 = self.verbose
+            self.prefs["profile"]                 = self.profile
+            self.prefs["verbose"]                 = self.verbose
 
         if self.environment_file == "":
-            IMPORT_OT_do_ldraw_import.prefs["environment_file"]        = ImportSettings.get_environment_file()
+            self.prefs["environment_file"]        = ImportSettings.get_environment_file()
         else:
-            IMPORT_OT_do_ldraw_import.prefs["environment_file"]        = self.environment_file
+            self.prefs["environment_file"]        = self.environment_file
 
         assert self.filepath != "", "Model file path not specified."
 
-        ImportSettings.save_settings(IMPORT_OT_do_ldraw_import.prefs)
+        ImportSettings.save_settings(self.prefs)
         # _*_mod_end
 
         # _*_lp_lc_mod

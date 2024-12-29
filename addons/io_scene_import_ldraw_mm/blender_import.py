@@ -33,7 +33,7 @@ def do_import(filepath, color_code="16", return_mesh=False):
     #print(filepath)  # TODO: multiple filepaths?
     # _*_mod_end
 
-    ImportSettings.apply_settings()
+    ImportSettings.apply_settings(True)
 
     BlenderMaterials.reset_caches()
     FileSystem.reset_caches()

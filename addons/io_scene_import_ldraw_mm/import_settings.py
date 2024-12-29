@@ -22,8 +22,8 @@ class ImportSettings:
         'blendfile_trusted': False,
         'verbose': True,
         'profile': False,
-        'resolution_width': 800,
-        'resolution_height': 600,
+        'resolution_width': 1280,
+        'resolution_height': 720,
         'render_percentage': 100,
         'blend_file': ''
     }
@@ -63,42 +63,70 @@ class ImportSettings:
     def __setattr__(cls, key, value):
         cls.settings[key] = value
 
+    # _*_lp_lc_mod
+    @classmethod
+    def __get_setting_tuple__(cls, key):
+        _tuple = None
+        if key == 'chosen_logo':
+            _tuple = ImportOptions.chosen_logo_choices
+        elif key == 'scale_strategy':
+            _tuple = ImportOptions.scale_strategy_choices
+        elif key == 'smooth_type':
+            _tuple = ImportOptions.smooth_type_choices
+        elif key == 'use_colour_scheme':
+            _tuple = LDrawColor.use_colour_scheme_choices
+        elif key == 'resolution':
+            _tuple = FileSystem.resolution_choices
+        return _tuple
+
     @classmethod
     def set_setting(cls, k, v):
+        _lst = cls.__get_setting_tuple__(k)
+        if _lst:
+            for i, tp in enumerate(_lst):
+                if v == tp[0]:
+                    v = i
+                    break
         cls.settings[k] = v
 
     @classmethod
     def load_settings(cls):
-        cls.settings = helpers.read_json(cls.settings_path, cls.default_settings)
+        cls.settings = {}
+        has_settings = helpers.read_json(cls.settings_path, cls.default_settings)
+        for k, v in cls.default_settings.items():
+            _lst = cls.__get_setting_tuple__(k)
+            _v = has_settings.get(k,v)
+            if _lst:
+                for i, tp in enumerate(_lst):
+                    if _v == tp[0]:
+                        v = i
+                        break
+            else:
+                v = _v
+            cls.settings[k] = v
 
-	# _*_lp_lc_mod
     @classmethod
     def save_settings(cls, has_settings):
-        cls.settings = {}
+        settings = {}
         for k, v in cls.default_settings.items():
-            _lst = None
+            _lst = cls.__get_setting_tuple__(k)
             _v = has_settings.get(k,v)
-            if k == 'chosen_logo':
-                _lst = ImportOptions.chosen_logo_choices
-            elif k == 'scale_strategy':
-                _lst = ImportOptions.scale_strategy_choices
-            elif k == 'smooth_type':
-                _lst = ImportOptions.smooth_type_choices
-            elif k == 'use_colour_scheme':
-                _lst = LDrawColor.use_colour_scheme_choices
-            elif k == 'resolution':
-                _lst = FileSystem.resolution_choices
-            if _lst is not None:
+            if _lst:
                 for i, tp in enumerate(_lst):
-                    if tp[0] == _v:
-                        _v = i
+                    if _v == i:
+                        v = tp[0]
                         break
-            cls.settings[k] = _v
-        helpers.write_json(cls.settings_path, cls.settings, indent=4)
+            else:
+                v = _v
+            settings[k] = v
+        helpers.write_json(cls.settings_path, settings, indent=4)
     # _*_mod_end
 
     @classmethod
-    def apply_settings(cls):
+    def apply_settings(cls, save_settings=False):
+        if save_settings:
+            cls.save_settings(cls.settings)
+
         for k, v in cls.filesystem_defaults.items():
             setattr(FileSystem, k, cls.settings[k])
 
@@ -113,25 +141,36 @@ class ImportSettings:
     def get_settings(cls):
         cls.load_settings()
         return cls.settings
+    
+    @classmethod
+    def get_enum(cls, key, value=None):
+        setting = None
+        _lst = cls.__get_setting_tuple__(key)
+        if _lst:
+            _v = cls.settings.get(key)
+            for i, tp in enumerate(_lst):
+                if value is not None:
+                    if _v == tp[0]:
+                        setting = i
+                        break
+                else:
+                    if _v == i:
+                        setting = tp[0]
+                        break
+    
+        if setting is None and value is not None:
+            setting = value
+
+        return setting
 
     @classmethod
     def get_environment_file(cls):
         return cls.default_settings.get('environment_file')
 
     @classmethod
-    def get_ini_settings(cls, ini_settings_file):
-        section_name = 'ImportLDrawMM'
-        ini_settings = helpers.read_ini(ini_settings_file, cls.default_settings)
-        assert ini_settings is not None, "INI Settings is not defined."
-        for k, v in cls.default_settings.items():
-            value = ini_settings[section_name][k.replace("_", "").lower()]
-            cls.settings[k] = helpers.evaluate_value(value)
-        return cls.settings
-
-    @classmethod
-    def debugPrint(cls, message):
+    def debugPrint(cls, message, is_error=False):
         """Debug print"""
 
         if cls.settings.get('verbose'):
-            helpers.render_print(message)
+            helpers.render_print(message, is_error)
     # _*_mod_end
