@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update December 28, 2024
+Last Update December 31, 2024
 Copyright (c) 2020 - 2024 by Trevor SANDY
 
 LPub3D Render LDraw GPLv2 license.
@@ -626,8 +626,7 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
         if not self.load_ldraw_model:
             self.model_file       = model_globals.LDRAW_MODEL_FILE
             self.image_file       = model_globals.LDRAW_IMAGE_FILE
-            self.preferences_file = import_preferences_file.replace('/', os.path.sep)
-
+        
         self.debugPrint(f"Preferences_File:    {self.preferences_file}")
         self.debugPrint(f"Model_File:          {self.model_file}")
         self.debugPrint(f"Image_File:          {self.image_file}")
@@ -704,10 +703,10 @@ class RenderLDrawOps(bpy.types.Operator, ImportHelper):
             self.debugPrintPreferences()
 
             if self.use_ldraw_import_mm:
-                kwargs = {'preferences_file': self.preferences_file, 'filepath': self.model_file, 'renderLDraw': True}
+                kwargs = {'filepath': self.model_file, 'renderLDraw': True}
                 load_result = bpy.ops.import_scene.lpub3d_import_ldraw_mm('EXEC_DEFAULT', **kwargs)
             elif self.use_ldraw_import:
-                kwargs = {'preferencesFile': self.preferences_file, 'modelFile': self.model_file, 'renderLDraw': True}
+                kwargs = {'modelFile': self.model_file, 'renderLDraw': True}
                 load_result = bpy.ops.import_scene.lpub3d_import_ldraw('EXEC_DEFAULT', **kwargs)
 
             if self.cli_render:
