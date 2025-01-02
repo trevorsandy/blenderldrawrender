@@ -135,6 +135,10 @@ class LDrawNode:
                 geometry_data = LDrawNode.geometry_datas.get(geometry_data_key)
                 child_matrix = matrices.identity_matrix
             LDrawNode.current_model_filename = self.file.name
+            # _*_lp_lc_mod        
+            if self.file.actual_part_type is None:
+                self.file.actual_part_type = 'Unofficial_Model'
+            # _*_mod_end
 
         if top_model or top_part:
             # creature_015_mangreengraysuitmustache.ldr is a BFC NOCERTIFY model which causes parts used by it to be NOCERTIFY everywhere

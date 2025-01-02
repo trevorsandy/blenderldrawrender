@@ -184,6 +184,10 @@ class FileSystem:
 
     # _*_lp_lc_mod
     @staticmethod
+    def get_basename(filename):
+        return os.path.basename(filename)
+
+    @staticmethod
     def locate_environment_file():
         file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                     "../io_scene_import_ldraw/loadldraw/background.exr".replace("/", os.path.sep)))

@@ -73,29 +73,24 @@ def do_import(filepath, color_code="16", return_mesh=False):
     # helpers.write_json("gs2.json", s, indent=4)
 
     # _*_lp_lc_mod
-    if not ldraw_object.top_empty is None:
-        if ldraw_file.actual_part_type is None:
-            ldraw_file.actual_part_type = 'Model'
-        ldraw_props.set_props(ldraw_object.top_empty, ldraw_file, "16")
-        mesh_objs = []
-        top_obj = None
+    if ldraw_file.is_like_model():
+        helpers.render_print(f"Top Model Name: {ldraw_file.name}")
+        helpers.render_print(f"Top Model File: {FileSystem.get_basename(filepath)}")
+        top_empty = ldraw_object.top_empty is not None
+        if top_empty:
+            helpers.render_print(f"Parent To Empty Collection: {group.top_collection.name}")
+            ldraw_props.set_props(ldraw_object.top_empty, ldraw_file, color_code)
 
-        for collection in bpy.data.collections:
-            for top in collection.all_objects:
-                if top.name == collection.name:
-                    top_obj = top
-                    mesh_objs = [mesh_obj for mesh_obj in top.children if mesh_obj.type == 'MESH']
-                    break
-            if mesh_objs and top_obj is not None:
-                break
-
-    if ImportOptions.add_environment or ImportOptions.position_camera:
+        # using rom top collection, get verticies from mesh objects 
         vertices = []
-        if mesh_objs:
+        if ImportOptions.add_environment or ImportOptions.position_camera:
             bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
-            for mesh_obj in mesh_objs:
-                points = [mesh_obj.matrix_world @ Vector(v[:]) for v in mesh_obj.bound_box]
-                vertices.extend(points)
+            for mesh_obj in group.top_collection.all_objects:
+                if mesh_obj.type == 'MESH':
+                    points = [mesh_obj.matrix_world @ Vector(v[:]) for v in mesh_obj.bound_box]
+                    vertices.extend(points)
+
+            assert vertices, "No mesh object vertices found."
 
             # Calculate our bounding box in global coordinate space
             bbox_min = Vector((0, 0, 0))
@@ -111,36 +106,41 @@ def do_import(filepath, color_code="16", return_mesh=False):
             bbox_ctr = (bbox_min + bbox_max) * 0.5
             offset_to_centre_model = Vector((-bbox_ctr.x, -bbox_ctr.y, -bbox_min.z))
 
-            if top_obj:
-                top_obj.location += offset_to_centre_model
+            for top_obj in group.top_collection.all_objects:
+                if top_empty and top_obj.type == 'EMPTY':
+                    top_obj.location += offset_to_centre_model
+                    break
+                elif top_obj.type == 'MESH':
+                    top_obj.select_set(True)
+                    top_obj.location += offset_to_centre_model
 
             # Offset all points
             vertices = [v + offset_to_centre_model for v in vertices]
             offset_to_centre_model = Vector((0, 0, 0))
-            
-    if ImportOptions.position_camera:
-        if ldraw_meta.cameras:
-            imported_camera_name = ldraw_meta.cameras[0].name
-            helpers.render_print(f"Positioning Camera: {imported_camera_name}")
-        else:
-            camera = bpy.context.scene.camera            
-            if camera is not None:
-                # Set up a default camera position and rotation
-                helpers.render_print(f"Positioning Camera: {camera.data.name}")
-                camera.location = Vector((6.5, -6.5, 4.75))
-                camera.rotation_mode = 'XYZ'
-                camera.rotation_euler = Euler((1.0471975803375244, 0.0, 0.7853981852531433), 'XYZ')
-                # Must have at least three vertices to move the camera
-                if len(vertices) >= 3:
-                    render = bpy.context.scene.render
-                    is_ortho = camera.data.type == 'ORTHO'
-                    if is_ortho:
-                        blender_camera.iterate_camera_position(camera, render, bbox_ctr, True, vertices)
-                    else:
-                        for i in range(20):
-                            error = blender_camera.iterate_camera_position(camera, render, bbox_ctr, True, vertices)
-                            if error < 0.001:
-                                break
+                
+        if ImportOptions.position_camera:
+            if ldraw_meta.cameras:
+                imported_camera_name = ldraw_meta.cameras[0].name
+                helpers.render_print(f"Positioning Camera: {imported_camera_name}")
+            else:
+                camera = bpy.context.scene.camera            
+                if camera is not None:
+                    # Set up a default camera position and rotation
+                    helpers.render_print(f"Positioning Camera: {camera.data.name}")
+                    camera.location = Vector((6.5, -6.5, 4.75))
+                    camera.rotation_mode = 'XYZ'
+                    camera.rotation_euler = Euler((1.0471975803375244, 0.0, 0.7853981852531433), 'XYZ')
+                    # Must have at least three vertices to move the camera
+                    if vertices and len(vertices) >= 3:
+                        render = bpy.context.scene.render
+                        is_ortho = camera.data.type == 'ORTHO'
+                        if is_ortho:
+                            blender_camera.iterate_camera_position(camera, render, bbox_ctr, True, vertices)
+                        else:
+                            for i in range(20):
+                                error = blender_camera.iterate_camera_position(camera, render, bbox_ctr, True, vertices)
+                                if error < 0.001:
+                                    break
     # _*_mod_end
     
     if ImportOptions.meta_step:
@@ -183,13 +183,11 @@ def do_import(filepath, color_code="16", return_mesh=False):
                 max_clip_end = camera.data.clip_end
             bpy.context.scene.camera = camera
         helpers.render_print(f"Created Camera: {camera.data.name}")
-        camera.parent = obj
 
     # _*_lp_lc_mod
     for light in ldraw_meta.lights:
         light = blender_light.create_light(light, empty=ldraw_object.top_empty, collection=group.top_collection)
         helpers.render_print(f"Created Light: {light.data.name}")
-        light.parent = obj
 
     if bpy.context.screen is not None:
         for area in bpy.context.screen.areas:
