@@ -155,3 +155,6 @@ background.exr
 
 # Temp location for background.exr LFS link when packaging archive
 exr/background.exr
+
+# SHA file for packaged renderer addon
+LDrawBlenderRenderAddons.zip.sha256
