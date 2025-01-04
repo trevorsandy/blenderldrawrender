@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Author: Trevor SANDY
-# Last Update October 19, 2024
+# Last Update January 02, 2025
 #
 # Adapted from original script by Stefan Buck
 # License: MIT
@@ -13,11 +13,11 @@ function ShowHelp() {
     echo "Example:"
     echo
     echo "cd /home/trevorsandy/projects/blenderldrawrender"
-    echo "env TAG=v1.5.5 DEV_OPS=1 $0"
+    echo "env TAG=v1.5.7 DEV_OPS=1 $0"
     echo
-    echo "env TAG=v1.5.5 SET_VERSION=true $0"
+    echo "env TAG=v1.5.7 SET_VERSION=true $0"
     echo
-    echo "env TAG=v1.5.5 COMMIT_NOTE=\"Render LDraw v1.5.5\" $0"
+    echo "env TAG=v1.5.7 COMMIT_NOTE=\"Render LDraw v1.5.7\" $0"
     echo
     echo "This script accepts the following parameters:"
     echo "DEV_OPS      - Build and publish packaged archive to DevOps"
@@ -43,14 +43,13 @@ while [[ "$#" -gt 0 ]]; do
         -h|--help) ShowHelp; exit 0 ;;
         *) echo "Unknown parameter passed: '$1'. Use to show help."; exit 1 ;;
     esac
-    shift
 done
 
 SCRIPT_NAME=$0
 SCRIPT_ARGS=$*
 OS_NAME=$(uname)
 
-echo && echo $SCRIPT_NAME && echo
+echo && echo "$SCRIPT_NAME" && echo
 
 # Check for script dependencies
 echo
@@ -60,7 +59,7 @@ for name in zip unzip jq xargs
 do
     [[ $(which $name 2>/dev/null) ]] || { echo -en "\n$name needs to be installed. Use 'sudo apt-get install $name'";deps=1; }
 done
-[[ $deps -ne 1 ]] && echo "OK" || { echo -en "\nInstall the above and rerun this script\n";exit 1; }
+if [[ $deps -ne 1 ]]; then echo "OK"; else { echo -en "\nInstall the above and rerun this script\n"; exit 1;}; fi
 
 # Validate settings.
 [ "$TRACE" ] && set -x
@@ -201,7 +200,6 @@ function package_archive
     mv_exr exr/background.exr addons/io_scene_import_ldraw/loadldraw/ && \
     rm -r exr/ && \
     echo && echo "  Restored background.exr LFS link."
-
     echo && echo "Created release package '$GH_ASSET_NAME'" && echo
 }
 
@@ -217,7 +215,7 @@ if [[ -e "$f$ext" ]] ; then
     i=1
     f="${f%.*}";
     while [[ -e "${f}_${i}${ext}" ]]; do
-      let i++
+      (( i++ ))
     done
     f="${f}_${i}${ext}"
     else
@@ -225,8 +223,8 @@ if [[ -e "$f$ext" ]] ; then
 fi
 # Output log file
 LOG="$f"
-exec > >(tee -a ${LOG} )
-exec 2> >(tee -a ${LOG} >&2)
+exec > >(tee -a "${LOG}" )
+exec 2> >(tee -a "${LOG}" >&2)
 
 # Get tag
 GIT_DIR=$GH_REPO_PATH/.git git fetch --tags
@@ -240,7 +238,7 @@ if [[ "$GH_TAG" == 'LATEST' ]]; then
 else
     echo && echo -n "Getting specified tag... "
     VER_TAG=$GH_TAG
-    if GIT_DIR=$GH_REPO_PATH/.git git rev-parse $GH_TAG >/dev/null 2>&1; then
+    if GIT_DIR=$GH_REPO_PATH/.git git rev-parse "$GH_TAG" >/dev/null 2>&1; then
         TAG_EXIST=$GH_TAG
         echo "$VER_TAG"
     else
@@ -255,7 +253,7 @@ display_arguments
 sleep 1s && read -p "  Are you sure (y/n)? " -n 1 -r
 echo    # (optional) move to a new line
 if [[ ! $REPLY =~ ^[Yy]$ ]];then
-    [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1 # handle exits from shell or function but don't exit interactive shell
+    if [[ "$0" = "${BASH_SOURCE[0]}" ]]; then exit 1; else return 1; fi # handle exits from shell or function but don't exit interactive shell
 fi
 echo
 # Validate API Token [Place token in git config "git config --global github.token YOUR_TOKEN"]
@@ -297,10 +295,18 @@ if [[ -n $DEV_OPS_REL && -f $GH_ASSET_NAME ]]; then
     DEV_OPS_NO_UPLOAD=true
     echo -n "Publish package '$GH_ASSET_NAME' to Dev Ops..." && \
     ([ -d "$DEV_OPS_PUBLISH_DEST" ] || mkdir -p "$DEV_OPS_PUBLISH_DEST"; \
-     cd "$DEV_OPS_PUBLISH_DEST" && cp -f "$DEV_OPS_PUBLISH_SRC/$GH_ASSET_NAME" .; \
-     [ -n "$DEV_OPS_REL_UNZIP" ] && unzip -o "$GH_ASSET_NAME" || true) >$p.out 2>&1 && rm $p.out
-    [ -f $p.out ] && echo "ERROR - failed to publish $GH_ASSET_NAME to Dev Ops" && tail -80 $p.out || echo "Success." && \
+     cd "$DEV_OPS_PUBLISH_DEST" && [ -n "$DEV_OPS_REL_UNZIP" ] && \
+     rm -rf setup addons *.zip *_addons.py || :; \
+     cp -f "$DEV_OPS_PUBLISH_SRC/$GH_ASSET_NAME" . || exit 1) >$p.out 2>&1 && rm $p.out
+    [ -f $p.out ] && echo "ERROR - failed to publish $GH_ASSET_NAME to Dev Ops" && \
+    tail -80 $p.out || echo "Success." && \
     echo "Publish Destination: $DEV_OPS_PUBLISH_DEST"
+
+    if [ -n "$DEV_OPS_REL_UNZIP" ]; then
+      echo -n "Extract $GH_ASSET_NAME..."
+      (cd "$DEV_OPS_PUBLISH_DEST" && unzip -o LDrawBlenderRenderAddons.zip -d . || exit 1) >$p.out 2>&1 && rm $p.out
+       [ -f $p.out ] && echo "Failed" && tail -80 $p.out || echo "Success."
+    fi
 fi
 
 if [ -z "$DEV_OPS_NO_COMMIT" ]; then
@@ -345,11 +351,11 @@ echo && echo "Retrieved tag: '$GH_TAG'" && echo
 
 # Validate token.
 echo "Validating user token..." && echo
-curl -o /dev/null -sH "$GH_AUTH" $GH_REPO || { echo "ERROR: Invalid repo, token or network issue!";  exit 1; }
+curl -o /dev/null -sH "$GH_AUTH" "$GH_REPO" || { echo "ERROR: Invalid repo, token or network issue!";  exit 1; }
 
 # Read asset tags and display response.
 echo "Retrieving repository data..." && echo
-GH_RESPONSE=$(curl -sH "$GH_AUTH" $GH_TAGS)
+GH_RESPONSE=$(curl -sH "$GH_AUTH" "$GH_TAGS")
 echo "INFO: Response $GH_RESPONSE" && echo
 
 # Release was not found so create it
@@ -358,17 +364,17 @@ if [[ "$GH_RELEASE_NOT_FOUND" == *"Not Found"* ]]; then
     echo && echo "Release not found. Creating release '$GH_RELEASE', version '$GH_TAG', for repo '$GH_REPO_NAME' on branch '$GH_REPO_BRANCH'..." && echo
     GH_COMMIT_NOTE=$(git log -1 --pretty=%B)
     curl -H "$GH_AUTH" --data "$(generate_release_post_data)" "$GH_REPO/releases"
-    GH_RESPONSE=$(curl -sH "$GH_AUTH" $GH_TAGS)
+    GH_RESPONSE=$(curl -sH "$GH_AUTH" "$GH_TAGS")
 fi
 
 # Get ID of the release.
 echo && echo -n "Retrieving release id... "
-GH_RELEASE_ID="$(echo $GH_RESPONSE | jq -r .id)"
+GH_RELEASE_ID=$(echo "$GH_RESPONSE" | jq -r .id)
 echo "Release id: '$GH_RELEASE_ID'"
 
 # Get ID of the asset based on given file name.
 echo && echo -n "Retrieving asset id... "
-GH_ASSET_ID="$(echo $GH_RESPONSE | jq -r '.assets[] | select(.name == '\"$GH_ASSET_NAME\"').id')"
+GH_ASSET_ID="$(echo "$GH_RESPONSE" | jq -r '.assets[] | select(.name == '\""$GH_ASSET_NAME"\"').id')"
 if [ "$GH_ASSET_ID" = "" ]; then
     echo "Asset id for $GH_ASSET_NAME not found so no need to overwrite"
 else
@@ -402,7 +408,7 @@ GH_ASSET_URL=https://uploads.github.com/repos/$GH_OWNER/$GH_REPO_NAME/releases/$
 
 GH_ASSET="${GH_ASSET_URL}?name=$(basename "$GH_ASSET_NAME").sha256"
 
-curl --data-binary @"$GH_ASSET_SHA_NAME" -H "$GH_AUTH" -H "Content-Type: application/x-www-form-urlencoded" "$GH_ASSET"
+curl --data-binary @"$GH_ASSET_SHA_NAME" -H "$GH_AUTH" -H "Content-Type: text/xml" "$GH_ASSET"
 
 echo && echo "Uploading asset $GH_ASSET_NAME, ID: $GH_ASSET_ID..."
 
