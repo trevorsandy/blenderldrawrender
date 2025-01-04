@@ -2,7 +2,7 @@
 """
 Trevor SANDY
 Last Update January 04, 2024
-Copyright (c) 2020 - 2023 by Trevor SANDY
+Copyright (c) 2020 - 2025 by Trevor SANDY
 
 LPub3D Blender LDraw Addon GPLv2 license.
 

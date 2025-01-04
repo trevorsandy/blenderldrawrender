@@ -62,4 +62,4 @@ Users can select from two available import modules:
 
 **LEGO**® is a registered trademark of the Lego Group<br clear=left>
 
-Copyright (c) 2020 - 2024 by Trevor SANDY
+Copyright (c) 2020 - 2025 by Trevor SANDY

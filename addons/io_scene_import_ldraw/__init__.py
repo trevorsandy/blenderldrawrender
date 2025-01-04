@@ -3,7 +3,7 @@
 Trevor SANDY
 Last Update May 23, 2023
 Copyright (c) 2024 by Toby Nelson
-Copyright (c) 2020 - 2024 by Trevor SANDY
+Copyright (c) 2020 - 2025 by Trevor SANDY
 
 LPub3D Import LDraw GPLv2 license.
 

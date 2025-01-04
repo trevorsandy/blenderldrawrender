@@ -2,7 +2,7 @@
 Trevor SANDY
 Last Update July 06, 2023
 Copyright (c) 2024 by Matthew Morrison
-Copyright (c) 2024 by Trevor SANDY
+Copyright (c) 2024 - 2025 by Trevor SANDY
 
 LPub3D Import LDraw GPLv2 license.
 
