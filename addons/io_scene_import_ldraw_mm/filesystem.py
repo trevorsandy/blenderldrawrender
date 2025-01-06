@@ -5,9 +5,9 @@ from sys import platform
 from pathlib import Path
 # _*_lp_lc_mod
 from . import helpers
+import zipfile
 # _*_mod_end
 import tempfile
-
 
 def locate_ldraw():
     ldraw_folder_name = 'ldraw'
@@ -177,12 +177,13 @@ class FileSystem:
     search_dirs = []
     lowercase_paths = {}
 
-    @classmethod
-    def reset_caches(cls):
-        cls.search_dirs.clear()
-        cls.lowercase_paths.clear()
-
     # _*_lp_lc_mod
+    @staticmethod
+    def reset_caches():
+        FileSystem.search_dirs.clear()
+        FileSystem.lowercase_paths.clear()
+        FileSystem.clear_archives()
+
     @staticmethod
     def get_basename(filename):
         return os.path.basename(filename)
@@ -201,7 +202,7 @@ class FileSystem:
                                     "../io_scene_render_ldraw/config/LDrawParameters.lst".replace("/", os.path.sep)))
         if os.path.exists(file_path):
             return file_path
-        print(f"DEBUG:  WARNING parameters_file not Found: {file_path}")
+        helpers.render_print(f"DEBUG:  WARNING parameters_file not Found: {file_path}")
         return ""
 
     @classmethod
@@ -225,22 +226,169 @@ class FileSystem:
                         if helpers.valid_value(line_split[1]):
                             code = int(line_split[1])
                         else:
-                            print(f"WARNING Colour code must be an integer: {line_split[1]}")
+                            helpers.render_print(f"WARNING Colour code must be an integer: {line_split[1]}")
 
                         if helpers.valid_value((line_split[2:])):
                             colour = tuple(map(int, line_split[2:]))
                         else:
-                            print(f"WARNING Colour tuple must be integers: {line_split[2:]}")
+                            helpers.render_print(f"WARNING Colour tuple must be integers: {line_split[2:]}")
 
                         if colour:
                             lgeo_colours[code] = colour
 
         return lgeo_colours
+    
+    # Cached dictionary of LDraw archive library objects
+    # **************************************************************************************
+
+    # List of archive library file paths
+    archive_search_paths  = []
+
+    # List of loaded archive library names
+    __archive_names       = []
+    
+    # Dictionary list - holds populated archives
+    __archives            = []
+
+    # Library Dictionaries
+    __official_archive    = {}
+    __unofficial_archive  = {}
+
+    archive_not_found     = -2
+    all_libraries         = -1
+    official_library      = 0
+    unofficial_library    = 1
+
+    is_initial_update      = True
+    has_official_archive   = False
+    has_unofficial_archive = False
+    have_archive_libraries = False
+
+    @staticmethod
+    def loaded_archives():
+        return FileSystem.__archive_names
+
+    @staticmethod
+    def clear_archives():
+        FileSystem.has_official_archive = False
+        FileSystem.has_unofficial_archive = False
+        FileSystem.have_archive_libraries = False
+        FileSystem.is_initial_update = True
+        FileSystem.__official_archive = {}
+        FileSystem.__unofficial_archive = {}
+        del FileSystem.archive_search_paths[:]
+        del FileSystem.__archive_names[:]
+        del FileSystem.__archives[:]
+        
+    @staticmethod
+    def get_encoding(bin_io_slice):
+        # The file uses UCS-2 (UTF-16) Big Endian encoding
+        if bin_io_slice == b'\xfe\xff\x00':
+            return "utf_16_be"
+        # The file uses UCS-2 (UTF-16) Little Endian
+        elif bin_io_slice == b'\xff\xfe0':
+            return "utf_16_le"
+        # Use LDraw model standard UTF-8
+        else:
+            return "utf_8"
+
+    @classmethod
+    def archive_file_exists(cls, key):
+        if key in cls.__official_archive:
+            return cls.official_library
+        elif key in cls.__unofficial_archive:
+            return cls.unofficial_library
+        else:
+            return cls.archive_not_found
+
+    @classmethod
+    def get_archive(cls, key, library=all_libraries):
+        if library != cls.all_libraries:
+            if key in cls.__archives[library]:
+                bin_io = cls.__archives[library][key]
+                encoding = cls.get_encoding(bin_io[:3])
+                return bin_io.decode(encoding)
+            else:
+                return None
+        elif cls.prefer_unofficial:
+            library = cls.unofficial_library
+            if key not in cls.__archives[library]:
+                library = cls.official_library
+                if key not in cls.__archives[library]:
+                    return None
+            bin_io = cls.__archives[library][key]
+            encoding = cls.get_encoding(bin_io[:3])
+            return bin_io.decode(encoding)
+        else:
+            for library in cls.__archives:
+                if key in library:
+                    bin_io = library[key]
+                    encoding = cls.get_encoding(bin_io[:3])
+                    return bin_io.decode(encoding)
+                else:
+                    return None
+
+    @classmethod
+    def set_official_archive(cls, archive_name, library):
+        cls.__official_archive = {key.lower(): library.read(key) for key in library.namelist()}
+        cls.__archives.append(cls.__official_archive)
+        cls.__archive_names.append(archive_name)
+        cls.has_official_archive = True
+        helpers.render_print(f"Load official archive library: {archive_name}")
+    
+    @classmethod
+    def set_unofficial_archive(cls, archive_name, library):
+        cls.__unofficial_archive = {key.lower(): library.read(key) for key in library.namelist()}
+        cls.__archives.append(cls.__unofficial_archive)
+        cls.__archive_names.append(archive_name)
+        cls.has_unofficial_archive  = True
+        cls.is_initial_update = False
+        helpers.render_print(f"Load unofficial archive library: {archive_name}")
+
+    @classmethod
+    def update_unofficial_archive(cls, archive_name, library):
+        dictionary = {key.lower(): library.read(key) for key in library.namelist()}
+        cls.__unofficial_archive.update(dictionary)
+        cls.__archive_names.append(archive_name)
+        helpers.render_print(f"Load unofficial archive library: {archive_name}")
+    
+    @classmethod
+    def archive_library_found(cls, path):
+        for library_name in os.listdir(path):
+            if (library_name.endswith(".zip") or library_name.endswith(".bin")) and \
+                library_name not in cls.loaded_archives():
+                library_path = os.path.join(path, library_name)
+                with zipfile.ZipFile(library_path) as library:
+                    if not cls.has_official_archive and \
+                        "ldraw/LDConfig.ldr" in library.namelist() and \
+                        "ldraw/p/1-4cyli.dat" in library.namelist():
+                        cls.set_official_archive(library_name, library)
+                    else:
+                        try:
+                            is_unofficial_library = \
+                                next(pid for pid in library.namelist()
+                                    if (pid.endswith(".dat") or pid.endswith(".ldr") or pid.endswith(".mpd")))
+                        except StopIteration:
+                            continue
+                        else:
+                            if is_unofficial_library is not None:
+                                if cls.is_initial_update:
+                                    cls.set_unofficial_archive(library_name, library)
+                                else:
+                                    cls.update_unofficial_archive(library_name, library)
+
+        return FileSystem.has_official_archive or FileSystem.has_unofficial_archive
+    # **************************************************************************************
     # _*_mod_end
 
     @classmethod
     def build_search_paths(cls, parent_filepath=None):
         ldraw_roots = []
+
+        # _*_lp_lc_mod
+        if cls.use_archive_library:
+            cls.have_archive_libraries = FileSystem.archive_library_found(cls.ldraw_path)
+        # _*_mod_end
 
         # append top level file's directory
         # https://forums.ldraw.org/thread-24495-post-40577.html#pid40577
@@ -276,24 +424,68 @@ class FileSystem:
                 ldraw_roots.append(os.path.join(cls.studio_ldraw_path))
                 ldraw_roots.append(os.path.join(cls.ldraw_path, "unofficial"))
                 ldraw_roots.append(os.path.join(cls.studio_ldraw_path, "unofficial"))
-        
         # _*_lp_lc_mod
+        if cls.have_archive_libraries:
+            cls.archive_search_paths.append("ldraw")
+            cls.archive_search_paths.append("ldraw/models")
+            if cls.prefer_unofficial:
+                cls.archive_search_paths.append("parts")
+                cls.archive_search_paths.append("ldraw/parts")
+                cls.archive_search_paths.append("parts/textures")
+                cls.archive_search_paths.append("ldraw/parts/textures")
+                cls.archive_search_paths.append("p")
+                cls.archive_search_paths.append("ldraw/p")
+                if cls.resolution_value() == "High":
+                    cls.archive_search_paths.append("p/48")
+                    cls.archive_search_paths.append("ldraw/p/48")
+                elif cls.resolution_value() == "Low":
+                    cls.archive_search_paths.append("p/8")
+                    cls.archive_search_paths.append("ldraw/p/8")
+            else:
+                cls.archive_search_paths.append("ldraw/parts")
+                cls.archive_search_paths.append("parts")
+                cls.archive_search_paths.append("ldraw/parts/textures")
+                cls.archive_search_paths.append("parts/textures")
+                cls.archive_search_paths.append("ldraw/p")
+                cls.archive_search_paths.append("p")
+                if cls.resolution_value() == "High":
+                    cls.archive_search_paths.append("ldraw/p/48")
+                    cls.archive_search_paths.append("p/48")
+                elif cls.resolution_value() == "Low":
+                    cls.archive_search_paths.append("ldraw/p/8")
+                    cls.archive_search_paths.append("p/8")
+
         if cls.search_additional_paths and cls.additional_search_paths != "":
+            folder_list = ['parts', 'p']
             additional_paths = cls.additional_search_paths.replace("\"", "").strip().split(",")
             for additional_path in additional_paths:
                 path = additional_path.replace("\\", os.path.sep).replace("/", os.path.sep).lower()
-                if path not in {path.lower() for path in cls.search_dirs}:
+                if path not in cls.search_dirs and os.path.exists(path):
                     subfolders = [entry.name for entry in os.scandir(path) if entry.is_dir()]
                     if subfolders:
                         for folder in subfolders:
-                            if folder in ['parts', 'p']:
+                            if folder in folder_list:
                                 if os.path.join(path) not in ldraw_roots:
                                     ldraw_roots.append(os.path.join(path))
+                                    helpers.render_print(f"Load additional LDraw root: {path}", False)
                             else:
-                                cls.append_search_path(os.path.join(path, folder))
+                                sub_path = os.path.join(path, folder).lower()
+                                sub_subfolders = [entry.name for entry in os.scandir(sub_path) if entry.is_dir()]
+                                if sub_subfolders:
+                                    for sub_folder in sub_subfolders:
+                                        if sub_folder in folder_list:
+                                            if os.path.join(sub_path) not in ldraw_roots:
+                                                ldraw_roots.append(os.path.join(sub_path))
+                                                helpers.render_print(f"Load additional LDraw root: {sub_path}", False)
+                                        else:
+                                            cls.append_search_path(os.path.join(sub_path, sub_folder))
+                                            helpers.render_print(f"Load additional search path: {sub_path}", False)
+                                else:
+                                    cls.append_search_path(os.path.join(sub_path))
+                                    helpers.render_print(f"Load additional search path: {sub_path}", False)
                     else:
                         cls.append_search_path(os.path.join(path))
-                    helpers.render_print(f"Additional LDraw path: {path}", False)
+                        helpers.render_print(f"Load additional search path: {path}", False)
         # _*_mod_end
                     
         for root in ldraw_roots:
@@ -338,7 +530,7 @@ class FileSystem:
 
     @classmethod
     def locate(cls, filename):
-        part_path = filename.replace("\\", os.path.sep).replace("/", os.path.sep)
+        part_path = str(filename).replace("\\", os.path.sep).replace("/", os.path.sep)
         part_path = os.path.expanduser(part_path)
 
         # full path was specified
@@ -357,7 +549,19 @@ class FileSystem:
             if os.path.isfile(full_path):
                 return full_path
 
+        # _*_lp_lc_mod
+        if cls.have_archive_libraries:
+            for path in cls.archive_search_paths:
+                archive_path = os.path.join(path, filename.lower()).replace("\\", "/")
+                archive_library = cls.archive_file_exists(archive_path)
+                
+                if archive_library != cls.archive_not_found:
+                    result_list = list([archive_library, archive_path])
+                    return result_list
+        # _*_mod_end
+        
         # TODO: requests retrieve missing items from ldraw.org
-
-        print(f"missing {filename}")
+        # _*_lp_lc_mod
+        helpers.render_print(f"missing {filename}", True)
+        # _*_mod_end
         return None

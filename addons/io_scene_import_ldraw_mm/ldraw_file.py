@@ -74,15 +74,15 @@ class LDrawFile:
         # may confuse users because they'll get a bunch of invalid color errors
         alt_ldconfig = "LDCfgalt.ldr"
         default_ldconfig = "LDConfig.ldr"
-
+        
         if LDrawColor.use_colour_scheme_value() == "custom":
             filename = os.path.expanduser(FileSystem.custom_ldconfig_file)
             if not os.path.exists(filename):
-                print(f"Custom colour file not found -using {default_ldconfig}")
+                helpers.render_print(f"Custom colour file not found -using {default_ldconfig}")
                 filename = default_ldconfig
         elif LDrawColor.use_colour_scheme_value() == "alt":
             if FileSystem.prefer_studio:
-                print(f"Stud.io library doesn't have LDCfgalt.ldr -using {default_ldconfig}")
+                helpers.render_print(f"Stud.io library doesn't have LDCfgalt.ldr -using {default_ldconfig}")
                 filename = default_ldconfig
             else:
                 filename = alt_ldconfig
@@ -93,7 +93,11 @@ class LDrawFile:
         ldraw_file = LDrawFile.get_file(filename)
         # _*_lp_lc_mod        
         if filename != default_ldconfig and ldraw_file is None:
-            ldraw_file = LDrawFile.get_file(default_ldconfig)
+            filename = default_ldconfig
+            ldraw_file = LDrawFile.get_file(filename)
+
+        if ldraw_file is None:
+            helpers.render_print(f"LDraw colour file {filename} was not found.", True)
 
         # LGEO is a parts library for rendering LEGO using the povray rendering software.
         # It has a list of LEGO colours suitable for realistic rendering.
@@ -133,17 +137,34 @@ class LDrawFile:
 
     @classmethod
     def __load_file(cls, filename):
-        filepath = FileSystem.locate(filename)
-        if filepath is None:
+        # _*_lp_lc_mod
+        result = FileSystem.locate(filename)
+        if result is None:
             return None
+        else:
+            if isinstance(result, (list)):
+                archive_library = result[0]
+                filepath = result[1]
+            else:
+                filepath = result
+        # _*_mod_end
 
         if filename.endswith('.io') and zipfile.is_zipfile(filename):
             with zipfile.ZipFile(filename, 'r') as zip:
                 model_ldr = zip.read('model.ldr').decode('utf-8-sig')
                 return cls.__read_file(model_ldr.splitlines(), filename)
+            
+        if os.path.exists(filepath):
+            with open(filepath, 'r', encoding='utf-8') as file:
+                return cls.__read_file(file, filename)
+        # _*_lp_lc_mod
+        elif FileSystem.have_archive_libraries:
+            bin_io = FileSystem.get_archive(filepath, library=archive_library)
+            if bin_io is not None:
+                return cls.__read_file(bin_io.splitlines(), filename)
 
-        with open(filepath, 'r', encoding='utf-8') as file:
-            return cls.__read_file(file, filename)
+        return None
+        # _*_mod_end
 
     @classmethod
     def __read_file(cls, file, filename):
