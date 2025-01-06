@@ -7,14 +7,14 @@ A [Blender](https://www.blender.org)&trade; add-on for importing, exporting and 
 
 This addon was designed to provide [LPub3D](https://trevorsandy.github.io/lpub3d) an autonomous addon enabling the integrated import, export and render of LDraw [LEGO](https://www.lego.com/)® models using [Blender](https://www.blender.org)&trade;. However once installed, this addon's import, export and render modules can be executed directly from the Blender GUI, CLI or your operating system command console just as any other Blender addon.
 
-It supports **.mpd**, **.ldr**, and **.dat** file formats.
+It supports **.mpd**, **.ldr**, **.dat** and **.io** file formats.
 
 Users can select from two available import modules:
 + LDraw import module adapted from [Import LDraw](https://github.com/TobyLobster/ImportLDraw) by Toby Nelson (tobymnelson@gmail.com)
 + LDraw import MM module adapted from [Export LDraw](https://github.com/cuddlyogre/ExportLDraw) by Matthew Morrison [cuddlyogre] (cuddlyogre@gmail.com)
 
 ## Render Features ##
-+ Available for Blender 2.82 up to at least Blender 4.
++ Available for Blender 2.82 up to at least Blender 4.3
 + **Mac**, **Windows** and **Linux** supported.
 + **MPD** file compatible.
 + **Render settings configurable** from LPub3D user interface.
@@ -26,7 +26,7 @@ Users can select from two available import modules:
 + **Specify exr 'environment' file** to load custom backdrop and ground plane
 
 ## Import Features ##
-+ Available for Blender 2.82 up to at least Blender 4.
++ Available for Blender 2.82 up to at least Blender 4.3
 + **Mac**, **Windows** and **Linux** supported.
 + **MPD** file compatible.
 + **Import settings configurable** from LPub3D user interface.
