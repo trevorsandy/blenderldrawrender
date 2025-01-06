@@ -28,7 +28,7 @@ bl_info = {
     "name": "LPub3D Import LDraw MM",
     "description": "Import LDraw models in .mpd .ldr .l3b and .dat formats",
     "author": "Matthew Morrison <cuddlyogre@gmail.com>, Trevor SANDY <trevor.sandy@gmail.com>",
-    "version": (1, 5, 7),
+    "version": (1, 5, 8),
     "blender": (2, 82, 0),
     "location": "File > Import",
     "warning": "",
