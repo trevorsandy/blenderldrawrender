@@ -51,7 +51,7 @@
 "set_end_frame": true,
 "set_timeline_markers": false,
 "shade_smooth": true,
-"smooth_type": "bmesh_split",
+"smooth_type": "edge_split",
 "starting_step_frame": 1,
 "studio_custom_parts_path": "",
 "studio_ldraw_path": "",
