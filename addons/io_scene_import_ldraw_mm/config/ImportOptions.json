@@ -3,7 +3,7 @@
 "additional_search_paths": "",
 "bevel_edges": false,
 "bevel_segments": 4,
-"bevel_weight": 0.3,
+"bevel_weight": 0.03,
 "bevel_width": 0.3,
 "blend_file": "",
 "blendfile_trusted": false,

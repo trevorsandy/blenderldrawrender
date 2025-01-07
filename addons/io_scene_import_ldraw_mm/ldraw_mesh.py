@@ -173,7 +173,21 @@ def __process_mesh_sharp_edges(mesh, geometry_data):
     if ImportOptions.smooth_type_value() == "edge_split" or ImportOptions.use_freestyle_edges or ImportOptions.bevel_edges:
         edge_indices = __get_edge_indices(mesh.vertices, geometry_data)
 
-        for edge in mesh.edges:
+        # If we need bevel edges, get a reference to the attribute data
+        # so we can assign bevel weights by index.
+        bevel_attr_data = None
+        if ImportOptions.bevel_edges:
+            if bpy.app.version < (4, 3):
+                pass
+            else:
+                if "bevel_weight_edge" not in mesh.attributes:
+                    mesh.attributes.new(name="bevel_weight_edge", type='FLOAT', domain='EDGE')
+                bevel_attr_data = mesh.attributes["bevel_weight_edge"]
+
+        # we need i for indexing
+        # Original code was: for edge in mesh.edges:
+        # We'll use enumerate to index the edges for attribute assignment
+        for i, edge in enumerate(mesh.edges):
             v0 = edge.vertices[0]
             v1 = edge.vertices[1]
             if (v0, v1) in edge_indices:
@@ -181,8 +195,14 @@ def __process_mesh_sharp_edges(mesh, geometry_data):
                     edge.use_edge_sharp = True
                 if ImportOptions.use_freestyle_edges:
                     edge.use_freestyle_mark = True
+
                 if ImportOptions.bevel_edges:
-                    edge.bevel_weight = ImportOptions.bevel_weight
+                    if bpy.app.version < (4, 3):
+                        edge.bevel_weight = ImportOptions.bevel_weight
+                    else:
+                        if bevel_attr_data is not None:
+                            # Instead of using edge.bevel_weight, we now assign the value to the attribute
+                            bevel_attr_data.data[i].value = ImportOptions.bevel_weight
 
 
 def __process_mesh(mesh):
