@@ -3,6 +3,7 @@ import sys
 import json
 import copy
 import datetime
+import zipfile
 import configparser
 from pathlib import Path
 from shutil import copyfile
@@ -158,6 +159,42 @@ class Preferences():
             }
         else:
             self.__config_mm = self.read_json(self.__defaultMMPrefsFile)
+
+        self.evaluate_ldraw_path()
+
+
+    def evaluate_ldraw_path(self):
+        if self.__sectionKey == "MM":
+            key = "use_archive_library"
+            use_archive_library = self.get_type(self.__config_mm[key])
+        else:
+            key = "usearchivelibrary"
+            use_archive_library = self.__config.getboolean(self.__sectionName, key)
+        if not use_archive_library:
+            if self.__sectionKey == "MM":
+                ldraw_path = self.__config_mm.get("ldraw_path")
+            else:
+                ldraw_path = self.__config.get(self.__sectionName, "ldrawdirectory")
+            if ldraw_path != "":
+                valid_config = os.path.isfile(os.path.join(ldraw_path,"LDConfig.ldr"))
+                valid_primitive = os.path.isfile(os.path.join(ldraw_path, "p", "1-4cyli.dat"))
+                if not valid_config and not valid_primitive:
+                    for library_name in os.listdir(ldraw_path):
+                        if library_name.endswith(".zip") or library_name.endswith(".bin"):
+                            library_path = os.path.join(ldraw_path, library_name)
+                            with zipfile.ZipFile(library_path) as library:
+                                if "ldraw/LDConfig.ldr" in library.namelist() and \
+                                    "ldraw/p/1-4cyli.dat" in library.namelist():
+                                    use_archive_library = True
+                                    break
+                    if use_archive_library:
+                        if self.__sectionKey == "MM":
+                            self.__config_mm[key] = str(True) if self.__ini else True
+                        else:
+                            self.__config[self.__sectionName][key] = str(True)
+                    else:
+                        self.preferences_print(f"WARNING: '{ldraw_path}' may not be a valid LDraw library")
+
 
     def preferences_print(self, message, is_error=False):
         """Print output with identification timestamp."""
