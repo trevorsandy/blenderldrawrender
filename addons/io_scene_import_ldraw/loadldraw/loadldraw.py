@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update January 06, 2024
+Last Update January 07, 2024
 Copyright (c) 2024 by Toby Nelson
 Copyright (c) 2020 - 2025 by Trevor SANDY
 
@@ -228,7 +228,7 @@ class Options:
     # Full filepath to ldraw folder. If empty, some standard locations are attempted
     ldrawDirectory     = r""            # Full filepath to the ldraw parts library (searches some standard locations if left blank)
     instructionsLook   = False          # Set up scene to look like Lego Instruction booklets
-    realScale          = 0.01           # Scale of lego model to create (0.04 is LeoCAD scale, 1.0 is real LEGO scale) # rollback realScale: 1.0
+    realScale          = 1.0            # Scale of lego model to create (0.04 is LeoCAD scale, 1.0 is real LEGO scale) # revert realScale: (rollback: 0.01)
     useUnofficialParts = True           # Additionally searches <ldraw-dir>/unofficial/parts and /p for files
     resolution         = "Standard"     # Choose from "High", "Standard", or "Low"
     defaultColour      = "4"            # Default colour ("4" = red)
@@ -329,7 +329,7 @@ globalCamerasToAdd = []         # Camera data to add to the scene
 globalLightsToAdd  = []         # Light data to add to the scene
 globalContext = None
 globalPoints = []
-globalScaleFactor = Options.realScale   # rollback realScale: 0.0004
+globalScaleFactor = 0.0004   # revert realScale: (rollback: Options.realScale - 0.02)
 globalWeldDistance = 0.0005
 
 globalLgeoColours = {}
@@ -1924,8 +1924,8 @@ class LDrawCamera:
 
     def __init__(self):
         self.fov_degrees       = 30.0
-        self.near              = 25        # rollback realScale: 0.01
-        self.far               = 50000.0   # rollback realScale: 100.0
+        self.near              = 0.01      # revert realScale: (rollback: 25)
+        self.far               = 100.0     # revert realScale: (rollback: 50000.0)
         self.latitude          = 23.0      # (not used)
         self.longitude         = 45.0      # (not used)
         self.distance          = 1.0       # LDU factored distance (not used)
@@ -2602,7 +2602,7 @@ class BlenderMaterials:
             if isSlopeMaterial and not Options.instructionsLook:
                 BlenderMaterials.__createCyclesSlopeTexture(nodes, links, 0.6)
             elif Options.curvedWalls and not Options.instructionsLook:
-                BlenderMaterials.__createCyclesConcaveWalls(nodes, links, 0.2)  # rollback realScale: nodes, links, 20 * globalScaleFactor
+                BlenderMaterials.__createCyclesConcaveWalls(nodes, links, 20 * globalScaleFactor)  # revert realScale: (rollback: nodes, links, 0.2) 
 
             material["Lego.isTransparent"] = isTransparent
             return material
@@ -3451,7 +3451,7 @@ class BlenderMaterials:
                 group.links.new(node_emission.outputs['Emission'], node_output.inputs['Shader'])
             else:
                 if BlenderMaterials.usePrincipledShader:
-                    node_main = BlenderMaterials.__nodePrincipled(group.nodes, 0.05, 0.05, 0.0, 0.1, 0.0, 0.0, 1.45, 0.0, 0, 0) # rollback realScale: group.nodes, 5 * globalScaleFactor, 0.05, 
+                    node_main = BlenderMaterials.__nodePrincipled(group.nodes, 5 * globalScaleFactor, 0.05, 0.0, 0.1, 0.0, 0.0, 1.45, 0.0, 0, 0) # revert realScale: (rollback: group.nodes, 0.05,...) 
                     output_name = 'BSDF'
                     color_name = 'Base Color'
                     group.links.new(node_input.outputs['Color'], BlenderMaterials.__getSubsurfaceColor(node_main))
@@ -4615,7 +4615,7 @@ def createBlenderObjectsFromNode(node,
                     unlinkFromScene(ob)
 
         # The lines out of an empty shown in the viewport are scaled to a reasonable size
-        ob.empty_display_size = 5 * globalScaleFactor # rollback realScale: 250.0 * globalScaleFactor
+        ob.empty_display_size = 250.0 * globalScaleFactor # revert realScale: (rollback: 5 * globalScaleFactor) 
 
         # Mark object as transparent if any polygon is transparent
         ob["Lego.isTransparent"] = False
@@ -5332,7 +5332,7 @@ def loadFromFile(context, filename, isFullFilepath=True):
     # to 1.0. By changing the 'Unit Scale' after import the size of
     # everything in the scene can be adjusted.
 
-    globalScaleFactor = Options.realScale # rollback realScale: 0.0004 * Options.realScale
+    globalScaleFactor = 0.0004 * Options.realScale # revert realScale: (rollback: Options.realScale)
     globalWeldDistance = 0.01 * globalScaleFactor
 
     ldrawModelFile = filename
@@ -5477,13 +5477,13 @@ def loadFromFile(context, filename, isFullFilepath=True):
             elif camera is not None:
                 debugPrint("Positioning Camera: {0}".format(camera.data.name))
 
-                # camera.data.clip_start = 25 * globalScaleFactor            # 0.01 at normal scale # rollback realScale: #
-                # camera.data.clip_end   = 250000 * globalScaleFactor        # 100 at normal scale  # rollback realScale: #
+                camera.data.clip_start = 25 * globalScaleFactor     # 0.01 at normal scale # revert realScale: (rollback: disabled)
+                camera.data.clip_end   = 250000 * globalScaleFactor # 100 at normal scale  # revert realScale: (rollback: disabled)
 
                 # Set up a default camera position and rotation
                 camera.location = mathutils.Vector((6.5, -6.5, 4.75))
-                # camera.location.normalize()  # rollback realScale: #
-                # camera.location = camera.location * boundingBoxDistance # rollback realScale: #
+                camera.location.normalize()                             # revert realScale: (rollback: disabled)
+                camera.location = camera.location * boundingBoxDistance # revert realScale: (rollback: disabled)
                 camera.rotation_mode = 'XYZ'
                 camera.rotation_euler = mathutils.Euler((1.0471975803375244, 0.0, 0.7853981852531433), 'XYZ')
 
@@ -5505,8 +5505,8 @@ def loadFromFile(context, filename, isFullFilepath=True):
             area = areas[0]
             with bpy.context.temp_override(area=area):
                 view3d = bpy.context.space_data
-                view3d.region_3d.view_location = boundingBoxCentre      # Where to look at
-                # view3d.region_3d.view_distance = boundingBoxDistance    # How far from target # rollback realScale: #
+                view3d.region_3d.view_location = boundingBoxCentre    # Where to look at
+                view3d.region_3d.view_distance = boundingBoxDistance  # How far from target # revert realScale: (rollback: disabled)
 
     # Get existing object names
     sceneObjectNames = [x.name for x in scene.objects]

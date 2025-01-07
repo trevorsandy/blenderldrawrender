@@ -56,7 +56,7 @@ class Preferences():
         # Version 1.5 and later attribute updates:
         for section in self.__config.sections():
             if section == "ImportLDraw":
-                addList = ['realgapwidth,0.0002', 'realscale,0.02']
+                addList = ['realgapwidth,0.0002', 'realscale,1.0']
                 for addItem in addList:
                     pair = addItem.split(",")
                     if not self.__config.has_option(section, pair[0]):

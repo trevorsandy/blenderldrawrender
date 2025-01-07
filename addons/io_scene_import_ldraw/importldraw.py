@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update December 25, 2024
+Last Update January 07, 2025
 Copyright (c) 2024 by Toby Nelson
 Copyright (c) 2020 - 2025 by Trevor SANDY
 
@@ -86,7 +86,7 @@ removeDoubles                 = False
 renderWindow                  = False
 resolution                    = Standard
 resolveNormals                = guess
-realScale                     = 0.02    # rollback realScale: 1.0
+realScale                     = 1.0    # revert realScale: (rollback 0.02)
 scaleStrategy                 = Mesh
 smoothShading                 = True
 transparentBackground         = True
@@ -126,7 +126,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
     realScale: FloatProperty(
         name="Scale",
         description="Sets a scale for the model (range: .01 and 1.0, 0.04 is LeoCAD scale, 1.0 = real LEOG scale)",
-        default=prefs.get("realScale", 0.01)     # rollback realScale: 1.0
+        default=prefs.get("realScale", 1.0)     # revert realScale: (rollback: 0.01)
     )
 
     resPrims: EnumProperty(
@@ -472,6 +472,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         model_globals.init()
 
         ImportLDrawOps.prefs = Preferences(self.preferencesFile)
+        loadldraw.Options.verbose = self.verbose
         if self.renderLDraw:
             loadldraw.debugPrint("-----Import Settings-----")
             # Update properties with the reinitialized preferences
@@ -628,8 +629,6 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         model_globals.LDRAW_MODEL_LOADED = True
 
         loadldraw.debugPrint("-----Import Complete-----")
-        if load_result is None:
-            loadldraw.debugPrint("Import result: None")
         loadldraw.debugPrint(f"Model file: {model_globals.LDRAW_MODEL_FILE}")
         loadldraw.debugPrint(f"Part count: {loadldraw.globalBrickCount}")
         loadldraw.debugPrint(f"Elapsed time: {loadldraw.formatElapsed(loadldraw.ldrawLoadElapsed)}")
