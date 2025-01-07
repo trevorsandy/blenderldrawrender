@@ -4614,8 +4614,9 @@ def createBlenderObjectsFromNode(node,
 
                     unlinkFromScene(ob)
 
-        # The lines out of an empty shown in the viewport are scaled to a reasonable size
-        ob.empty_display_size = 250.0 * globalScaleFactor # revert realScale: (rollback: 5 * globalScaleFactor) 
+
+        # Set the empty plain axes line display in the viewport to fixed size of .1m - was 250.0 * globalScaleFactor
+        ob.empty_display_size = 250.0 * 0.0004 # revert realScale: (rollback: 5 * globalScaleFactor)
 
         # Mark object as transparent if any polygon is transparent
         ob["Lego.isTransparent"] = False
