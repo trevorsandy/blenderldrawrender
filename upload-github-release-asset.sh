@@ -88,6 +88,7 @@ DEV_OPS_PUBLISH_DEST=${PUBLISH_DEST:-/home/$GH_USER/projects/build-LPub3D-Deskto
 GH_DIR="$GH_REPO_PATH/.git"
 GH_API="https://api.github.com"
 GH_REPO="$GH_API/repos/$GH_OWNER/$GH_REPO_NAME"
+GH_REMOTE="https://$GH_OWNER:$GH_API_TOKEN@github.com/$GH_OWNER/$GH_REPO_NAME.git"
 GH_TAGS="$GH_REPO/releases/tags/$GH_TAG"
 GH_AUTH="Authorization: token $GH_API_TOKEN"
 TAG_EXIST=""
@@ -309,6 +310,7 @@ if [[ -n $DEV_OPS_REL && -f $GH_ASSET_NAME ]]; then
     fi
 fi
 
+# Create version commit
 if [ -z "$DEV_OPS_NO_COMMIT" ]; then
     echo -n "Converting files from CRLF to LF..." && \
     ( find . \
@@ -334,6 +336,8 @@ $GH_COMMIT_NOTE
 
 pbEOF
     GIT_DIR=$GH_REPO_PATH/.git git commit -m "$GH_COMMIT_NOTE"
+    # Push committed files to remote master
+    if [ "$DEV_OPS_NO_UPLOAD" != "true" ]; then git push -u $GH_REMOTE master >/dev/null; fi
 fi
 
 # Stop here if not uploading build
