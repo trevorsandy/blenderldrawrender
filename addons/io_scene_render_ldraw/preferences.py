@@ -86,9 +86,11 @@ class Preferences():
         if self.__updateIni:
             self.save_config_ini()
 
+        self.__ini = self.__sectionName in self.__config
+
         self.__config_mm = {}
 
-        if self.__sectionKey == "MM" and self.__sectionName in self.__config:
+        if self.__sectionKey == "MM" and self.__ini:
             self.__config_mm = {
                 'add_environment': self.__config[self.__sectionName]['addenvironment'],
                 'additional_search_paths': self.__config[self.__sectionName]['additionalsearchpaths'],
@@ -167,9 +169,10 @@ class Preferences():
             sys.stdout.write(f"{message}\n")
             sys.stdout.flush()
 
+
     def get(self, option, default):
         if self.__sectionKey == "MM":
-            return self.evaluate_value(self.__config_mm[option])
+            return self.get_type(self.__config_mm[option])
         else:
             if not self.__prefsRead:
                 return default
@@ -182,23 +185,26 @@ class Preferences():
             else:
                 return self.__config.get(self.__sectionName, option, fallback=default)
 
+
     def set(self, option, value):
         if self.__sectionKey == "MM":
-            self.__config_mm[option] = str(value)
+            self.__config_mm[option] = str(value) if self.__ini else value
         else:
             if self.__sectionName not in self.__config:
                 self.__config[self.__sectionName] = {}
             self.__config[self.__sectionName][option] = str(value)
-    
+
+
     def save(self):
         """Save the current configuration settings."""
         if self.__sectionKey == "MM":
             self.__settings = {}
             for k, v in self.__config_mm.items():
-                self.__settings[k] = self.evaluate_value(v)
+                self.__settings[k] = self.get_type(v) if self.__ini else v
             return self.write_json()
         else:
             return self.write_ini()
+
 
     def save_config_ini(self):
         """Save LDraw configuration settings if attributes updated."""
@@ -210,6 +216,7 @@ class Preferences():
             self.__updateIni = False
             return result
 
+
     def write_ini(self, configini=False):
         try:
             folder = os.path.dirname(self.__prefsFile)
@@ -220,13 +227,14 @@ class Preferences():
                     if section != self.__sectionName:
                         config.remove_section(section)
             with open(self.__prefsFile, 'w', encoding='utf-8', newline="\n") as configFile:
-                config.write(configFile)
+                config.write(configFile,False)
             return True
         except OSError as e:
             self.preferences_print(f"ERROR: Could not save INI preferences. I/O error({e.errno}): {e.strerror}", True)
         except Exception:
             self.preferences_print(f"ERROR: Could not save INI preferences. Unexpected error: {sys.exc_info()[0]}", True)
         return False
+
 
     def write_json(self):
         try:
@@ -241,6 +249,7 @@ class Preferences():
             self.preferences_print(f"ERROR: Could not save JSON preferences. Unexpected error: {sys.exc_info()[0]}", True)
         return False
     
+
     def read_json(self, filepath):
         try:
             with open(filepath, 'r', encoding='utf-8') as file:
@@ -252,22 +261,27 @@ class Preferences():
             empty_config_mm = {}
             return empty_config_mm
 
+
     def copy_ldraw_parameters(self, ldraw_parameters_file, addon_ldraw_parameters_file):
         try:
             copyfile(ldraw_parameters_file, addon_ldraw_parameters_file)
         except IOError as e:
             self.preferences_print(f"WARNING: Could not Copy LDraw parameters. I/O error({e.errno}): {e.strerror}")
 
+
     def getEnvironmentFile(self):
         return os.path.abspath(os.path.join(self.__importPath, 'loadldraw', 'background.exr'))
+
 
     def getLSynthPath(self):
         return os.path.abspath(os.path.join(self.__importPath, 'lsynth'))
 
+
     def getLStudsPath(self):
         return os.path.abspath(os.path.join(self.__importPath, 'studs'))
 
-    def evaluate_value(self, x):
+
+    def get_type(self, x):
         if x == 'True':
             return True
         elif x == 'False':
@@ -280,6 +294,7 @@ class Preferences():
             return x.replace("\\\\", os.path.sep).replace("\\", os.path.sep)
         else:
             return x
+
 
     def is_float(self, x):
         try:
@@ -300,6 +315,7 @@ class Preferences():
 
     def importer(self):
         return self.__sectionName
+
 
 if __name__ == "__main__":
     print("Marshall {0} LDraw Blender settings.".format(Preferences.importer()), end=f"\n{'-' * 34}\n")
