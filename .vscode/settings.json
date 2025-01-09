@@ -1,0 +1,12 @@
+{
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportInvalidTypeForm": "none"
+    },
+    "files.eol": "\n",
+    "python.linting.enabled": false,
+    "linter.enabled": false,
+    "python.analysis.extraPaths": [
+        "./setup",
+		"./addons"
+    ]
+}
