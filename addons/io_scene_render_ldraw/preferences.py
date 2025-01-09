@@ -28,14 +28,6 @@ class Preferences():
             self.__sectionKey = sectionkey
         if self.__sectionKey == "MM":
             self.__sectionName = "ImportLDrawMM"
-        if prefsfile.__ne__(None) and os.path.isfile(prefsfile):
-            self.__prefsFile = prefsfile
-        elif self.__sectionKey == "TN":
-            self.__prefsFile = self.__defaultPrefsFile
-        elif self.__sectionKey == "MM":
-            self.__prefsFile = self.__defaultMMPrefsFile
-        
-        assert self.__prefsFile != "", "Import Preferences file was not specified."
 
         if configfile.__ne__(None) and os.path.isfile(configfile):
             self.__configFile = configfile
@@ -45,6 +37,15 @@ class Preferences():
             self.__configFile = self.__defaultPrefsFile
 
         assert self.__configFile != "", "Configuration Preferences file was not specified."
+
+        if prefsfile.__ne__(None) and os.path.isfile(prefsfile):
+            self.__prefsFile = prefsfile
+        elif self.__sectionKey == "TN":
+            self.__prefsFile = self.__defaultPrefsFile
+        elif self.__sectionKey == "MM":
+            self.__prefsFile = self.__defaultMMPrefsFile
+        
+        assert self.__prefsFile != "", "Import Preferences file was not specified."
 
         self.__config = configparser.RawConfigParser()
         self.__prefsRead = self.__config.read(self.__configFile)
@@ -87,12 +88,12 @@ class Preferences():
         if self.__updateIni:
             self.save_config_ini()
 
-        self.__ini = self.__sectionName in self.__config
+        self.__inIni = self.__sectionName in self.__config
 
-        self.__config_mm = {}
+        self.__configMM = {}
 
-        if self.__sectionKey == "MM" and self.__ini:
-            self.__config_mm = {
+        if self.__sectionKey == "MM" and self.__inIni:
+            self.__configMM = {
                 'add_environment': self.__config[self.__sectionName]['addenvironment'],
                 'additional_search_paths': self.__config[self.__sectionName]['additionalsearchpaths'],
                 'bevel_edges': self.__config[self.__sectionName]['beveledges'],
@@ -158,7 +159,7 @@ class Preferences():
                 'verbose': self.__config[self.__sectionName]['verbose']
             }
         else:
-            self.__config_mm = self.read_json(self.__defaultMMPrefsFile)
+            self.__configMM = self.read_json(self.__defaultMMPrefsFile)
 
         self.evaluate_ldraw_path()
 
@@ -166,34 +167,34 @@ class Preferences():
     def evaluate_ldraw_path(self):
         if self.__sectionKey == "MM":
             key = "use_archive_library"
-            use_archive_library = self.get_type(self.__config_mm[key])
+            useArchiveLibrary = self.get_type(self.__configMM[key])
         else:
             key = "usearchivelibrary"
-            use_archive_library = self.__config.getboolean(self.__sectionName, key)
-        if not use_archive_library:
+            useArchiveLibrary = self.__config.getboolean(self.__sectionName, key)
+        if not useArchiveLibrary:
             if self.__sectionKey == "MM":
-                ldraw_path = self.__config_mm.get("ldraw_path")
+                ldrawPath = self.__configMM.get("ldraw_path")
             else:
-                ldraw_path = self.__config.get(self.__sectionName, "ldrawdirectory")
-            if ldraw_path != "":
-                valid_config = os.path.isfile(os.path.join(ldraw_path,"LDConfig.ldr"))
-                valid_primitive = os.path.isfile(os.path.join(ldraw_path, "p", "1-4cyli.dat"))
-                if not valid_config and not valid_primitive:
-                    for library_name in os.listdir(ldraw_path):
-                        if library_name.endswith(".zip") or library_name.endswith(".bin"):
-                            library_path = os.path.join(ldraw_path, library_name)
-                            with zipfile.ZipFile(library_path) as library:
+                ldrawPath = self.__config.get(self.__sectionName, "ldrawdirectory")
+            if ldrawPath != "":
+                validConfig = os.path.isfile(os.path.join(ldrawPath,"LDConfig.ldr"))
+                validPrimitive = os.path.isfile(os.path.join(ldrawPath, "p", "1-4cyli.dat"))
+                if not validConfig and not validPrimitive:
+                    for libraryName in os.listdir(ldrawPath):
+                        if libraryName.endswith(".zip") or libraryName.endswith(".bin"):
+                            libraryPath = os.path.join(ldrawPath, libraryName)
+                            with zipfile.ZipFile(libraryPath) as library:
                                 if "ldraw/LDConfig.ldr" in library.namelist() and \
                                     "ldraw/p/1-4cyli.dat" in library.namelist():
-                                    use_archive_library = True
+                                    useArchiveLibrary = True
                                     break
-                    if use_archive_library:
+                    if useArchiveLibrary:
                         if self.__sectionKey == "MM":
-                            self.__config_mm[key] = str(True) if self.__ini else True
+                            self.__configMM[key] = str(True) if self.__inIni else True
                         else:
                             self.__config[self.__sectionName][key] = str(True)
                     else:
-                        self.preferences_print(f"WARNING: '{ldraw_path}' may not be a valid LDraw library")
+                        self.preferences_print(f"WARNING: '{ldrawPath}' may not be a valid LDraw library")
 
 
     def preferences_print(self, message, is_error=False):
@@ -209,7 +210,7 @@ class Preferences():
 
     def get(self, option, default):
         if self.__sectionKey == "MM":
-            return self.get_type(self.__config_mm[option])
+            return self.get_type(self.__configMM[option])
         else:
             if not self.__prefsRead:
                 return default
@@ -225,7 +226,7 @@ class Preferences():
 
     def set(self, option, value):
         if self.__sectionKey == "MM":
-            self.__config_mm[option] = str(value) if self.__ini else value
+            self.__configMM[option] = str(value) if self.__inIni else value
         else:
             if self.__sectionName not in self.__config:
                 self.__config[self.__sectionName] = {}
@@ -236,8 +237,8 @@ class Preferences():
         """Save the current configuration settings."""
         if self.__sectionKey == "MM":
             self.__settings = {}
-            for k, v in self.__config_mm.items():
-                self.__settings[k] = self.get_type(v) if self.__ini else v
+            for k, v in self.__configMM.items():
+                self.__settings[k] = self.get_type(v) if self.__inIni else v
             return self.write_json()
         else:
             return self.write_ini()
@@ -295,8 +296,8 @@ class Preferences():
             self.preferences_print(f"ERROR: ({e})", True)
             import traceback
             print(traceback.format_exc())
-            empty_config_mm = {}
-            return empty_config_mm
+            emptyConfigMM = {}
+            return emptyConfigMM
 
 
     def copy_ldraw_parameters(self, ldraw_parameters_file, addon_ldraw_parameters_file):

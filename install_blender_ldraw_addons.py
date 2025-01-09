@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update January 04, 2024
+Last Update January 09, 2025
 Copyright (c) 2020 - 2025 by Trevor SANDY
 
 LPub3D Blender LDraw Addon GPLv2 license.
@@ -56,13 +56,10 @@ import bpy
 parent_dir = Path(__file__).parent
 
 sys.path.append(str(os.path.join(parent_dir, "setup")))
+sys.path.append(str(os.path.join(parent_dir, "addons")))
 
 import addon_setup
 from addon_setup.arguments import BlenderArgumentParser
-
-sys.path.append(str(os.path.join(parent_dir, "addons")))
-
-import io_scene_render_ldraw
 from io_scene_render_ldraw.preferences import Preferences
 
 
@@ -112,7 +109,7 @@ def install_ldraw_addon(argv):
     # Set LDraw renderer preferences ini file path
     config_file = os.path.join(
         blender_addons_path, "io_scene_render_ldraw", "config", "LDrawRendererPreferences.ini")
-    
+
     # Set Background environment file
     environment_file = os.path.join(
         blender_addons_path, "io_scene_import_ldraw", "loadldraw", "background.exr")
