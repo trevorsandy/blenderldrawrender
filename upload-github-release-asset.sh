@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 #
 # Author: Trevor SANDY
-# Last Update January 02, 2025
+# Last Update January 09, 2025
 #
 # Adapted from original script by Stefan Buck
 # License: MIT
 #
-function ShowHelp() {
+
+function ShowHelp()
+{
     echo
     echo "Script to upload a release asset using the GitHub API v3."
     echo
@@ -54,7 +56,7 @@ echo && echo "$SCRIPT_NAME" && echo
 # Check for script dependencies
 echo
 #set -e
-echo -n "Checking dependencies... "
+echo -n "Checking script dependencies... "
 for name in zip unzip jq xargs
 do
     [[ $(which $name 2>/dev/null) ]] || { echo -en "\n$name needs to be installed. Use 'sudo apt-get install $name'";deps=1; }
@@ -94,7 +96,7 @@ GH_AUTH="Authorization: token $GH_API_TOKEN"
 TAG_EXIST=""
 
 # Arguments display
-function display_arguments
+function display_arguments()
 {
     echo
     echo "--Command Options:"
@@ -138,7 +140,7 @@ function display_arguments
 }
 
 # New release data
-function generate_release_post_data
+function generate_release_post_data()
 {
   cat <<EOF
 {
@@ -163,7 +165,7 @@ function mv_exr ()
 }
 
 # Package the archive
-function package_archive
+function package_archive()
 {
     echo && echo "Creating release package..."
     if [ -f "$GH_ASSET_NAME" ];then
@@ -228,8 +230,10 @@ exec > >(tee -a "${LOG}" )
 exec 2> >(tee -a "${LOG}" >&2)
 
 # Get tag
-GIT_DIR=$GH_REPO_PATH/.git git fetch --tags
-VER_TAG=$(GIT_DIR=$GH_REPO_PATH/.git git describe --tags --match v* --abbrev=0)
+echo && echo -n "Fetch tags... "
+GIT_DIR=$GH_DIR git fetch --tags >/dev/null 2>&1
+if [ "$?" = "0" ]; then echo "Ok"; else echo "Failed"; fi
+VER_TAG=$(GIT_DIR=$GH_DIR git describe --tags --match v* --abbrev=0)
 if [[ "$GH_TAG" == 'LATEST' ]]; then
     echo && echo -n "Setting latest tag... "
     GH_TAGS="$GH_REPO/releases/latest"
@@ -239,7 +243,7 @@ if [[ "$GH_TAG" == 'LATEST' ]]; then
 else
     echo && echo -n "Getting specified tag... "
     VER_TAG=$GH_TAG
-    if GIT_DIR=$GH_REPO_PATH/.git git rev-parse "$GH_TAG" >/dev/null 2>&1; then
+    if GIT_DIR=$GH_DIR git rev-parse "$GH_TAG" >/dev/null 2>&1; then
         TAG_EXIST=$GH_TAG
         echo "$VER_TAG"
     else
@@ -266,7 +270,7 @@ PY_VER=${PY_VER/v/}      # replace v with ""
 echo "Updating .py files to version $PY_VER"
 for PY_FILE in addons/io_scene_import_ldraw/__*.py addons/io_scene_import_ldraw_mm/__*.py addons/io_scene_render_ldraw/__*.py;
 do
-    echo "Set version to '$PY_VER' in file '$PY_FILE'"
+    echo "  Set version to '$PY_VER' in file '$PY_FILE'"
     if [[ -f ${PY_FILE} && -r ${PY_FILE} ]]
     then
         if [ "$OS_NAME" = Darwin ]
@@ -310,9 +314,21 @@ if [[ -n $DEV_OPS_REL && -f $GH_ASSET_NAME ]]; then
     fi
 fi
 
+# Validate token.
+if [ "$DEV_OPS_NO_UPLOAD" != "true" ]; then
+    echo -n "Validating user token..."
+    curl -o /dev/null -sH "$GH_AUTH" "$GH_REPO"
+    if [ "$?" = "0" ]; then
+        echo "Ok"
+    else
+        echo "ERROR: Invalid repo, token or network issue!"
+        exit 1
+    fi
+fi
+
 # Create version commit
 if [ -z "$DEV_OPS_NO_COMMIT" ]; then
-    echo -n "Converting files from CRLF to LF..." && \
+    echo && echo -n "Converting files from CRLF to LF... " && \
     ( find . \
     -not -path "./.git/*" \
     -not -path "./.vscode/*" \
@@ -335,7 +351,7 @@ cat << pbEOF >$GH_DIR/COMMIT_EDITMSG
 $GH_COMMIT_NOTE
 
 pbEOF
-    GIT_DIR=$GH_REPO_PATH/.git git commit -m "$GH_COMMIT_NOTE"
+    GIT_DIR=$GH_DIR git commit -m "$GH_COMMIT_NOTE"
     # Push committed files to remote master
     if [ "$DEV_OPS_NO_UPLOAD" != "true" ]; then git push -u $GH_REMOTE master >/dev/null; fi
 fi
@@ -347,15 +363,11 @@ if [ "$DEV_OPS_NO_UPLOAD" = "true" ]; then echo && echo "Finished." && echo && e
 if [[ -z "$TAG_EXIST" ]]; then
     echo && echo "Create release '$GH_RELEASE', version '$GH_TAG', for repo '$GH_REPO_NAME' on branch '$GH_REPO_BRANCH'" && echo
     curl -H "$GH_AUTH" --data "$(generate_release_post_data)" "$GH_REPO/releases"
-    GIT_DIR=$GH_REPO_PATH/.git git fetch --tags
-    VER_TAG=$(GIT_DIR=$GH_REPO_PATH/.git git describe --tags --match v* --abbrev=0)
+    GIT_DIR=$GH_DIR git fetch --tags
+    VER_TAG=$(GIT_DIR=$GH_DIR git describe --tags --match v* --abbrev=0)
 fi
 # VER_TAG=$GH_TAG    #ENABLE FOR TEST
 echo && echo "Retrieved tag: '$GH_TAG'" && echo
-
-# Validate token.
-echo "Validating user token..." && echo
-curl -o /dev/null -sH "$GH_AUTH" "$GH_REPO" || { echo "ERROR: Invalid repo, token or network issue!";  exit 1; }
 
 # Read asset tags and display response.
 echo "Retrieving repository data..." && echo
@@ -406,23 +418,23 @@ echo "ERROR - Failed"
 # Prepare and upload the asset and respective asset sha files
 if [[ -f "$GH_ASSET_NAME" && -f "$GH_ASSET_SHA_NAME" ]]; then
 
-echo && echo "Uploading asset sha $GH_ASSET_SHA_NAME, ID: $GH_ASSET_SHA_ID..."
+    echo && echo "Uploading asset sha $GH_ASSET_SHA_NAME, ID: $GH_ASSET_SHA_ID..."
 
-GH_ASSET_URL=https://uploads.github.com/repos/$GH_OWNER/$GH_REPO_NAME/releases/$GH_RELEASE_ID/assets
+    GH_ASSET_URL=https://uploads.github.com/repos/$GH_OWNER/$GH_REPO_NAME/releases/$GH_RELEASE_ID/assets
 
-GH_ASSET="${GH_ASSET_URL}?name=$(basename "$GH_ASSET_NAME").sha256"
+    GH_ASSET="${GH_ASSET_URL}?name=$(basename "$GH_ASSET_NAME").sha256"
 
-curl --data-binary @"$GH_ASSET_SHA_NAME" -H "$GH_AUTH" -H "Content-Type: text/xml" "$GH_ASSET"
+    curl --data-binary @"$GH_ASSET_SHA_NAME" -H "$GH_AUTH" -H "Content-Type: text/xml" "$GH_ASSET"
 
-echo && echo "Uploading asset $GH_ASSET_NAME, ID: $GH_ASSET_ID..."
+    echo && echo "Uploading asset $GH_ASSET_NAME, ID: $GH_ASSET_ID..."
 
-GH_ASSET="${GH_ASSET_URL}?name=$(basename "$GH_ASSET_NAME")"
+    GH_ASSET="${GH_ASSET_URL}?name=$(basename "$GH_ASSET_NAME")"
 
-curl --data-binary @"$GH_ASSET_NAME" -H "$GH_AUTH" -H "Content-Type: application/octet-stream" "$GH_ASSET"
+    curl --data-binary @"$GH_ASSET_NAME" -H "$GH_AUTH" -H "Content-Type: application/octet-stream" "$GH_ASSET"
 
 else
 
-echo && echo "ERROR - Could not find $GH_ASSET_SHA_NAME or $GH_ASSET_NAME - No upload performed."
+    echo && echo "ERROR - Could not find $GH_ASSET_SHA_NAME or $GH_ASSET_NAME - No upload performed."
 
 fi
 
