@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update January 09, 2025
+Last Update January 09, 2024
 Copyright (c) 2020 - 2025 by Trevor SANDY
 
 LPub3D Blender LDraw Addon GPLv2 license.
@@ -28,12 +28,16 @@ To Run (Windows example):
 - Prerequisites
     - Blender 2.82 or later
 - Open Windows command terminal (cmd.exe) and navigate to this script directory.
-- Update <Path>, copy and paste the following variable commands into the console:
-    - SET ADDONS_TO_LOAD=[{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_import_ldraw","module_name":"io_scene_import_ldraw"},{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_import_ldraw_mm","module_name":"io_scene_import_ldraw_mm"},{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_render_ldraw","module_name":"io_scene_render_ldraw"}]
-    - SET LDRAW_DIRECTORY=<Path>\LDraw (Note: Avoid using an LDraw path that include spaces)
-- Execute command
+- Set Environment Variables
+    - Update <Path>, then copy and paste the the optional environment variables into the console as needed.
+    - If LDRAW_DIRECTORY is not set, the installation routine will attempt to locate the LDraw path.
+- Execute Command
     - <Blender Path>/blender --background --python install_blender_ldraw_addons.py -- <optional arguments>
-- Optional Arguments
+    - Example: C:\\Users\\Trevor\\Graphics\\blender-4.3.2-windows-x64\\blender.exe --background --python install_blender_ldraw_addons.py -- --disable_ldraw_import_mm
+- Optional Environment Variables:
+    - SET ADDONS_TO_LOAD=[{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_import_ldraw","module_name":"io_scene_import_ldraw"},{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_import_ldraw_mm","module_name":"io_scene_import_ldraw_mm"},{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_render_ldraw","module_name":"io_scene_render_ldraw"}]
+    - SET LDRAW_DIRECTORY=<Path>\\LDraw (Note: Avoid using an LDraw path that include spaces)
+- Optional Arguments:
     -xr, --disable_ldraw_render    Disable the LDraw render addon menu action in Blender
     -xi, --disable_ldraw_import    Disable the LDraw import addon menu action in Blender
     -xm, --disable_ldraw_import_mm Disable the LDraw import addon menu action in Blender
@@ -82,8 +86,18 @@ def install_ldraw_addon(argv):
                     	    help="Specify if the Blender LDraw install script caller is LeoCAD")
     options = arg_parser.parse_args()
 
+    # Process addons to load
+    env_addons = os.environ.get("ADDONS_TO_LOAD")
+    if env_addons is None:
+        addon_path = os.path.join(parent_dir, "addons")
+        default_addons = [
+            {"load_dir":f"{os.path.join(addon_path,'io_scene_import_ldraw')}","module_name":"io_scene_import_ldraw"},
+            {"load_dir":f"{os.path.join(addon_path,'io_scene_import_ldraw_mm')}","module_name":"io_scene_import_ldraw_mm"},
+            {"load_dir":f"{os.path.join(addon_path,'io_scene_render_ldraw')}","module_name":"io_scene_render_ldraw"}
+        ]
     addons_to_load=tuple(map(lambda x: (Path(x["load_dir"]), x["module_name"]),
-                                        json.loads(os.environ['ADDONS_TO_LOAD'])))
+                                        json.loads(env_addons) if env_addons is not None else default_addons))
+    assert addons_to_load is not None, "No LDraw addons specified."
 
     # Perform addon linking and load
     try:
@@ -96,15 +110,12 @@ def install_ldraw_addon(argv):
     # Get 'Blender LDraw Render' addon version
     for addon in addon_utils.modules():
         if addon.__name__ == addons_to_load[0][1]:
-            addon_version = addon.bl_info.get('version', (-1, -1, -1))
+            addon_version = addon.bl_info.get("version", (-1, -1, -1))
             print("ADDON VERSION: {0}".format(".".join(map(str, addon_version))))
             break
 
     # Addon installation folder
-    blender_addons_path = bpy.utils.user_resource('SCRIPTS', path="addons")
-
-    # Set LDraw directory in default preference file
-    ldraw_path = os.environ.get('LDRAW_DIRECTORY')
+    blender_addons_path = bpy.utils.user_resource("SCRIPTS", path="addons")
 
     # Set LDraw renderer preferences ini file path
     config_file = os.path.join(
@@ -118,8 +129,6 @@ def install_ldraw_addon(argv):
     pref_file = os.path.join(
         blender_addons_path, "io_scene_import_ldraw_mm", "config", "ImportOptions.json")
     prefs = Preferences(config_file, pref_file, 'MM')
-    if ldraw_path != "":
-        prefs.set('ldraw_path', ldraw_path)
     prefs.set('environment_file', environment_file)
     prefs.save()
 
@@ -127,8 +136,6 @@ def install_ldraw_addon(argv):
     pref_file = os.path.join(
         blender_addons_path, "io_scene_import_ldraw", "config", "ImportLDrawPreferences.ini")
     prefs = Preferences(config_file, pref_file, 'TN')
-    if ldraw_path != "":
-        prefs.set('ldrawdirectory', ldraw_path)
     prefs.set('environmentfile', environment_file)
     lsynth_directory = os.path.join(
         blender_addons_path, "io_scene_import_ldraw", "lsynth")
@@ -137,6 +144,10 @@ def install_ldraw_addon(argv):
         blender_addons_path, "io_scene_import_ldraw", "studs")
     prefs.set('studlogodirectory', studlogo_directory)
     prefs.save()
+
+    # Enaure LDraw directory is set
+    ldraw_path = prefs.get('ldrawdirectory', "")
+    assert ldraw_path != "", "LDraw library path not specified."
 
     # Cleanup pycache
     for addon_path in map(lambda item: item[0], addons_to_load):

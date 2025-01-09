@@ -2,9 +2,11 @@ import os
 import sys
 import json
 import copy
+import string
 import datetime
 import zipfile
 import configparser
+from sys import platform
 from pathlib import Path
 from shutil import copyfile
 
@@ -15,6 +17,7 @@ class Preferences():
     __sectionName = "ImportLDraw"
     __updateIni = False
     __configFile = None
+    __ldrawPathLocated = False
     __timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-4]
     __importPath = os.path.abspath(os.path.join(Path(__file__).parent, "..", "io_scene_import_ldraw"))
     __importMMPath = os.path.abspath(os.path.join(Path(__file__).parent, "..", "io_scene_import_ldraw_mm"))
@@ -165,36 +168,119 @@ class Preferences():
 
 
     def evaluate_ldraw_path(self):
+        ldrawPath = self.locate_ldraw_path()
+        if self.__ldrawPathLocated:
+            return
+
         if self.__sectionKey == "MM":
             key = "use_archive_library"
             useArchiveLibrary = self.get_type(self.__configMM[key])
         else:
             key = "usearchivelibrary"
             useArchiveLibrary = self.__config.getboolean(self.__sectionName, key)
-        if not useArchiveLibrary:
-            if self.__sectionKey == "MM":
-                ldrawPath = self.__configMM.get("ldraw_path")
-            else:
-                ldrawPath = self.__config.get(self.__sectionName, "ldrawdirectory")
-            if ldrawPath != "":
-                validConfig = os.path.isfile(os.path.join(ldrawPath,"LDConfig.ldr"))
-                validPrimitive = os.path.isfile(os.path.join(ldrawPath, "p", "1-4cyli.dat"))
-                if not validConfig and not validPrimitive:
-                    for libraryName in os.listdir(ldrawPath):
-                        if libraryName.endswith(".zip") or libraryName.endswith(".bin"):
-                            libraryPath = os.path.join(ldrawPath, libraryName)
-                            with zipfile.ZipFile(libraryPath) as library:
-                                if "ldraw/LDConfig.ldr" in library.namelist() and \
-                                    "ldraw/p/1-4cyli.dat" in library.namelist():
-                                    useArchiveLibrary = True
-                                    break
-                    if useArchiveLibrary:
-                        if self.__sectionKey == "MM":
-                            self.__configMM[key] = str(True) if self.__inIni else True
-                        else:
-                            self.__config[self.__sectionName][key] = str(True)
+
+        if not useArchiveLibrary and ldrawPath != "":
+            validConfig = os.path.isfile(os.path.join(ldrawPath,"LDConfig.ldr"))
+            validPrimitive = os.path.isfile(os.path.join(ldrawPath, "p", "1-4cyli.dat"))
+            if not validConfig and not validPrimitive:
+                for libraryName in os.listdir(ldrawPath):
+                    if libraryName.endswith(".zip") or libraryName.endswith(".bin"):
+                        libraryPath = os.path.join(ldrawPath, libraryName)
+                        with zipfile.ZipFile(libraryPath) as library:
+                            if "ldraw/LDConfig.ldr" in library.namelist() and \
+                                "ldraw/p/1-4cyli.dat" in library.namelist():
+                                useArchiveLibrary = True
+                                break
+                if useArchiveLibrary:
+                    if self.__sectionKey == "MM":
+                        self.__configMM[key] = str(True) if self.__inIni else True
                     else:
-                        self.preferences_print(f"WARNING: '{ldrawPath}' may not be a valid LDraw library")
+                        self.__config[self.__sectionName][key] = str(True)
+                else:
+                    self.preferences_print(f"WARNING: '{ldrawPath}' may not be a valid LDraw library")
+
+
+    def locate_ldraw_path(self):
+        ldrawFolder = 'ldraw'
+        ldconfigFile = 'LDConfig.ldr'
+        option = 'ldraw_path' if self.__sectionKey == "MM" else 'ldrawdirectory'
+
+        path = os.environ.get('LDRAW_DIRECTORY')
+        if path is not None:
+            ldrawPath = os.path.expanduser(path).rstrip()
+            if ldrawPath != "":
+                self.__ldrawPathLocated = os.path.isfile(os.path.join(ldrawPath, ldconfigFile))
+                self.set(option, ldrawPath)
+                return ldrawPath
+        else: 
+            ldrawPath = ""
+      
+        if ldrawPath == "":
+            ldrawPath = self.get(option, "")
+            if ldrawPath != "":
+                self.__ldrawPathLocated = os.path.isfile(os.path.join(ldrawPath, ldconfigFile))
+                return ldrawPath
+        
+        if ldrawPath == "":
+            ldrawPath = os.path.join(str(Path.home()), ldrawFolder)
+            if ldrawPath != "":
+                self.__ldrawPathLocated = os.path.isfile(os.path.join(ldrawPath, ldconfigFile))
+                self.set(option, ldrawPath)
+                self.save()
+                return ldrawPath
+
+        # Set list of possible ldraw library installation paths for the platform
+        if platform == "win32":
+            ldrawPossiblePaths = [
+                os.path.join(os.environ['USERPROFILE'], "LDraw"),
+                os.path.join(os.environ['USERPROFILE'], os.path.join("Desktop", "LDraw")),
+                os.path.join(os.environ['USERPROFILE'], os.path.join("Documents", "LDraw")),
+                os.path.join(os.environ["ProgramFiles"], "LDraw"),
+                os.path.join(os.environ["ProgramFiles(x86)"], "LDraw"),
+                os.path.join(f"{Path.home().drive}:{os.path.sep}", "LDraw"),
+            ]
+        elif platform == "darwin":
+            ldrawPossiblePaths = [
+                "~/ldraw/",
+                "/Applications/ldraw/",
+                "/usr/local/share/ldraw",
+            ]
+        else:  # Default to Linux if not Windows or Mac
+            ldrawPossiblePaths = [
+                "~/LDraw",
+                "~/ldraw",
+                "~/.LDraw",
+                "~/.ldraw",
+                "/usr/local/share/ldraw",
+            ]
+
+        # Search possible paths
+        ldrawPath = ""
+        for path in ldrawPossiblePaths:
+            path = os.path.expanduser(path)
+            if platform == "win32":
+                if os.path.isfile(os.path.join(path, ldconfigFile)):
+                    ldrawPath = path
+                    break
+                for driveLetter in string.ascii_lowercase:
+                    pathTail = os.path.splitdrive(path)[1]
+                    path = os.path.join(os.path.join(f"{driveLetter}:{os.path.sep}", pathTail))
+                    if os.path.isfile(os.path.join(path, ldconfigFile)):
+                        ldrawPath = path
+                        break
+                if ldrawPath != "":
+                    break
+            else:
+                if os.path.isfile(os.path.join(path, ldconfigFile)):
+                    ldrawPath = path
+                    break
+        
+        if ldrawPath != "":
+            self.__ldrawPathLocated = True
+            self.set(option, ldrawPath)
+            self.save()
+
+        return ldrawPath
 
 
     def preferences_print(self, message, is_error=False):
