@@ -19,6 +19,15 @@ def locate_ldraw():
         return ldraw_path
 
     # _*_lp_lc_mod
+    # Search LDRAW_DIRECTORY environment variable
+    if ldraw_path == "":
+        ldrawDir = os.environ.get('LDRAW_DIRECTORY')
+        if ldrawDir is not None:
+            dir = os.path.expanduser(ldrawDir).rstrip()
+            if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
+                ldraw_path = dir
+                return ldraw_path
+
     # Get list of possible ldraw installation directories for the platform
     if platform == "win32":
         ldrawPossibleDirectories = [
@@ -65,14 +74,6 @@ def locate_ldraw():
             if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
                 ldraw_path = dir
                 break
-
-    # Search LDRAW_DIRECTORY environment variable
-    if ldraw_path == "":
-        ldrawDir = os.environ.get('LDRAW_DIRECTORY')
-        if ldrawDir is not None:
-            dir = os.path.expanduser(ldrawDir).rstrip()
-            if os.path.isfile(os.path.join(dir, "LDConfig.ldr")):
-                ldraw_path = dir
 
     return ldraw_path
     # _*_mod_end
@@ -386,7 +387,7 @@ class FileSystem:
         ldraw_roots = []
 
         # _*_lp_lc_mod
-        if cls.use_archive_library:
+        if cls.use_archive_library and not cls.have_archive_libraries:
             cls.have_archive_libraries = FileSystem.archive_library_found(cls.ldraw_path)
         # _*_mod_end
 
