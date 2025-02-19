@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update January 07, 2024
+Last Update February 17, 2025
 Copyright (c) 2024 by Toby Nelson
 Copyright (c) 2020 - 2025 by Trevor SANDY
 
@@ -4952,8 +4952,11 @@ def setupInstructionsLook():
     render = scene.render
     render.use_freestyle = True
 
-    # Use Blender Eevee for instructions look
-    render.engine = 'BLENDER_EEVEE'
+    # Use Blender Eevee (or Eevee Next) for instructions look
+    try:
+        render.engine = 'BLENDER_EEVEE'
+    except:
+        render.engine = 'BLENDER_EEVEE_NEXT'
 
     # Change camera to Orthographic
     if scene.camera is not None:
