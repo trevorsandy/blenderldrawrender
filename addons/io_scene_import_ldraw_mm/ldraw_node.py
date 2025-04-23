@@ -196,7 +196,7 @@ class LDrawNode:
                             accum_cull=self.bfc_certified and accum_cull and local_cull,
                             accum_invert=(accum_invert ^ invert_next),  # xor
                             parent_collection=collection,
-                            texmap=texmap or self.texmap,
+                            texmap=self.texmap or texmap,
                         )
 
                         subfile_line_index += 1
@@ -220,7 +220,7 @@ class LDrawNode:
                             child_matrix,
                             geometry_data,
                             _winding,
-                            texmap or self.texmap,
+                            self.texmap or texmap,
                         )
                     elif child_node.meta_command == "5":
                         ldraw_meta.meta_line(
