@@ -1,11 +1,9 @@
+!examples/export/*
 .idea/*
 __pycache__/*
 .mpd_cache/*
-examples/import/*.blend
-examples/import/*.blend1
-!examples/export/*
-thumbs/*
 *.blend1
+thumbs/*
 .pickled/*
 .vs/*
 .old/*
