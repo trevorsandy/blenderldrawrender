@@ -98,16 +98,13 @@ def __process_top_object_matrix(obj, obj_matrix):
             group.link_obj(group.top_collection, top_empty)
 
         top_empty.matrix_world = matrices.import_scale_matrix
-
-# _*_lp_lc_mod
         matrix_world = obj_matrix
     else:
         obj.ldraw_props.invert_import_scale_matrix = True
-
         matrix_world = matrices.import_scale_matrix @ obj_matrix
 
     matrix_world = __process_gap_scale_matrix(obj, matrix_world)
-    
+
     if ImportOptions.scale_strategy_value() == "mesh":
         obj.matrix_world = matrix_world @ matrices.import_scale_matrix.inverted()
     else:
@@ -115,7 +112,7 @@ def __process_top_object_matrix(obj, obj_matrix):
 
     if ImportOptions.parent_to_empty:
         obj.parent = top_empty  # must be after matrix_world set or else transform is incorrect
-# _*_mod_end
+
 
 def __process_gap_scale_matrix(obj, matrix_world):
     if ImportOptions.make_gaps:
