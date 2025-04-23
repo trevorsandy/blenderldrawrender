@@ -1,6 +1,7 @@
 import bpy
 import mathutils
 
+from . import matrices
 from .import_options import ImportOptions
 from .pe_texmap import PETexInfo, PETexmap
 from .texmap import TexMap
@@ -280,7 +281,7 @@ def meta_lp_lc_camera(child_node, matrix):
             if is_lpub_meta:
                 vector = matrix @ mathutils.Vector((x, y, z))
             else:
-                vector = mathutils.Vector((x, y, z))
+                vector = matrix @ mathutils.Vector((x, y, z)) @ matrices.rotation_matrix
             # _*_mod_end
             camera.position = vector
             _params = _params[4:]
@@ -290,7 +291,7 @@ def meta_lp_lc_camera(child_node, matrix):
             if is_lpub_meta:
                 vector = matrix @ mathutils.Vector((x, y, z))
             else:
-                vector = mathutils.Vector((x, y, z))
+                vector = matrix @ mathutils.Vector((x, y, z)) @ matrices.rotation_matrix
             # _*_mod_end
             camera.target_position = vector
             _params = _params[4:]
@@ -300,7 +301,7 @@ def meta_lp_lc_camera(child_node, matrix):
             if is_lpub_meta:
                 vector = matrix @ mathutils.Vector((x, y, z))
             else:
-                vector = mathutils.Vector((x, y, z))
+                vector = matrix @ mathutils.Vector((x, y, z)) @ matrices.rotation_matrix
             # _*_mod_end
             camera.up_vector = vector
             _params = _params[4:]
@@ -349,7 +350,7 @@ def meta_lp_lc_light(child_node, matrix):
             if is_lpub_meta:
                 vector = matrix @ mathutils.Vector((x, y, z))
             else:
-                vector = mathutils.Vector((x, y, z))
+                vector = matrix @ mathutils.Vector((x, y, z)) @ matrices.rotation_matrix
             light.position = vector
             _params = _params[4:]
         elif _params[0] == "target_position":
@@ -357,7 +358,7 @@ def meta_lp_lc_light(child_node, matrix):
             if is_lpub_meta:
                 vector = matrix @ mathutils.Vector((x, y, z))
             else:
-                vector = mathutils.Vector((x, y, z))
+                vector = matrix @ mathutils.Vector((x, y, z)) @ matrices.rotation_matrix
             light.target_position = vector
             _params = _params[4:]
         elif _params[0] == "rotation":
