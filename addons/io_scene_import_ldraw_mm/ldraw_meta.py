@@ -528,9 +528,9 @@ def set_texmap_end(ldraw_node):
     ldraw_node.texmap_fallback = False
 
 
-def meta_pe_tex(ldraw_node, child_node, matrix):
+def meta_pe_tex(ldraw_node, child_node):
     if child_node.meta_command == "pe_tex_info":
-        meta_pe_tex_info(ldraw_node, child_node, matrix)
+        meta_pe_tex_info(ldraw_node, child_node)
     elif child_node.meta_command == "pe_tex_next_shear":
         """no idea"""
     else:
@@ -555,7 +555,7 @@ def meta_pe_tex_path(ldraw_node, child_node):
     _params = clean_line.split()[2:]
 
     ldraw_node.current_pe_tex_path = int(_params[0])
-    if len(_params) == 4:
+    if len(_params) == 2:
         ldraw_node.current_subfile_pe_tex_path = int(_params[1])
 
 
@@ -563,7 +563,7 @@ def meta_pe_tex_path(ldraw_node, child_node):
 # PE_TEX_INFO x,y,z,a,b,c,d,e,f,g,h,i,bl/tl,tr/br is matrix and plane coordinates for uv calculations
 # multiple PE_TEX_INFO have to be flattened into one
 # if no matrix, identity @ rotation?
-def meta_pe_tex_info(ldraw_node, child_node, matrix):
+def meta_pe_tex_info(ldraw_node, child_node):
     if ldraw_node.current_pe_tex_path is None:
         return
 
@@ -578,37 +578,9 @@ def meta_pe_tex_info(ldraw_node, child_node, matrix):
         base64_str = _params[0]
     elif len(_params) == 17:
         # defines a bounding box and its transformation
-        # rotated 90 deg on x, similar to the original part export matrix
-        # aa = __reverse_rotation @ obj.matrix_world
+        # this doesn't work well with some very distorted texture applications
+        # this also may be where PE_TEX_NEXT_SHEAR comes in
         params = _params
-
-        # m03 = float(params[0])
-        # m13 = float(params[1])
-        # m23 = -float(params[2])
-        #
-        # m00 = float(params[3])
-        # m01 = float(params[4])
-        # m02 = -float(params[5])
-        #
-        # m10 = float(params[6])
-        # m11 = float(params[7])
-        # m12 = -float(params[8])
-        #
-        # m20 = -float(params[9])
-        # m21 = -float(params[10])
-        # m22 = float(params[11])
-        #
-        # m30 = 0.0
-        # m31 = 0.0
-        # m32 = 0.0
-        # m33 = 1
-        #
-        # _matrix = mathutils.Matrix((
-        #     (m00, m01, m02, m03),
-        #     (m10, m11, m12, m13),
-        #     (m20, m21, m22, m23),
-        #     (m30, m31, m32, m33)
-        # ))
 
         x = float(params[0])
         y = float(params[1])
@@ -626,15 +598,18 @@ def meta_pe_tex_info(ldraw_node, child_node, matrix):
         h = -float(params[10])
         i = float(params[11])
 
-        _matrix = mathutils.Matrix((
+        matrix = mathutils.Matrix((
             (a, b, c, x),
             (d, e, f, y),
             (g, h, i, z),
             (0, 0, 0, 1)
         ))
 
+        m = mathutils.Matrix.LocRotScale(None, None, (1, 1, -1))
+        matrix = m @ matrix
+
         # this is the original transformation of the bounding box
-        _inverse_matrix = _matrix.inverted()
+        _inverse_matrix = matrix.inverted()
 
         point_min = mathutils.Vector((0, 0))
         point_max = mathutils.Vector((0, 0))
@@ -649,31 +624,12 @@ def meta_pe_tex_info(ldraw_node, child_node, matrix):
         pe_tex_info.point_max = point_max.freeze()
         pe_tex_info.point_diff = point_diff.freeze()
         pe_tex_info.box_extents = box_extents.freeze()
-        pe_tex_info.matrix = (matrix @ _matrix).freeze()
+        pe_tex_info.matrix = matrix.freeze()
         pe_tex_info.matrix_inverse = _inverse_matrix.freeze()
 
         # this pe_tex_info applies to the subfile at current_pe_tex_path or
         # the subfile's subfile at subfile_pe_tex_infos[current_pe_tex_path][current_subfile_pe_tex_path]
         base64_str = _params[16]
-
-        # (x, y, z, a, b, c, d, e, f, g, h, i, bl_x, bl_y, tr_x, tr_y) = map(float, _params[0:16])
-        # _matrix = mathutils.Matrix((
-        #     (a, b, c, x),
-        #     (d, e, f, y),
-        #     (g, h, i, z),
-        #     (0, 0, 0, 1)
-        # ))
-        # bl = mathutils.Vector((bl_x, bl_y))
-        # tr = mathutils.Vector((tr_x, tr_y))
-        # diff = tr - bl
-        # extents = 0.5 * mathutils.Vector((1, 1))
-
-        # pe_tex_info.min_point = bl.freeze()
-        # pe_tex_info.tr = tr.freeze()
-        # pe_tex_info.diff = diff
-        # pe_tex_info.extents = extents
-        # pe_tex_info.matrix = (matrix @ _matrix).freeze()
-        # pe_tex_info.matrix_inverse = pe_tex_info.matrix.inverted()
 
     if base64_str is None:
         return

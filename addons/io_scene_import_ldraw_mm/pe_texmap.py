@@ -101,7 +101,7 @@ class PETexmap:
                 bc = vertices[2] - vertices[1]
                 face_normal = ab.cross(bc).normalized()
 
-                texture_normal = mathutils.Vector((0.0, -1, 0.0))  # "down"
+                texture_normal = mathutils.Vector((0, -1, 0))  # "down"
                 if abs(face_normal.dot(texture_normal)) < 0.001:
                     continue
 

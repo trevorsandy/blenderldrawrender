@@ -243,7 +243,7 @@ class LDrawNode:
                 elif child_node.meta_command == "texmap":
                     ldraw_meta.meta_texmap(self, child_node, child_matrix)
                 elif child_node.meta_command.startswith("pe_tex_"):
-                    ldraw_meta.meta_pe_tex(self, child_node, child_matrix)
+                    ldraw_meta.meta_pe_tex(self, child_node)
                 else:
                     # these meta commands really only make sense if they are encountered at the model level
                     # these should never be encoutered when geometry_data not None
