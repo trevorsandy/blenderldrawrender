@@ -55,10 +55,15 @@ def parse_csv_line(line, min_params=0):
     return _params
 
 
-def fix_string_encoding(string):
+def get_bytes(string):
     new_string = string
     if type(string) is str:
         new_string = bytes(string.encode())
+    return new_string
+
+
+def fix_string_encoding(string):
+    new_string = get_bytes(string)
     for codec in [codecs.BOM_UTF8, codecs.BOM_UTF16, codecs.BOM_UTF32]:
         new_string = new_string.replace(codec, b'')
     new_string = new_string.decode()
