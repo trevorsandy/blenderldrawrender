@@ -49,6 +49,7 @@ class LDrawNode:
         self.pe_tex_infos = {}
         self.subfile_pe_tex_infos = {}
         self.pe_tex_info = []
+        self.pe_tex_next_shear = False
 
     def load(self,
              color_code="16",
