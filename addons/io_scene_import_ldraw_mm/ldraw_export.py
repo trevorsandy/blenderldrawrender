@@ -1,6 +1,7 @@
 import bpy
 import bmesh
 import math
+import mathutils
 
 from .ldraw_file import LDrawFile
 from .ldraw_node import LDrawNode
@@ -81,7 +82,7 @@ def do_export(filepath):
         ldraw_file.lines.append("\n")
     for name in subfile_obj_names:
         obj = bpy.data.objects.get(name)
-        aa = get_matrix(obj)
+        aa = get_subfile_obj_matrix(obj)
         __export_subfiles(obj, aa, ldraw_file.lines)
 
     if len(polygon_obj_names) > 0:
@@ -89,7 +90,7 @@ def do_export(filepath):
     part_lines = []
     for name in polygon_obj_names:
         obj = bpy.data.objects.get(name)
-        aa = get_matrix(obj)
+        aa = get_polygon_obj_matrix(obj)
         __export_polygons(obj, aa, part_lines)
 
     sorted_part_lines = sorted(part_lines, key=lambda pl: (int(pl[1]), int(pl[0])))
@@ -111,7 +112,7 @@ def do_export(filepath):
         joined_part_lines.append(" ".join(line))
     ldraw_file.lines.extend(joined_part_lines)
 
-    with open(filepath, 'w', encoding='utf-8-sig', newline="\n") as file:
+    with open(filepath, 'w', encoding='utf-8', newline="\n") as file:
         for line in ldraw_file.lines:
             file.write(line)
             if line != "\n":
@@ -128,26 +129,26 @@ def do_export(filepath):
 # if object was imported, invert import matrices
 # inverting parent matrix doesn't work for some reason
 # parent.matrix_world is already applied to obj.matrix_world
-def get_matrix(obj):
+def get_subfile_obj_matrix(obj):
     parent_invert_import_scale_matrix = obj.parent and obj.parent.ldraw_props.invert_import_scale_matrix
     object_invert_import_scale_matrix = obj.ldraw_props.invert_import_scale_matrix
     invert_import_scale_matrix = parent_invert_import_scale_matrix or object_invert_import_scale_matrix
-
     invert_gap_scale_matrix = obj.ldraw_props.invert_gap_scale_matrix
 
-    matrix_world = matrices.identity_matrix
-    matrix_world = obj.matrix_world
+    aa = obj.matrix_world
 
-    if invert_import_scale_matrix and invert_gap_scale_matrix:
-        aa = matrices.import_scale_matrix.inverted() @ matrix_world @ matrices.gap_scale_matrix.inverted()
-    elif invert_import_scale_matrix:
-        aa = matrices.import_scale_matrix.inverted() @ matrix_world
-    elif invert_gap_scale_matrix:
-        aa = matrix_world @ matrices.gap_scale_matrix.inverted()
-    else:
-        aa = matrix_world
+    if invert_import_scale_matrix:
+        (translation, rotation, scale) = aa.decompose()
+        aa = mathutils.Matrix.LocRotScale(matrices.import_scale_matrix.inverted() @ translation, rotation, scale)
+        if invert_gap_scale_matrix:
+            aa = aa @ matrices.gap_scale_matrix.inverted()
 
-    return matrices.rotation_matrix.inverted() @ aa
+    return matrices.reverse_rotation_matrix @ aa @ matrices.rotation_matrix
+
+
+def get_polygon_obj_matrix(obj):
+    aa = obj.matrix_world
+    return matrices.reverse_rotation_matrix @ aa
 
 
 # https://devtalk.blender.org/t/to-mesh-and-creating-new-object-issues/8557/4
