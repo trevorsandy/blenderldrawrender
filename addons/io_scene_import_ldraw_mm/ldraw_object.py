@@ -22,9 +22,14 @@ def reset_caches():
     gap_scale_empty = None
 
 
+# FIXME: this is a bottleneck for large files
+def _create_obj(mesh):
+    return bpy.data.objects.new(mesh.name, mesh)
+
+
 # TODO: to add rigid body - must apply scale and cannot be parented to empty
 def create_object(mesh, geometry_data, color_code, matrix, collection):
-    obj = bpy.data.objects.new(mesh.name, mesh)
+    obj = _create_obj(mesh)
     obj[strings.ldraw_filename_key] = geometry_data.file.name
     obj[strings.ldraw_color_code_key] = color_code
 
