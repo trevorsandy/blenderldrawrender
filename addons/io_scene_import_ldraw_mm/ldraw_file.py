@@ -108,14 +108,6 @@ class LDrawFile:
             LDrawColor.set_lgeo_colors(FileSystem.read_lgeo_colors())
         # _*_mod_end
 
-        # import all materials
-        # from .blender_materials import BlenderMaterials
-        # for line in ldraw_file.lines:
-        #     clean_line = helpers.clean_line(line)
-        #     if clean_line.startswith("0 !COLOUR "):
-        #         color_code = LDrawColor.parse_color(clean_line)
-        #         material = BlenderMaterials.get_material(color_code, easy_key=True)
-
         return ldraw_file
 
     @classmethod
