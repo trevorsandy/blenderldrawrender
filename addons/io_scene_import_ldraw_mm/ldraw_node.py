@@ -74,7 +74,7 @@ class LDrawNode:
         # parent_matrix is the previous level's transform
         # current_matrix is the matrix up to this point and used for placement of objects
         # accum_matrix is every transform up to this point
-        # child_matrix is what is used to tranform this level and set the parent transform of the next level
+        # child_matrix is what is used to transform this level and set the parent transform of the next level
         parent_matrix = parent_matrix or matrices.identity_matrix
         accum_matrix = accum_matrix or matrices.identity_matrix
 
@@ -89,11 +89,10 @@ class LDrawNode:
         current_color_code = color_code
 
         # when a part is used on its own and also treated as a subpart like with a shortcut, the part will not render in the shortcut
-        # obj_key is essentially a list of attributes that are unique to parts that share the same file
+        # geometry_data_key is essentially a list of attributes that are unique to parts that share the same file
         # texmap parts are defined as parts so it should be safe to exclude that from the key
-        # pe_tex_info is defined like an mpd so mutliple instances sharing the same part name will share the same texture unless it is included in the key
-        # the only thing unique about a geometry_data object is its filename and whether it has pe_tex_info
-        geometry_data_key = LDrawNode.__build_key(self.file.name, color_code=current_color_code, pe_tex_info=self.pe_tex_info)
+        # pe_tex_info is defined like an mpd so multiple instances sharing the same part name will share the same texture unless it is included in the key
+        # the only thing unique about a geometry_data object is its filename, color, pe_tex_info
         geometry_data_key = LDrawNode.__build_key(self.file.name, color_code=current_color_code, texmap=texmap, pe_tex_info=self.pe_tex_info)
 
         # if there's no geometry_data and some part type, it's a top level part so start collecting geometry
@@ -249,7 +248,7 @@ class LDrawNode:
                     ldraw_meta.meta_pe_tex(self, child_node)
                 else:
                     # these meta commands really only make sense if they are encountered at the model level
-                    # these should never be encoutered when geometry_data not None
+                    # these should never be encountered when geometry_data not None
                     # so they should be processed every time they are hit
                     # as opposed to just once because they won't be cached
                     if child_node.meta_command == "step":
@@ -316,10 +315,6 @@ class LDrawNode:
             if group.end_next_collection:
                 group.next_collection = None
 
-            # if LDrawNode.part_count == 1:
-            #     raise BaseException("done")
-
-            # yield obj
             return obj
 
     # set the working color code to this file's
