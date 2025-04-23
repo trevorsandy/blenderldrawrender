@@ -60,6 +60,7 @@ class LDrawNode:
              accum_invert=False,
              parent_collection=None,
              return_mesh=False,
+             texmap=None,
              ):
 
         if self.file.is_edge_logo() and not ImportOptions.display_logo:
@@ -93,6 +94,7 @@ class LDrawNode:
         # pe_tex_info is defined like an mpd so mutliple instances sharing the same part name will share the same texture unless it is included in the key
         # the only thing unique about a geometry_data object is its filename and whether it has pe_tex_info
         geometry_data_key = LDrawNode.__build_key(self.file.name, color_code=current_color_code, pe_tex_info=self.pe_tex_info)
+        geometry_data_key = LDrawNode.__build_key(self.file.name, color_code=current_color_code, texmap=texmap, pe_tex_info=self.pe_tex_info)
 
         # if there's no geometry_data and some part type, it's a top level part so start collecting geometry
         # there are occasions where files with part_type of model have geometry so you can't rely on its part_type
@@ -175,8 +177,6 @@ class LDrawNode:
                 if child_node.meta_command in ["1", "2", "3", "4", "5"] and not self.texmap_fallback:
                     child_current_color = LDrawNode.__determine_color(color_code, child_node.color_code)
                     if child_node.meta_command == "1":
-                        child_node.texmap = self.texmap
-
                         # if we have no pe_tex_info, try to get one from pe_tex_infos otherwise keep using the one we have
                         # custom minifig head > 3626tex.dat (has no pe_tex) > 3626texshell.dat
                         if len(self.pe_tex_info) < 1:
@@ -197,6 +197,7 @@ class LDrawNode:
                             accum_cull=self.bfc_certified and accum_cull and local_cull,
                             accum_invert=(accum_invert ^ invert_next),  # xor
                             parent_collection=collection,
+                            texmap=texmap or self.texmap,
                         )
                         # for node in child_node.load(
                         #         color_code=child_current_color,
@@ -229,6 +230,7 @@ class LDrawNode:
                             child_matrix,
                             geometry_data,
                             _winding,
+                            texmap or self.texmap,
                         )
                     elif child_node.meta_command == "5":
                         ldraw_meta.meta_line(
@@ -332,8 +334,11 @@ class LDrawNode:
     # must include matrix, so that parts that are just mirrored versions of other parts
     # such as 32527.dat (mirror of 32528.dat) will render
     @staticmethod
-    def __build_key(filename, color_code=None, pe_tex_info=None, matrix=None):
+    def __build_key(filename, color_code=None, texmap=None, pe_tex_info=None, matrix=None):
         _key = (filename, color_code,)
+
+        if texmap is not None:
+            _key += (texmap.method, texmap.texture,)
 
         if pe_tex_info is not None:
             for p in pe_tex_info:
