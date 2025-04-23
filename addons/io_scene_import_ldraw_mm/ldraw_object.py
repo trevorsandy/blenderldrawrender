@@ -9,6 +9,7 @@ from . import ldraw_meta
 from . import matrices
 from pathlib import Path
 
+
 top_empty = None
 gap_scale_empty = None
 
@@ -45,6 +46,7 @@ def create_object(mesh, geometry_data, color_code, matrix, collection):
 
     return obj
 
+
 # found here: https://projects.blender.org/blender/blender/issues/117399#issuecomment-1167467
 def get_internal_asset_path():
     for path_type in ("LOCAL", "SYSTEM", "USER"):
@@ -53,8 +55,10 @@ def get_internal_asset_path():
             return path
     assert False
 
+
 SMOOTH_BY_ANGLE_ASSET_PATH = str(get_internal_asset_path() / "geometry_nodes" / "smooth_by_angle.blend")
 SMOOTH_BY_ANGLE_NODE_GROUP_NAME = "Smooth by Angle"
+
 
 def add_smooth_by_angle_modifier(obj):
     global SMOOTH_BY_ANGLE_NODE_GROUP_NAME
