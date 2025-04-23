@@ -198,15 +198,6 @@ class LDrawNode:
                             parent_collection=collection,
                             texmap=texmap or self.texmap,
                         )
-                        # for node in child_node.load(
-                        #         color_code=child_current_color,
-                        #         parent_matrix=child_matrix,
-                        #         geometry_data=geometry_data,
-                        #         accum_cull=self.bfc_certified and accum_cull and local_cull,
-                        #         accum_invert=(accum_invert ^ invert_next),  # xor
-                        #         parent_collection=collection,
-                        # ):
-                        #     yield node
 
                         subfile_line_index += 1
                         ldraw_meta.meta_root_group_nxt(self, child_node)
