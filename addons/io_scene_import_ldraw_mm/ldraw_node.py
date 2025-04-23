@@ -200,13 +200,17 @@ class LDrawNode:
                         )
 
                         subfile_line_index += 1
-                        ldraw_meta.meta_root_group_nxt(self, child_node)
+
+                        ldraw_meta.meta_root_group_nxt(
+                            ldraw_node=self,
+                            child_node=child_node
+                        )
                     elif child_node.meta_command == "2":
                         ldraw_meta.meta_edge(
-                            child_node,
-                            child_current_color,
-                            child_matrix,
-                            geometry_data,
+                            child_node=child_node,
+                            color_code=child_current_color,
+                            matrix=child_matrix,
+                            geometry_data=geometry_data,
                         )
                     elif child_node.meta_command in ["3", "4"]:
                         _winding = None
@@ -214,29 +218,44 @@ class LDrawNode:
                             _winding = winding
 
                         ldraw_meta.meta_face(
-                            self,
-                            child_node,
-                            child_current_color,
-                            child_matrix,
-                            geometry_data,
-                            _winding,
-                            self.texmap or texmap,
+                            ldraw_node=self,
+                            child_node=child_node,
+                            color_code=child_current_color,
+                            matrix=child_matrix,
+                            geometry_data=geometry_data,
+                            winding=_winding,
+                            texmap=self.texmap or texmap,
                         )
                     elif child_node.meta_command == "5":
                         ldraw_meta.meta_line(
-                            child_node,
-                            child_current_color,
-                            child_matrix,
-                            geometry_data,
+                            child_node=child_node,
+                            color_code=child_current_color,
+                            matrix=child_matrix,
+                            geometry_data=geometry_data,
                         )
                 elif child_node.meta_command == "bfc":
                     # does it make sense for models to have bfc info? maybe if that model has geometry, but then it would be treated like a part
                     if ImportOptions.meta_bfc:
-                        local_cull, winding, invert_next = ldraw_meta.meta_bfc(self, child_node, child_matrix, local_cull, winding, invert_next, accum_invert)
+                        local_cull, winding, invert_next = ldraw_meta.meta_bfc(
+                            ldraw_node=self,
+                            child_node=child_node,
+                            matrix=child_matrix,
+                            local_cull=local_cull,
+                            winding=winding,
+                            invert_next=invert_next,
+                            accum_invert=accum_invert,
+                        )
                 elif child_node.meta_command == "texmap":
-                    ldraw_meta.meta_texmap(self, child_node, child_matrix)
+                    ldraw_meta.meta_texmap(
+                        ldraw_node=self,
+                        child_node=child_node,
+                        matrix=child_matrix,
+                    )
                 elif child_node.meta_command.startswith("pe_tex_"):
-                    ldraw_meta.meta_pe_tex(self, child_node)
+                    ldraw_meta.meta_pe_tex(
+                        ldraw_node=self,
+                        child_node=child_node,
+                    )
                 else:
                     # these meta commands really only make sense if they are encountered at the model level
                     # these should never be encountered when geometry_data not None
