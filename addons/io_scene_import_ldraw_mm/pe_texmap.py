@@ -14,22 +14,6 @@ class PETexInfo:
     def clone(self):
         return PETexInfo(self.point_min, self.point_max, self.point_diff, self.box_extents, self.matrix, self.matrix_inverse, self.image)
 
-    def init_with_target_part_matrix(self, target_part_matrix):
-        self.matrix = self.matrix or mathutils.Matrix.Identity(4)
-        (translation, rotation, scale) = (target_part_matrix @ self.matrix).decompose()
-
-        self.box_extents = scale * 0.5
-
-        mirroring = mathutils.Vector((1, 1, 1))
-        for dim in range(3):
-            if scale[dim] < 0:
-                mirroring[dim] *= -1
-                self.box_extents[dim] *= -1
-
-        rhs = mathutils.Matrix.LocRotScale(translation, rotation, mirroring)
-        self.matrix = (target_part_matrix.inverted() @ rhs).freeze()
-        self.matrix_inverse = self.matrix.inverted().freeze()
-
 
 class PETexmap:
     def __init__(self):
@@ -88,7 +72,20 @@ class PETexmap:
                 pe_texmap = PETexmap()
                 pe_texmap.texture = p.image
 
-                p.init_with_target_part_matrix(ldraw_node.matrix)
+                p.matrix = p.matrix or mathutils.Matrix.Identity(4)
+                (translation, rotation, scale) = (ldraw_node.matrix @ p.matrix).decompose()
+
+                p.box_extents = scale
+
+                mirroring = mathutils.Vector((1, 1, 1))
+                for dim in range(3):
+                    if scale[dim] < 0:
+                        mirroring[dim] *= -1
+                        p.box_extents[dim] *= -1
+
+                rhs = mathutils.Matrix.LocRotScale(translation, rotation, mirroring)
+                p.matrix = (ldraw_node.matrix.inverted() @ rhs).freeze()
+                p.matrix_inverse = p.matrix.inverted().freeze()
 
                 vertices = [p.matrix_inverse @ v for v in child_node.vertices]
                 if winding == 'CW':
