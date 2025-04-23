@@ -155,7 +155,7 @@ class LDrawFile:
                 return cls.__read_file(model_ldr.splitlines(), filename)
             
         if os.path.exists(filepath):
-            with open(filepath, 'r', encoding='utf-8') as file:
+            with open(filepath, 'r', encoding='utf-8-sig') as file:
                 return cls.__read_file(file, filename)
         # _*_lp_lc_mod
         elif FileSystem.have_archive_libraries:
