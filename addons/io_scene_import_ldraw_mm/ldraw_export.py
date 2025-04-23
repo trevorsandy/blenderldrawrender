@@ -111,7 +111,7 @@ def do_export(filepath):
         joined_part_lines.append(" ".join(line))
     ldraw_file.lines.extend(joined_part_lines)
 
-    with open(filepath, 'w', encoding='utf-8', newline="\n") as file:
+    with open(filepath, 'w', encoding='utf-8-sig', newline="\n") as file:
         for line in ldraw_file.lines:
             file.write(line)
             if line != "\n":

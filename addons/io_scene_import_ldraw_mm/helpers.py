@@ -88,7 +88,7 @@ def write_json(filepath, obj, indent=None, do_print=False):
 def read_json(filepath, default=None):
     try:
         full_path = os.path.join(APP_ROOT, filepath)
-        with open(full_path, 'r', encoding='utf-8') as file:
+        with open(full_path, 'r', encoding='utf-8-sig') as file:
             return json.load(file)
     except Exception as e:
         print(e)
