@@ -32,7 +32,7 @@ bl_info = {
     "blender": (2, 82, 0),
     "location": "File > Import",
     "warning": "",
-    "wiki_url": "https://github.com/trevorsandy/blenderldrawrender",
+    "doc_url": "https://github.com/trevorsandy/blenderldrawrender",
     "tracker_url": "https://github.com/trevorsandy/blenderldrawrender/issues",
     "category": "Import-Export"
     }
