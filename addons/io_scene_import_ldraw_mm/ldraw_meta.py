@@ -587,31 +587,13 @@ def meta_pe_tex_info(ldraw_node, child_node):
         # this also may be where PE_TEX_NEXT_SHEAR comes in
         params = _params
 
-        x = float(params[0])
-        y = float(params[1])
-        z = -float(params[2])
-
-        a = float(params[3])
-        b = float(params[4])
-        c = -float(params[5])
-
-        d = float(params[6])
-        e = float(params[7])
-        f = -float(params[8])
-
-        g = -float(params[9])
-        h = -float(params[10])
-        i = float(params[11])
-
+        (x, y, z, a, b, c, d, e, f, g, h, i) = map(float, _params[0:12])
         matrix = mathutils.Matrix((
             (a, b, c, x),
             (d, e, f, y),
             (g, h, i, z),
             (0, 0, 0, 1)
         ))
-
-        m = mathutils.Matrix.LocRotScale(None, None, (1, 1, -1))
-        matrix = m @ matrix
 
         # this is the original transformation of the bounding box
         _inverse_matrix = matrix.inverted()
