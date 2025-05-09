@@ -97,15 +97,14 @@ class PETexmap:
                 ab = vertices[1] - vertices[0]
                 bc = vertices[2] - vertices[1]
                 face_normal = ab.cross(bc).normalized()
-
                 texture_normal = mathutils.Vector((0, -1, 0))  # "down"
                 if abs(face_normal.dot(texture_normal)) < 0.001:
                     continue
 
                 for vert in vertices:
-                    # TODO: there's still the "atlas" min/max/diff, which seems to be 0.05:0.95
+                    # max - vert so that image will be oriented at the top left instead of bottom left
                     u = (vert.x - p.point_min.x) / p.point_diff.x
-                    v = (vert.z - p.point_min.y) / p.point_diff.y
+                    v = (p.point_max.y - vert.z) / p.point_diff.y
                     uv = mathutils.Vector((u, v))
                     pe_texmap.uvs.append(uv)
 
