@@ -199,7 +199,9 @@ class LDrawNode:
                             texmap=self.texmap or texmap,
                         )
 
-                        subfile_line_index += 1
+                        # from testing Part Designer, edges and lines don't count
+                        if child_node.meta_command in ["1", "3", "4"]:
+                            subfile_line_index += 1
 
                         ldraw_meta.meta_root_group_nxt(
                             ldraw_node=self,
