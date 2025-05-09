@@ -203,7 +203,7 @@ class LDrawNode:
 
                         ldraw_meta.meta_root_group_nxt(
                             ldraw_node=self,
-                            child_node=child_node
+                            child_node=child_node,
                         )
                     elif child_node.meta_command == "2":
                         ldraw_meta.meta_edge(
