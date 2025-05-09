@@ -430,23 +430,21 @@ def meta_lp_lc_light(child_node, matrix):
 # _*_mod_end
 
 # https://www.ldraw.org/documentation/ldraw-org-file-format-standards/language-extension-for-texture-mapping.html
-def meta_texmap(ldraw_node, child_node, matrix):
+def meta_texmap(clean_line, matrix, texmaps, texmap, texmap_start, texmap_next, texmap_fallback):
     if not ImportOptions.meta_texmap:
         return
 
-    clean_line = child_node.line
-
-    if ldraw_node.texmap_start:
+    if texmap_start:
         if clean_line == "0 !TEXMAP FALLBACK":
-            ldraw_node.texmap_fallback = True
+            texmap_fallback = True
         elif clean_line == "0 !TEXMAP END":
-            set_texmap_end(ldraw_node)
+            texmap, texmap_start, texmap_next, texmap_fallback = set_texmap_end(texmaps)
     elif clean_line.startswith("0 !TEXMAP START ") or clean_line.startswith("0 !TEXMAP NEXT "):
         if clean_line.startswith("0 !TEXMAP START "):
-            ldraw_node.texmap_start = True
+            texmap_start = True
         elif clean_line.startswith("0 !TEXMAP NEXT "):
-            ldraw_node.texmap_next = True
-        ldraw_node.texmap_fallback = False
+            texmap_next = True
+        texmap_fallback = False
 
         method = clean_line.split()[3]
 
@@ -509,24 +507,25 @@ def meta_texmap(ldraw_node, child_node, matrix):
             new_texmap.texture = texture
             new_texmap.glossmap = glossmap
 
-        if ldraw_node.texmap is not None:
-            ldraw_node.texmaps.append(ldraw_node.texmap)
-        ldraw_node.texmap = new_texmap
+        # move current texmap to the texmaps list and set the current texmap to new_texmap
+        if texmap is not None:
+            texmaps.append(texmap)
+        texmap = new_texmap
+
+    return texmap, texmap_start, texmap_next, texmap_fallback
 
 
-def set_texmap_end(ldraw_node):
-    try:
-        ldraw_node.texmap = ldraw_node.texmaps.pop()
-    except IndexError as e:
-        print(e)
-        import traceback
-        print(traceback.format_exc())
-        ldraw_node.texmap = None
+def set_texmap_end(texmaps):
+    if len(texmaps) > 0:
+        texmap = texmaps.pop()
+    else:
+        texmap = None
 
-    ldraw_node.texmap_start = False
-    ldraw_node.texmap_next = False
-    ldraw_node.texmap_fallback = False
+    texmap_start = False
+    texmap_next = False
+    texmap_fallback = False
 
+    return texmap, texmap_start, texmap_next, texmap_fallback
 
 # PE_TEX_PATH is the nth line of types 1,3,4
 # can be any number of subfile lines - n n n n

@@ -37,12 +37,6 @@ class LDrawNode:
         self.meta_command = None
         self.meta_args = {}
 
-        self.texmap_start = False
-        self.texmap_next = False
-        self.texmap_fallback = False
-        self.texmaps = []
-        self.texmap = None
-
         self.current_pe_tex_path = None
         self.current_subfile_pe_tex_path = None
         self.pe_tex_infos = {}
@@ -60,8 +54,15 @@ class LDrawNode:
              bfc_certified=None,
              parent_collection=None,
              return_mesh=False,
+             texmaps=None,
              texmap=None,
+             texmap_start=False,
+             texmap_next=False,
+             texmap_fallback=False,
              ):
+
+        if texmaps is None:
+            texmaps = []
 
         if self.file.is_edge_logo() and not ImportOptions.display_logo:
             return
@@ -174,9 +175,9 @@ class LDrawNode:
 
             subfile_line_index = 0
             for child_node in self.file.child_nodes:
-                # self.texmap_fallback will only be true if ImportOptions.meta_texmap == True and you're on a fallback line
+                # texmap_fallback will only be true if ImportOptions.meta_texmap == True and you're on a fallback line
                 # if ImportOptions.meta_texmap == False, it will always be False
-                if child_node.meta_command in ["1", "2", "3", "4", "5"] and not self.texmap_fallback:
+                if child_node.meta_command in ["1", "2", "3", "4", "5"] and not texmap_fallback:
                     child_current_color = LDrawNode.__determine_color(color_code, child_node.color_code)
                     if child_node.meta_command == "1":
                         # if we have no pe_tex_info, try to get one from pe_tex_infos otherwise keep using the one we have
@@ -200,7 +201,11 @@ class LDrawNode:
                             accum_invert=(accum_invert ^ invert_next),  # xor
                             bfc_certified=bfc_certified,
                             parent_collection=collection,
-                            texmap=self.texmap or texmap,
+                            texmaps=texmaps,
+                            texmap=texmap,
+                            texmap_start=texmap_start,
+                            texmap_next=texmap_next,
+                            texmap_fallback=texmap_fallback,
                         )
 
                         # from testing Part Designer, edges and lines don't count
@@ -230,7 +235,7 @@ class LDrawNode:
                             matrix=child_matrix,
                             geometry_data=geometry_data,
                             winding=_winding,
-                            texmap=self.texmap or texmap,
+                            texmap=texmap,
                         )
                     elif child_node.meta_command == "5":
                         ldraw_meta.meta_line(
@@ -252,10 +257,14 @@ class LDrawNode:
                             bfc_certified=bfc_certified,
                         )
                 elif child_node.meta_command == "texmap":
-                    ldraw_meta.meta_texmap(
-                        ldraw_node=self,
-                        child_node=child_node,
+                    texmap, texmap_start, texmap_next, texmap_fallback = ldraw_meta.meta_texmap(
+                        clean_line=child_node.line,
                         matrix=child_matrix,
+                        texmaps=texmaps,
+                        texmap=texmap,
+                        texmap_start=texmap_start,
+                        texmap_next=texmap_next,
+                        texmap_fallback=texmap_fallback,
                     )
                 elif child_node.meta_command.startswith("pe_tex_"):
                     ldraw_meta.meta_pe_tex(
@@ -288,8 +297,8 @@ class LDrawNode:
                         ldraw_meta.meta_lp_lc_light(child_node, child_matrix)
                     # _*_mod_end
 
-                if self.texmap_next:
-                    ldraw_meta.set_texmap_end(self)
+                if texmap_next:
+                    texmap, texmap_start, texmap_next, texmap_fallback = ldraw_meta.set_texmap_end(texmaps)
 
                 if child_node.meta_command != "bfc":
                     invert_next = False
