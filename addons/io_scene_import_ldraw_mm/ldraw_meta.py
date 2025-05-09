@@ -529,19 +529,14 @@ def set_texmap_end(ldraw_node):
 
 
 def meta_pe_tex(ldraw_node, child_node):
-    if child_node.meta_command == "pe_tex_info":
-        if ldraw_node.pe_tex_next_shear:
-            ldraw_node.pe_tex_next_shear = False
-            return
+    if child_node.meta_command == "pe_tex_path":
+        meta_pe_tex_path(ldraw_node, child_node)
+        ldraw_node.pe_tex_next_shear = False
+    elif child_node.meta_command == "pe_tex_info":
         meta_pe_tex_info(ldraw_node, child_node)
+        ldraw_node.pe_tex_next_shear = False
     elif child_node.meta_command == "pe_tex_next_shear":
         ldraw_node.pe_tex_next_shear = True
-    else:
-        ldraw_node.current_pe_tex_path = None
-        if ldraw_node.pe_tex_next_shear:
-            ldraw_node.pe_tex_next_shear = False
-        if child_node.meta_command == "pe_tex_path":
-            meta_pe_tex_path(ldraw_node, child_node)
 
 
 # 0 PE_TEX_PATH 5 0
