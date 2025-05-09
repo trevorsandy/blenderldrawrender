@@ -576,12 +576,13 @@ def meta_pe_tex_info(ldraw_node, child_node):
     _params = clean_line.split()[2:]
 
     pe_tex_info = PETexInfo()
-    base64_str = None
-    if len(_params) == 1:
-        # current_pe_tex_path should be -1
-        # meaning this pe_tex_info applies to this file
-        base64_str = _params[0]
-    elif len(_params) == 17:
+
+    from . import base64_handler
+    base64_str = _params[-1]
+    image = base64_handler.named_png_from_base64_str(f"{ldraw_node.file.name}_{ldraw_node.current_pe_tex_path}.png", base64_str)
+    pe_tex_info.image = image.name
+
+    if len(_params) == 17:
         # defines a bounding box and its transformation
         # this doesn't work well with some very distorted texture applications
         # this also may be where PE_TEX_NEXT_SHEAR comes in
@@ -613,18 +614,6 @@ def meta_pe_tex_info(ldraw_node, child_node):
         pe_tex_info.box_extents = box_extents.freeze()
         pe_tex_info.matrix = matrix.freeze()
         pe_tex_info.matrix_inverse = _inverse_matrix.freeze()
-
-        # this pe_tex_info applies to the subfile at current_pe_tex_path or
-        # the subfile's subfile at subfile_pe_tex_infos[current_pe_tex_path][current_subfile_pe_tex_path]
-        base64_str = _params[16]
-
-    if base64_str is None:
-        return
-
-    from . import base64_handler
-    image = base64_handler.named_png_from_base64_str(f"{ldraw_node.file.name}_{ldraw_node.current_pe_tex_path}.png", base64_str)
-
-    pe_tex_info.image = image.name
 
     if ldraw_node.current_subfile_pe_tex_path is not None:
         ldraw_node.subfile_pe_tex_infos.setdefault(ldraw_node.current_pe_tex_path, {})
