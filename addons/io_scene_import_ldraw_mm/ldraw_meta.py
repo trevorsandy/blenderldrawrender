@@ -237,8 +237,8 @@ def meta_group_end():
 
 
 def meta_root_group_nxt(ldraw_node, child_node):
-    if ldraw_node.is_root and ImportOptions.meta_group:
-        if child_node.meta_command != "group_nxt":
+    if ImportOptions.meta_group:
+        if ldraw_node.is_root and child_node.meta_command != "group_nxt":
             if group.end_next_collection:
                 group.next_collection = None
 
