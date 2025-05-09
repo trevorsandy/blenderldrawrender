@@ -78,10 +78,11 @@ class LDrawNode:
         parent_matrix = parent_matrix or matrices.identity_matrix
         accum_matrix = accum_matrix or matrices.identity_matrix
 
+        matrix = self.matrix
         if self.is_root:
-            self.matrix = self.matrix @ matrices.rotation_matrix
+            matrix = matrix @ matrices.rotation_matrix
 
-        current_matrix = parent_matrix @ self.matrix
+        current_matrix = parent_matrix @ matrix
         child_accum_matrix = accum_matrix @ current_matrix
         child_matrix = current_matrix
 
@@ -308,11 +309,11 @@ class LDrawNode:
             obj_matrix = current_matrix
 
             if part_model:
-                obj_matrix = self.matrix
+                obj_matrix = matrix
                 obj_matrix = parent_matrix
                 obj_matrix = current_matrix
                 obj_matrix = child_matrix
-                obj_matrix = accum_matrix @ self.matrix
+                obj_matrix = accum_matrix @ matrix
 
             # blender mesh data is unique also based on color
             # this means a geometry_data for a file is created only once, but a mesh is created for every color that uses that geometry_data
