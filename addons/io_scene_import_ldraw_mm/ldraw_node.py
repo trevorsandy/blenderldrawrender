@@ -90,9 +90,11 @@ class LDrawNode:
 
         # when a part is used on its own and also treated as a subpart like with a shortcut, the part will not render in the shortcut
         # geometry_data_key is essentially a list of attributes that are unique to parts that share the same file
-        # texmap parts are defined as parts so it should be safe to exclude that from the key
+        # texmap parts are defined as parts so it should be safe to exclude that from the key, but I'm including it anyway
         # pe_tex_info is defined like an mpd so multiple instances sharing the same part name will share the same texture unless it is included in the key
-        # the only thing unique about a geometry_data object is its filename, color, pe_tex_info
+        # don't change the attributes of the child_nodes because that will affect other parts that use a given file
+        # pass that information down to .load and modify geometry_data instead
+        # the only thing unique about a geometry_data object is its filename, color, texmap, pe_tex_info
         geometry_data_key = LDrawNode.__build_key(self.file.name, color_code=current_color_code, texmap=texmap, pe_tex_info=self.pe_tex_info)
 
         # if there's no geometry_data and some part type, it's a top level part so start collecting geometry
