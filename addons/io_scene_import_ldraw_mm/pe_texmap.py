@@ -122,12 +122,10 @@ def intersect(polygon, box_extents):
             raise ValueError
 
     edges = [b - a, c - b, a - c]
-    normal = edges[0].cross(edges[1])
-    num: float
     for i in range(3):
         for j in range(3):
-            rhs: mathutils.Vector
-            e, be = edges[j], box_extents
+            e = edges[j]
+            be = box_extents
             if i == 0:
                 rhs = mathutils.Vector((0, -e.z, e.y))
                 num = be.y * abs(e.z) + be.z * abs(e.y)
@@ -148,5 +146,6 @@ def intersect(polygon, box_extents):
         if max(coords) < -box_extents[dim] or min(coords) > box_extents[dim]:
             return False
 
+    normal = edges[0].cross(edges[1])
     abs_normal = mathutils.Vector(abs(v) for v in normal.to_tuple())
     return normal.dot(a) <= abs_normal.dot(box_extents)
