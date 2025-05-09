@@ -43,20 +43,20 @@ def reset_caches():
     light = None
 # _*_mod_end
 
-def meta_bfc(ldraw_node, child_node, matrix, local_cull, winding, invert_next, accum_invert):
-    clean_line = child_node.line
+
+def meta_bfc(clean_line, matrix, local_cull, winding, invert_next, accum_invert, bfc_certified):
     _params = clean_line.split()[2:]
 
     # https://www.ldraw.org/article/415.html#processing
-    if ldraw_node.bfc_certified is not False:
-        if ldraw_node.bfc_certified is None and "NOCERTIFY" not in _params:
-            ldraw_node.bfc_certified = True
+    if bfc_certified is not False:
+        if bfc_certified is None and "NOCERTIFY" not in _params:
+            bfc_certified = True
 
         if "CERTIFY" in _params:
-            ldraw_node.bfc_certified = True
+            bfc_certified = True
 
         if "NOCERTIFY" in _params:
-            ldraw_node.bfc_certified = False
+            bfc_certified = False
 
         """
         https://www.ldraw.org/article/415.html#rendering
@@ -71,7 +71,7 @@ def meta_bfc(ldraw_node, child_node, matrix, local_cull, winding, invert_next, a
         Therefore, the determinant of a singular matrix is equal to 0.
         """
         if matrix.determinant() == 0:
-            ldraw_node.bfc_certified = False
+            bfc_certified = False
 
     if "CLIP" in _params:
         local_cull = True
@@ -117,7 +117,7 @@ def meta_bfc(ldraw_node, child_node, matrix, local_cull, winding, invert_next, a
             else:
                 winding = "CW"
 
-    return local_cull, winding, invert_next
+    return local_cull, winding, invert_next, bfc_certified
 
 
 def meta_step():
