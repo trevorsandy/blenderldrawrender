@@ -34,7 +34,6 @@ class LDrawNode:
         self.color_code = "16"
         self.matrix = matrices.identity_matrix
         self.vertices = []
-        self.bfc_certified = None
         self.meta_command = None
         self.meta_args = {}
 
@@ -58,6 +57,7 @@ class LDrawNode:
              geometry_data=None,
              accum_cull=True,
              accum_invert=False,
+             bfc_certified=None,
              parent_collection=None,
              return_mesh=False,
              texmap=None,
@@ -149,7 +149,7 @@ class LDrawNode:
             # reset bfc for parts since they are what define the bfc state of their geometry
             accum_cull = True
             accum_invert = False
-            self.bfc_certified = None
+            bfc_certified = None
 
         collection = parent_collection
         if collection is None:
@@ -195,8 +195,9 @@ class LDrawNode:
                             parent_matrix=child_matrix,
                             accum_matrix=child_accum_matrix,
                             geometry_data=geometry_data,
-                            accum_cull=self.bfc_certified and accum_cull and local_cull,
+                            accum_cull=bfc_certified and accum_cull and local_cull,
                             accum_invert=(accum_invert ^ invert_next),  # xor
+                            bfc_certified=bfc_certified,
                             parent_collection=collection,
                             texmap=self.texmap or texmap,
                         )
@@ -218,7 +219,7 @@ class LDrawNode:
                         )
                     elif child_node.meta_command in ["3", "4"]:
                         _winding = None
-                        if self.bfc_certified and accum_cull and local_cull:
+                        if bfc_certified and accum_cull and local_cull:
                             _winding = winding
 
                         ldraw_meta.meta_face(
@@ -240,14 +241,14 @@ class LDrawNode:
                 elif child_node.meta_command == "bfc":
                     # does it make sense for models to have bfc info? maybe if that model has geometry, but then it would be treated like a part
                     if ImportOptions.meta_bfc:
-                        local_cull, winding, invert_next = ldraw_meta.meta_bfc(
-                            ldraw_node=self,
-                            child_node=child_node,
+                        local_cull, winding, invert_next, bfc_certified = ldraw_meta.meta_bfc(
+                            clean_line=child_node.line,
                             matrix=child_matrix,
                             local_cull=local_cull,
                             winding=winding,
                             invert_next=invert_next,
                             accum_invert=accum_invert,
+                            bfc_certified=bfc_certified,
                         )
                 elif child_node.meta_command == "texmap":
                     ldraw_meta.meta_texmap(
@@ -300,7 +301,7 @@ class LDrawNode:
             if geometry_data_key not in LDrawNode.geometry_datas and geometry_data is not None:
                 geometry_data.key = geometry_data_key
                 geometry_data.file = self.file
-                geometry_data.bfc_certified = self.bfc_certified
+                geometry_data.bfc_certified = bfc_certified
                 LDrawNode.geometry_datas[geometry_data_key] = geometry_data
             geometry_data = LDrawNode.geometry_datas[geometry_data_key]
 
