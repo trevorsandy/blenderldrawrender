@@ -528,6 +528,38 @@ def set_texmap_end(ldraw_node):
     ldraw_node.texmap_fallback = False
 
 
+# PE_TEX_PATH is the nth line of types 1,3,4
+# can be any number of subfile lines - n n n n
+# each n is the nth 1,3,4 at that line in that file of the hierarchy
+# if final number is a subfile, treat it like a -1 for that file
+# if final number is a polygon, apply it to that polygon
+
+# apply to all lines of this file and subfiles that have uv coordinates in their polygon definitions
+# 0 PE_TEX_PATH -1
+# 0 PE_TEX_INFO PNGBASE64==
+
+# the same function as -1 but for the subfile at line 0
+# 0 PE_TEX_PATH 0
+# 0 PE_TEX_INFO PNGBASE64==
+
+# for the subfile at index 5, then at index 0 of that subfile
+# 0 PE_TEX_PATH 5 0
+# 0 PE_TEX_INFO -0.5346 -0.1464 2.2554 3.1670 0.8638 -1.5619 2.4660 -0.0307 -2.4765 12.9236 -0.0535 13.1611 -4.1933 16.2951 8.3761 3.6621 PNGBASE64==
+
+# for the subfile at index 5, then at index 4 of that subfile, apply a shear matrix
+# 0 PE_TEX_PATH 5 4
+# 0 PE_TEX_NEXT_SHEAR
+# 0 PE_TEX_INFO 0.6682 7.2554 13.4921 -3.9588 -1.0797 1.9523 -40.5715 0.2365 -24.6051 -16.5249 0.2054 16.5954 15.5934 18.4983 19.7776 12.8449 PNGBASE64==
+
+# PE_TEX_INFO PNGBASE64== is applied to all lines, including subfiles, that have uv coordinates, should only follow path -1
+# PE_TEX_INFO x,y,z,a,b,c,d,e,f,g,h,i,bl/tl,tr/br PNGBASE64== defines a bounding box and its transformation. intersection determines how the uvs will be unwrapped
+# multiple PE_TEX_INFO will only respect the most recent one
+# if no matrix, identity @ rotation?
+
+# this doesn't work well with some very distorted texture applications
+# PE_TEX_NEXT_SHEAR is unknown
+# this may be where PE_TEX_NEXT_SHEAR comes in
+# is there a hardcoded or programmatically determined shear matrix?
 def meta_pe_tex(ldraw_node, child_node):
     if child_node.meta_command == "pe_tex_path":
         meta_pe_tex_path(ldraw_node, child_node)
@@ -539,17 +571,6 @@ def meta_pe_tex(ldraw_node, child_node):
         ldraw_node.pe_tex_next_shear = True
 
 
-# 0 PE_TEX_PATH 5 0
-# 0 PE_TEX_INFO -0.5346 -0.1464 2.2554 3.1670 0.8638 -1.5619 2.4660 -0.0307 -2.4765 12.9236 -0.0535 13.1611 -4.1933 16.2951 8.3761 3.6621 PNGBASE64==
-# 0 PE_TEX_PATH 5 2
-# 0 PE_TEX_INFO 0.3341 0.3594 6.3035 -1.9794 -0.5399 0.9762 3.5733 -0.0208 2.1631 -5.7369 0.0881 9.8519 7.3309 23.9951 19.4351 14.5649 PNGBASE64==
-# 0 PE_TEX_PATH 5 4
-# 0 PE_TEX_NEXT_SHEAR
-# 0 PE_TEX_INFO 0.6682 7.2554 13.4921 -3.9588 -1.0797 1.9523 -40.5715 0.2365 -24.6051 -16.5249 0.2054 16.5954 15.5934 18.4983 19.7776 12.8449 PNGBASE64==
-# -1 is this file
-# >= 0 is the file at the nth subfile_line_index
-# second arg is the nth subfile_line_index of line of file at that line
-# PE_TEX_PATH 5 4 is self.line_type_1_list[5].line_type_1_list[4]
 def meta_pe_tex_path(ldraw_node, child_node):
     clean_line = child_node.line
     _params = clean_line.split()[2:]
@@ -559,10 +580,6 @@ def meta_pe_tex_path(ldraw_node, child_node):
         ldraw_node.current_subfile_pe_tex_path = int(_params[1])
 
 
-# PE_TEX_INFO bse64_str uses the file's uvs
-# PE_TEX_INFO x,y,z,a,b,c,d,e,f,g,h,i,bl/tl,tr/br is matrix and plane coordinates for uv calculations
-# multiple PE_TEX_INFO have to be flattened into one
-# if no matrix, identity @ rotation?
 def meta_pe_tex_info(ldraw_node, child_node):
     if ldraw_node.current_pe_tex_path is None:
         return
