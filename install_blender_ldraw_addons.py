@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update January 09, 2024
+Last Update June 09, 2025
 Copyright (c) 2020 - 2025 by Trevor SANDY
 
 LPub3D Blender LDraw Addon GPLv2 license.
@@ -99,9 +99,12 @@ def install_ldraw_addon(argv):
                                         json.loads(env_addons) if env_addons is not None else default_addons))
     assert addons_to_load is not None, "No LDraw addons specified."
 
+    # Required package list - add package, e.g. "debugpy", as needed
+    required_packages = ["requests", "pillow"]
+
     # Perform addon linking and load
     try:
-        addon_setup.launch(addons_to_load, options)
+        addon_setup.launch(addons_to_load, options, required_packages)
     except Exception as e:
         if type(e) is not SystemExit:
             traceback.print_exc()

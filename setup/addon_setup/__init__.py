@@ -1,12 +1,12 @@
 import bpy
 import sys
 
-def launch(addons_to_load, options):
+def launch(addons_to_load, options, required_packages):
     if bpy.app.version < (2, 80, 34):
         handle_fatal_error("Please use a newer version of Blender")
 
     from . import installation
-    installation.ensure_packages_are_installed(["debugpy", "requests", "pillow"])
+    installation.ensure_packages_are_installed(required_packages)
 
     from . import load_addons
     load_addons.setup_addon_links(addons_to_load)
