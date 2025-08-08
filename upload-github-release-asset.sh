@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Author: Trevor SANDY
-# Last Update January 09, 2025
+# Last Update August 08, 2025
 #
 # Adapted from original script by Stefan Buck
 # License: MIT
@@ -12,21 +12,23 @@ function ShowHelp()
     echo
     echo "Script to upload a release asset using the GitHub API v3."
     echo
-    echo "Example:"
+    echo "Examples:"
     echo
-    echo "cd /home/trevorsandy/projects/blenderldrawrender"
-    echo "env TAG=v1.5.7 DEV_OPS=1 $0"
+    echo "--Publish package to specified DevOps location and extract"
+    echo "$ (cd ~/projects/blenderldrawrender && env TAG=v1.6.1 DEV_OPS=1 UNZIP=1 ./$0)"
     echo
-    echo "env TAG=v1.5.7 SET_VERSION=true $0"
+    echo "--Publish package to GitHub release"
+    echo "$ (cd ~/projects/blenderldrawrender && env TAG=v1.6.1 COMMIT_NOTE=\"Render LDraw v1.6.1\" ./$0)"
     echo
-    echo "env TAG=v1.5.7 COMMIT_NOTE=\"Render LDraw v1.5.7\" $0"
+    echo "--Update the version number in .py files"
+    echo "$ (cd ~/projects/blenderldrawrender && env TAG=v1.6.1 SET_VERSION=true ./$0)"
     echo
     echo "This script accepts the following parameters:"
     echo "DEV_OPS      - Build and publish packaged archive to DevOps"
     echo "NO_COMMIT    - Do not commit a new tag for DevOps build - only update .py files"
     echo "NO_UPLOAD    - Do not upload DevOps build to GitHub repository - no tag will be created"
-    echo "UNZIP        - Unzip the DevOps build archive package - requires PUBLISH_DEST"
     echo "PUBLISH_DEST - Publish the DevOps build to this destination path"
+    echo "UNZIP        - Unzip the DevOps build archive package - requires PUBLISH_DEST"
     echo "TAG          - Release tag"
     echo "OWNER        - GitHub Repository owner"
     echo "RELEASE      - Release label"
@@ -35,7 +37,7 @@ function ShowHelp()
     echo "REPO_PATH    - Full path to GitHub the repository"
     echo "REPO_BRANCH  - The specified GitHub repository branch"
     echo "ASSET_NAME   - Build archive package file name"
-    echo "API_TOKEN    - User GitHub Token (Use a local file containing your token)"
+    echo "API_TOKEN    - User GitHub Token (Use a local git .config file containing your token)"
     echo "SET_VERSION  - Update the version number in .py files and exit - do not build or publish"
     echo
 }
@@ -57,7 +59,7 @@ echo && echo "$SCRIPT_NAME" && echo
 echo
 #set -e
 echo -n "Checking script dependencies... "
-for name in zip unzip jq xargs
+for name in zip python3 jq xargs
 do
     [[ $(which $name 2>/dev/null) ]] || { echo -en "\n$name needs to be installed. Use 'sudo apt-get install $name'";deps=1; }
 done
@@ -308,9 +310,13 @@ if [[ -n $DEV_OPS_REL && -f $GH_ASSET_NAME ]]; then
     echo "Publish Destination: $DEV_OPS_PUBLISH_DEST"
 
     if [ -n "$DEV_OPS_REL_UNZIP" ]; then
-      echo -n "Extract $GH_ASSET_NAME..."
-      (cd "$DEV_OPS_PUBLISH_DEST" && unzip -o LDrawBlenderRenderAddons.zip -d . || exit 1) >$p.out 2>&1 && rm $p.out
-       [ -f $p.out ] && echo "Failed" && tail -80 $p.out || echo "Success."
+        echo -n "Extract $GH_ASSET_NAME..."
+        if [ -f "$DEV_OPS_PUBLISH_DEST/$GH_ASSET_NAME" ]; then
+            (cd "$DEV_OPS_PUBLISH_DEST" && python3 -m zipfile -e $GH_ASSET_NAME . || exit 1) >$p.out 2>&1 && rm $p.out
+            [ -f $p.out ] && echo "Failed." && tail -80 $p.out || echo "Success."
+        else
+            echo "Failed - $GH_ASSET_NAME not found."
+        fi
     fi
 fi
 
