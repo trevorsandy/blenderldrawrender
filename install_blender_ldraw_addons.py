@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update June 09, 2025
+Last Update August 08, 2025
 Copyright (c) 2020 - 2025 by Trevor SANDY
 
 LPub3D Blender LDraw Addon GPLv2 license.
@@ -37,6 +37,7 @@ To Run (Windows example):
 - Optional Environment Variables:
     - SET ADDONS_TO_LOAD=[{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_import_ldraw","module_name":"io_scene_import_ldraw"},{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_import_ldraw_mm","module_name":"io_scene_import_ldraw_mm"},{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_render_ldraw","module_name":"io_scene_render_ldraw"}]
     - SET LDRAW_DIRECTORY=<Path>\\LDraw (Note: Avoid using an LDraw path that include spaces)
+    - SET INSTALL_DEBUGPY=1
 - Optional Arguments:
     -xr, --disable_ldraw_render    Disable the LDraw render addon menu action in Blender
     -xi, --disable_ldraw_import    Disable the LDraw import addon menu action in Blender
@@ -99,8 +100,11 @@ def install_ldraw_addon(argv):
                                         json.loads(env_addons) if env_addons is not None else default_addons))
     assert addons_to_load is not None, "No LDraw addons specified."
 
-    # Required package list - add package, e.g. "debugpy", as needed
+    # Installed package list
     required_packages = ["requests", "pillow"]
+    add_debugger = os.environ.get("INSTALL_DEBUGPY")
+    if add_debugger is not None:
+        required_packages.append("debugpy")
 
     # Perform addon linking and load
     try:

@@ -114,6 +114,7 @@ def format_elapsed(interval, long_form=False, seconds_places=3):
 
 # end format_elapsed
 
+# Insert Debug Wait command here
 
 class RenderLDrawOps(bpy.types.Operator, ImportHelper):
     """Render LDraw - Render Operator."""
