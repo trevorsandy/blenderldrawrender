@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update August 08, 2025
+Last Update August 09, 2025
 Copyright (c) 2020 - 2025 by Trevor SANDY
 
-LPub3D Blender LDraw Addon GPLv2 license.
+LPub3D Blender LDraw Addon GPLv3 license.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -33,7 +33,8 @@ To Run (Windows example):
     - If LDRAW_DIRECTORY is not set, the installation routine will attempt to locate the LDraw path.
 - Execute Command
     - <Blender Path>/blender --background --python install_blender_ldraw_addons.py -- <optional arguments>
-    - Example: C:\\Users\\Trevor\\Graphics\\blender-4.3.2-windows-x64\\blender.exe --background --python install_blender_ldraw_addons.py -- --disable_ldraw_import_mm
+    - Example 1: C:\\Users\\Trevor\\Projects\\blender-4.5.1-windows-x64\\blender.exe --background --python install_blender_ldraw_addons.py -- --disable_ldraw_import_mm
+    - Example 2: C:\\Users\\Trevor\\Projects\\blender-4.5.1-windows-x64\\blender.exe --background --python install_blender_ldraw_addons.py -- --required_packages
 - Optional Environment Variables:
     - SET ADDONS_TO_LOAD=[{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_import_ldraw","module_name":"io_scene_import_ldraw"},{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_import_ldraw_mm","module_name":"io_scene_import_ldraw_mm"},{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_render_ldraw","module_name":"io_scene_render_ldraw"}]
     - SET LDRAW_DIRECTORY=<Path>\\LDraw (Note: Avoid using an LDraw path that include spaces)
@@ -43,6 +44,7 @@ To Run (Windows example):
     -xi, --disable_ldraw_import    Disable the LDraw import addon menu action in Blender
     -xm, --disable_ldraw_import_mm Disable the LDraw import addon menu action in Blender
     -xa, --disable_ldraw_addons    Disable the LDraw import and render addon menu actions in Blender
+    -rp, --required_packages       Specify required packages for the addon
     -lc, --leocad                  Specify if the Blender LDraw install script caller is LeoCAD
 """
 
@@ -71,8 +73,6 @@ from io_scene_render_ldraw.preferences import Preferences
 def install_ldraw_addon(argv):
     """Install LDraw Render addons"""
 
-    print("INFO: Installing LDraw Addon...")
-
     arg_parser = BlenderArgumentParser(
         description='Install Blender LDraw addon.')
     arg_parser.add_argument("-xr", "--disable_ldraw_render", action="store_true",
@@ -84,8 +84,15 @@ def install_ldraw_addon(argv):
     arg_parser.add_argument("-xa", "--disable_ldraw_addons", action="store_true",
                             help="Disable the LDraw import and render addon menu actions in Blender")
     arg_parser.add_argument("-lc", "--leocad", action="store_true",
-                    	    help="Specify if the Blender LDraw install script caller is LeoCAD")
+                            help="Specify if the Blender LDraw install script caller is LeoCAD")
+    arg_parser.add_argument("-rp", "--required_packages", action="store_true",
+                            help="Specify required packages for the addon")
     options = arg_parser.parse_args()
+
+    if (options.required_packages):
+        print("INFO: Installing LDraw Addon required packages...", flush=True)
+    else:
+        print("INFO: Installing LDraw Addon...", flush=True)
 
     # Process addons to load
     env_addons = os.environ.get("ADDONS_TO_LOAD")
@@ -98,7 +105,8 @@ def install_ldraw_addon(argv):
         ]
     addons_to_load=tuple(map(lambda x: (Path(x["load_dir"]), x["module_name"]),
                                         json.loads(env_addons) if env_addons is not None else default_addons))
-    assert addons_to_load is not None, "No LDraw addons specified."
+    if (not options.required_packages):
+        assert addons_to_load is not None, "No LDraw addons specified."
 
     # Installed package list
     required_packages = ["requests", "pillow"]
@@ -108,11 +116,16 @@ def install_ldraw_addon(argv):
 
     # Perform addon linking and load
     try:
-        addon_setup.launch(addons_to_load, options, required_packages)
+        addon_setup.launch(required_packages, addons_to_load, options)
     except Exception as e:
         if type(e) is not SystemExit:
             traceback.print_exc()
             sys.exit()
+
+    # Perform required packages installation and exit
+    if (options.required_packages):
+        print("INFO: Blender LDraw Addons required packages installed.", flush=True)
+        sys.exit(0)
 
     # Get 'Blender LDraw Render' addon version
     for addon in addon_utils.modules():
