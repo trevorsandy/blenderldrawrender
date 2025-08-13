@@ -97,7 +97,7 @@ celerybeat-schedule
 *.sage.py
 
 # Environments
-.env
+#.env
 .venv
 env/
 venv/
@@ -133,7 +133,7 @@ LDrawBlenderRenderAddons.zip
 .idea/
 
 # Visual Studio Code
-.vscode/
+#.vscode/
 
 # Development - Notepad++ Session File
 blenderldrawrender_session.xml
@@ -158,3 +158,12 @@ exr/background.exr
 
 # SHA file for packaged renderer addon
 LDrawBlenderRenderAddons.zip.sha256
+
+# Dev installation scripts
+blender_addon_install.bat
+blender_packages_install.bat
+refresh_blender.bat
+
+# Dev demo scripts
+open_annotation809.bat
+csi_blender.ldr
