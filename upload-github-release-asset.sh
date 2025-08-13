@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 #
 # Author: Trevor SANDY
-# Last Update August 08, 2025
+# Last Update August 13, 2025
+#
+# File: upload-github-release-asset.sh
 #
 # Adapted from original script by Stefan Buck
 # License: MIT
-#
+
 
 function ShowHelp()
 {
@@ -15,13 +17,13 @@ function ShowHelp()
     echo "Examples:"
     echo
     echo "--Publish package to specified DevOps location and extract"
-    echo "$ (cd ~/projects/blenderldrawrender && env TAG=v1.6.1 DEV_OPS=1 UNZIP=1 ./$0)"
+    echo "$ (cd ~/projects/blenderldrawrender && env TAG=v1.6.2 DEV_OPS=1 UNZIP=1 ./$0)"
     echo
     echo "--Publish package to GitHub release"
-    echo "$ (cd ~/projects/blenderldrawrender && env TAG=v1.6.1 COMMIT_NOTE=\"Render LDraw v1.6.1\" ./$0)"
+    echo "$ (cd ~/projects/blenderldrawrender && env TAG=v1.6.2 COMMIT_NOTE=\"Render LDraw v1.6.2\" ./$0)"
     echo
     echo "--Update the version number in .py files"
-    echo "$ (cd ~/projects/blenderldrawrender && env TAG=v1.6.1 SET_VERSION=true ./$0)"
+    echo "$ (cd ~/projects/blenderldrawrender && env TAG=v1.6.2 SET_VERSION=true ./$0)"
     echo
     echo "This script accepts the following parameters:"
     echo "DEV_OPS      - Build and publish packaged archive to DevOps"
@@ -86,7 +88,7 @@ DEV_OPS_REL=${DEV_OPS:-}
 DEV_OPS_NO_COMMIT=${NO_COMMIT:-}
 DEV_OPS_NO_UPLOAD=${NO_UPLOAD:-false}
 DEV_OPS_REL_UNZIP=${UNZIP:-}
-DEV_OPS_PUBLISH_DEST=${PUBLISH_DEST:-/home/$GH_USER/projects/build-LPub3D-Desktop_Qt_5_15_2_MSVC2019_32bit-Debug/mainApp/32bit_debug/3rdParty/Blender}
+DEV_OPS_PUBLISH_DEST=${PUBLISH_DEST:-/home/$GH_USER/projects/build-LPub3D-Desktop_Qt_6_9_1_MSVC2022_64bit-Debug/mainApp/64bit_debug/3rdParty/Blender}
 
 # Define variables.
 GH_DIR="$GH_REPO_PATH/.git"
