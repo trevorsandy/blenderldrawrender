@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update August 09, 2025
+Last Update August 11, 2025
 Copyright (c) 2020 - 2025 by Trevor SANDY
 
 LPub3D Blender LDraw Addon GPLv3 license.
@@ -33,18 +33,18 @@ To Run (Windows example):
     - If LDRAW_DIRECTORY is not set, the installation routine will attempt to locate the LDraw path.
 - Execute Command
     - <Blender Path>/blender --background --python install_blender_ldraw_addons.py -- <optional arguments>
-    - Example 1: C:\\Users\\Trevor\\Projects\\blender-4.5.1-windows-x64\\blender.exe --background --python install_blender_ldraw_addons.py -- --disable_ldraw_import_mm
-    - Example 2: C:\\Users\\Trevor\\Projects\\blender-4.5.1-windows-x64\\blender.exe --background --python install_blender_ldraw_addons.py -- --required_packages
+    - Example 1: %PROFILE%\\Projects\\blender-4.5.1-windows-x64\\blender.exe --background --python install_blender_ldraw_addons.py -- --disable_ldraw_import_mm
+    - Example 2: %PROFILE%\\Projects\\blender-4.5.1-windows-x64\\blender.exe --background --python install_blender_ldraw_addons.py -- --required_packages
 - Optional Environment Variables:
-    - SET ADDONS_TO_LOAD=[{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_import_ldraw","module_name":"io_scene_import_ldraw"},{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_import_ldraw_mm","module_name":"io_scene_import_ldraw_mm"},{"load_dir":"<Path>\\blenderldrawrender\\addons\\io_scene_render_ldraw","module_name":"io_scene_render_ldraw"}]
-    - SET LDRAW_DIRECTORY=<Path>\\LDraw (Note: Avoid using an LDraw path that include spaces)
+    - SET ADDONS_TO_LOAD=[{"load_dir":"%PROFILE%\\Projects\\blenderldrawrender\\addons\\io_scene_import_ldraw","module_name":"io_scene_import_ldraw"},{"load_dir":"%PROFILE%\\Projects\\blenderldrawrender\\addons\\io_scene_import_ldraw_mm","module_name":"io_scene_import_ldraw_mm"},{"load_dir":"%PROFILE%\\Projects\\blenderldrawrender\\addons\\io_scene_render_ldraw","module_name":"io_scene_render_ldraw"}]
+    - SET LDRAW_DIRECTORY=%PROFILE%\\LDraw (Note: If possible, avoid using an LDraw path that include spaces)
     - SET INSTALL_DEBUGPY=1
 - Optional Arguments:
     -xr, --disable_ldraw_render    Disable the LDraw render addon menu action in Blender
     -xi, --disable_ldraw_import    Disable the LDraw import addon menu action in Blender
     -xm, --disable_ldraw_import_mm Disable the LDraw import addon menu action in Blender
     -xa, --disable_ldraw_addons    Disable the LDraw import and render addon menu actions in Blender
-    -rp, --required_packages       Specify required packages for the addon
+    -rp, --required_packages       Specify if to run addon required packages install - used for admin install - e.g installing in Program Files
     -lc, --leocad                  Specify if the Blender LDraw install script caller is LeoCAD
 """
 
@@ -73,6 +73,7 @@ from io_scene_render_ldraw.preferences import Preferences
 def install_ldraw_addon(argv):
     """Install LDraw Render addons"""
 
+    # Parse and configure arguments
     arg_parser = BlenderArgumentParser(
         description='Install Blender LDraw addon.')
     arg_parser.add_argument("-xr", "--disable_ldraw_render", action="store_true",
@@ -86,13 +87,19 @@ def install_ldraw_addon(argv):
     arg_parser.add_argument("-lc", "--leocad", action="store_true",
                             help="Specify if the Blender LDraw install script caller is LeoCAD")
     arg_parser.add_argument("-rp", "--required_packages", action="store_true",
-                            help="Specify required packages for the addon")
+                            help="Specify to run addon required packages install")
     options = arg_parser.parse_args()
 
     if (options.required_packages):
         print("INFO: Installing LDraw Addon required packages...", flush=True)
     else:
         print("INFO: Installing LDraw Addon...", flush=True)
+
+    # Install required package list
+    required_packages = ["requests", "pillow"]
+    add_debugger = os.environ.get("INSTALL_DEBUGPY")
+    if add_debugger is not None:
+        required_packages.append("debugpy")
 
     # Process addons to load
     env_addons = os.environ.get("ADDONS_TO_LOAD")
@@ -107,12 +114,6 @@ def install_ldraw_addon(argv):
                                         json.loads(env_addons) if env_addons is not None else default_addons))
     if (not options.required_packages):
         assert addons_to_load is not None, "No LDraw addons specified."
-
-    # Installed package list
-    required_packages = ["requests", "pillow"]
-    add_debugger = os.environ.get("INSTALL_DEBUGPY")
-    if add_debugger is not None:
-        required_packages.append("debugpy")
 
     # Perform addon linking and load
     try:
@@ -165,7 +166,7 @@ def install_ldraw_addon(argv):
     prefs.set('studlogodirectory', studlogo_directory)
     prefs.save()
 
-    # Enaure LDraw directory is set
+    # Ensure LDraw directory is set
     ldraw_path = prefs.get('ldrawdirectory', "")
     assert ldraw_path != "", "LDraw library path not specified."
 
