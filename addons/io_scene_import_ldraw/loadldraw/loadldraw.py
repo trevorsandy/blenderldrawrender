@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update February 17, 2025
+Last Update August 19, 2025
 Copyright (c) 2024 by Toby Nelson
 Copyright (c) 2020 - 2025 by Trevor SANDY
 
@@ -1121,7 +1121,10 @@ class LegoColours:
                         subline = line_split[line_split.index("MATERIAL"):]
 
                         colour["material"]         = LegoColours.__getValue(subline, "MATERIAL")
-                        hexDigits                  = LegoColours.__getValue(subline, "VALUE")[1:]
+                        colour["fabric"]           = LegoColours.__getValue(subline, "FABRIC")
+                        hexDigits                  = "000000"
+                        if LegoColours.__getValue(subline, "VALUE") is not None:
+                            hexDigits              = LegoColours.__getValue(subline, "VALUE")[1:]
                         colour["secondary_colour"] = LegoColours.hexDigitsToLinearRGBA(hexDigits, 1.0)
                         colour["fraction"]         = LegoColours.__getValue(subline, "FRACTION")
                         colour["vfraction"]        = LegoColours.__getValue(subline, "VFRACTION")
