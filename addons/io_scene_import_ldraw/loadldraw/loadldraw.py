@@ -2034,16 +2034,17 @@ class LDrawLight:
         light.data.use_custom_distance  = self.use_cutoff
         light.data.cutoff_distance      = self.cutoff_distance
         light.data.use_shadow           = self.use_shadow
-        light.data.angle                = math.radians(self.sun_angle)
         light.data.shadow_soft_size     = self.shadow_radius
-        light.data.spot_size            = math.radians(self.spot_size)
-        light.data.spot_blend           = self.spot_blend
-        light.data.shape                = self.shape
-        if self.type == 'AREA' and (self.shape == 'RECTANGLE' or self.shape == 'ELLIPSE'):
-            light.data.size             = self.area_size_x
-            light.data.size_y           = self.area_size_y
-        else:
-            light.data.size             = self.size
+        if self.type == 'SUN':
+            light.data.angle                = math.radians(self.sun_angle)
+        if self.type == 'SPOT':
+            light.data.spot_size            = math.radians(self.spot_size)
+            light.data.spot_blend           = self.spot_blend
+        if self.type == 'AREA':
+            light.data.shape                = self.shape
+            if self.shape == 'RECTANGLE' or self.shape == 'ELLIPSE':
+                light.data.size             = self.area_size_x
+                light.data.size_y           = self.area_size_y
 
         light.location                  = self.position
 
@@ -2465,6 +2466,8 @@ class LDrawFile:
                                     parameters = parameters[1:]
                                 elif parameters[0] == "TYPE":
                                     light.type = parameters[1].upper().strip()
+                                    if light.type == "DIRECTIONAL":
+                                        light.type = "SUN"
                                     parameters = parameters[2:]
                                 elif parameters[0] == "NAME":
                                     light.name = "Imported {0}".format(line.split(" NAME ", 1)[1].strip())
