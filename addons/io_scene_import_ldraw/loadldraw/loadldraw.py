@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update August 19, 2025
+Last Update August 22, 2025
 Copyright (c) 2024 by Toby Nelson
 Copyright (c) 2020 - 2025 by Trevor SANDY
 
@@ -2040,11 +2040,14 @@ class LDrawLight:
         if self.type == 'SPOT':
             light.data.spot_size            = math.radians(self.spot_size)
             light.data.spot_blend           = self.spot_blend
+            light.data.size                 = self.size
         if self.type == 'AREA':
             light.data.shape                = self.shape
             if self.shape == 'RECTANGLE' or self.shape == 'ELLIPSE':
                 light.data.size             = self.area_size_x
                 light.data.size_y           = self.area_size_y
+            if (self.area_size_x == 0.0):
+                light.data.size             = self.size
 
         light.location                  = self.position
 
