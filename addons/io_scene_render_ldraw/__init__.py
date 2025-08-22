@@ -41,7 +41,7 @@ bl_info = {
     "name": "LPub3D Render LDraw",
     "description": "Render LDraw model as .png file",
     "author": "Trevor SANDY <trevor.sandy@gmail.com>",
-    "version": (1, 6, 3),
+    "version": (1, 6, 4),
     "blender": (2, 82, 0),
     "location": "Render",
     "warning": "",
