@@ -363,9 +363,7 @@ def meta_lp_lc_light(child_node, matrix):
             _params = _params[4:]
         elif _params[0] == "rotation":
             (x1, y1, z1, x2, y2, z2, x3, y3, z3) = map(float, _params[1:10])
-            light.target_position = light.matrix44ToEulerAngles(mathutils.Matrix((
-                (x1, y1, z1, 0),(x2, y2, z2, 0),(x3, y3, z3, 0),
-                (light.position.x, light.position.y, light.position.z, 1))))
+            light.rotation = mathutils.Matrix(((x1, y1, z1), (x2, y2, z2), (x3, y3, z3)))
             _params = _params[10:]
         elif _params[0] == "color" or _params[0] == "color_rgb":
             light.color = mathutils.Vector(
@@ -375,7 +373,7 @@ def meta_lp_lc_light(child_node, matrix):
             light.exponent = float(_params[1])
             _params = _params[2:]
         elif  _params[0] == "blender_sun_angle" or  _params[0] == "blender_directional_angle" or _params[0] == "angle":
-            light.sun_angle = ImportOptions.import_scale * float(_params[1])
+            light.sun_angle = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "blender_point_radius" or _params[0] == "blender_spot_radius" or _params[0] == "radius":
             light.shadow_radius = float(_params[1])
@@ -415,6 +413,8 @@ def meta_lp_lc_light(child_node, matrix):
             _params = _params[1:]
         elif _params[0] == "type":
             light.type = _params[1].upper().strip()
+            if light.type == "DIRECTIONAL":
+                light.type = "SUN"
             _params = _params[2:]
         elif _params[0] == "name":
             name_args = clean_line.split("NAME ")
