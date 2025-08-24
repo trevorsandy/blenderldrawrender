@@ -26,9 +26,10 @@ class LDrawLight:
         self.color            = mathutils.Vector((1.0, 1.0, 1.0))
         self.position         = mathutils.Vector((0.0, 0.0, 0.0))
         self.target_position  = mathutils.Vector((1.0, 0.0, 0.0))
-        self.dummy            = mathutils.Vector((0.0, 1.0, 0.0)) # up_vector placeholder
+        self.up_vector        = mathutils.Vector((0.0, 1.0, 0.0))
+        self.rotation         = None
 
-    def matrix44ToEulerAngles(self, matrix):
+    def rotationToEulerAngles(self, matrix):
         """Convert LeoCAD ROTATION matrix to target_position euler angles"""
 
         sin_pitch = -matrix[0][2]

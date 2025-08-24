@@ -363,9 +363,7 @@ def meta_lp_lc_light(child_node, matrix):
             _params = _params[4:]
         elif _params[0] == "rotation":
             (x1, y1, z1, x2, y2, z2, x3, y3, z3) = map(float, _params[1:10])
-            light.target_position = light.matrix44ToEulerAngles(mathutils.Matrix((
-                (x1, y1, z1, 0),(x2, y2, z2, 0),(x3, y3, z3, 0),
-                (light.position.x, light.position.y, light.position.z, 1))))
+            light.rotation = mathutils.Matrix(((x1, y1, z1), (x2, y2, z2), (x3, y3, z3)))
             _params = _params[10:]
         elif _params[0] == "color" or _params[0] == "color_rgb":
             light.color = mathutils.Vector(

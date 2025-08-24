@@ -1,3 +1,4 @@
+import mathutils
 import math
 import bpy
 
@@ -32,9 +33,11 @@ def create_light(light, empty=None, collection=None):
     light.position[1] = light.position[1] * ImportOptions.import_scale
     light.position[2] = light.position[2] * ImportOptions.import_scale
 
-    light.target_position[0] = light.target_position[0] * ImportOptions.import_scale
-    light.target_position[1] = light.target_position[1] * ImportOptions.import_scale
-    light.target_position[2] = light.target_position[2] * ImportOptions.import_scale
+	if light.rotation is not None:
+		light.target_position = light.rotationToEulerAngles(light.rotation)
+	light.target_position[0]  = light.target_position[0] * ImportOptions.import_scale
+	light.target_position[1]  = light.target_position[1] * ImportOptions.import_scale
+	light.target_position[2]  = light.target_position[2] * ImportOptions.import_scale
 
     obj = bpy.data.objects.new(light.name, blender_light)
     obj.name = light.name
@@ -55,13 +58,15 @@ def create_light(light, empty=None, collection=None):
     # when parenting the location of the parented obj is affected by the transform of the empty
     # this undoes the transform of the empty
     obj.parent = empty
-    bpy.context.view_layer.update()
+    if light.rotation is None:
+        bpy.context.view_layer.update()
+
     if obj.parent is not None:
         obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
 
     if light.type != 'POINT':
-        blender_lookat.look_at(obj, light.target_position, light.dummy)
-
+	    blender_lookat.look_at(obj, light.target_position, light.up_vector)
+	
     return obj
 
 def get_light_location(location):
