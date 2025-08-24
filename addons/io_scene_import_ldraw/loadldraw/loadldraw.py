@@ -2024,12 +2024,11 @@ class LDrawLight:
 
         linkToScene(light)
         if self.rotation is not None:
-#            bpy.context.view_layer.update()
-
+            # transpose the rotation matrix and add the translation
             row0 = (self.rotation[0][0], self.rotation[1][0], self.rotation[2][0], self.position[0])
             row1 = (self.rotation[0][1], self.rotation[1][1], self.rotation[2][1], self.position[1])
             row2 = (self.rotation[0][2], self.rotation[1][2], self.rotation[2][2], self.position[2])
-            row3 = (0,0,0,1)
+            row3 = (0, 0, 0, 1)
 
             light.matrix_world = mathutils.Matrix((row0, row1, row2, row3))
         else:
