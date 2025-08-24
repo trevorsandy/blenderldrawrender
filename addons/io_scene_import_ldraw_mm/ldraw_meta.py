@@ -415,6 +415,8 @@ def meta_lp_lc_light(child_node, matrix):
             _params = _params[1:]
         elif _params[0] == "type":
             light.type = _params[1].upper().strip()
+            if light.type == "DIRECTIONAL":
+                light.type = "SUN"
             _params = _params[2:]
         elif _params[0] == "name":
             name_args = clean_line.split("NAME ")

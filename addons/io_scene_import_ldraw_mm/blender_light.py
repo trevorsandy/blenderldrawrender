@@ -14,16 +14,19 @@ def create_light(light, empty=None, collection=None):
     blender_light.use_custom_distance   = light.use_cutoff
     blender_light.cutoff_distance       = light.cutoff_distance
     blender_light.use_shadow            = light.use_shadow
-    blender_light.data.angle            = math.radians(light.sun_angle)
-    blender_light.data.shadow_soft_size = light.shadow_radius
-    blender_light.data.spot_size        = math.radians(light.spot_size)
-    blender_light.data.spot_blend       = light.spot_blend
-    blender_light.data.shape            = light.shape
-    if light.type == 'AREA' and (light.shape == 'RECTANGLE' or light.shape == 'ELLIPSE'):
-        blender_light.data.size         = light.area_size_x
-        blender_light.data.size_y       = light.area_size_y
-    else:
-        blender_light.data.size         = light.size
+    if light.type == 'SUN':
+        blender_light.angle             = math.radians(light.sun_angle)
+    if light.type == 'SPOT':
+        blender_light.spot_size         = math.radians(light.spot_size)
+        blender_light.spot_blend        = light.spot_blend
+        blender_light.size              = light.size
+    if light.type == 'AREA':
+        blender_light.shape             = light.shape
+        if light.shape == 'RECTANGLE' or light.shape == 'ELLIPSE':
+            blender_light.size          = light.area_size_x
+            blender_light.size_y        = light.area_size_y
+        if (light.area_size_x == 0.0):
+            blender_light.size          = light.size
 
     light.position[0] = light.position[0] * ImportOptions.import_scale
     light.position[1] = light.position[1] * ImportOptions.import_scale
