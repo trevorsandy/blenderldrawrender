@@ -1995,33 +1995,7 @@ class LDrawLight:
         self.position         = mathutils.Vector((0.0, 0.0, 0.0))
         self.target_position  = mathutils.Vector((1.0, 0.0, 0.0))
         self.up_vector        = mathutils.Vector((0.0, 1.0, 0.0))
-
-    def matrix44ToEulerAngles(self, matrix):
-        """Convert LeoCAD ROTATION matrix to target_position euler angles"""
-
-        sin_pitch = -matrix[0][2]
-        cos_pitch = math.sqrt(1 - sin_pitch*sin_pitch)
-
-        if (math.fabs(cos_pitch) > 0.0005):
-            sin_roll = matrix[1][2] / cos_pitch
-            cos_roll = matrix[2][2] / cos_pitch
-            sin_yaw = matrix[0][1] / cos_pitch
-            cos_yaw = matrix[0][0] / cos_pitch
-        else:
-            sin_roll = -matrix[2][1]
-            cos_roll = matrix[1][1]
-            sin_yaw = 0.0
-            cos_yaw = 1.0
-
-        euler_angles = mathutils.Vector((math.atan2(sin_roll, cos_roll), math.atan2(sin_pitch, cos_pitch), math.atan2(sin_yaw, cos_yaw)))
-
-        if (euler_angles[0] < 0): euler_angles[0] += math.tau
-        if (euler_angles[1] < 0): euler_angles[1] += math.tau
-        if (euler_angles[2] < 0): euler_angles[2] += math.tau
-
-        angles_in_degrees = Math.scaleMatrix @ mathutils.Vector((math.degrees(euler_angles.x), math.degrees(euler_angles.y), math.degrees(euler_angles.z)))
-
-        return angles_in_degrees
+        self.rotation         = None
 
     def createLightNode(self):
         lightData = bpy.data.lights.new(name=self.name, type=self.type)
@@ -2049,7 +2023,17 @@ class LDrawLight:
         light.location                  = self.position
 
         linkToScene(light)
-        LDrawNode.look_at(light, self.target_position, self.up_vector)
+        if self.rotation is not None:
+#            bpy.context.view_layer.update()
+
+            row0 = (self.rotation[0][0], self.rotation[1][0], self.rotation[2][0], self.position[0])
+            row1 = (self.rotation[0][1], self.rotation[1][1], self.rotation[2][1], self.position[1])
+            row2 = (self.rotation[0][2], self.rotation[1][2], self.rotation[2][2], self.position[2])
+            row3 = (0,0,0,1)
+
+            light.matrix_world = mathutils.Matrix((row0, row1, row2, row3))
+        else:
+            LDrawNode.look_at(light, self.target_position, self.up_vector)
         return light
 
 
@@ -2414,9 +2398,7 @@ class LDrawFile:
                                     parameters = parameters[4:]
                                 elif parameters[0] == "ROTATION":
                                     (x1, y1, z1, x2, y2, z2, x3, y3, z3) = map(float, parameters[1:10])
-                                    light.target_position = light.matrix44ToEulerAngles(mathutils.Matrix((
-                                        (x1, y1, z1, 0),(x2, y2, z2, 0),(x3, y3, z3, 0),
-                                        (light.position.x, light.position.y, light.position.z, 1))))
+                                    light.rotation = mathutils.Matrix(((x1, y1, z1), (x2, y2, z2), (x3, y3, z3)))
                                     parameters = parameters[10:]
                                 elif parameters[0] == "COLOR" or parameters[0] == "COLOR_RGB":
                                     light.color = mathutils.Vector(
