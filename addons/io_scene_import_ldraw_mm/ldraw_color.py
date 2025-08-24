@@ -192,8 +192,7 @@ class LDrawColor:
 
             if "fabric" in material_name:
                 i = lparams.index("fabric")
-                material_fabric = material_parts[i + 1]
-            self.material_fabric = material_fabric
+                self.material_fabric = material_parts[i + 1]
             
             material_value = "000000"
             if "value" in material_parts:
