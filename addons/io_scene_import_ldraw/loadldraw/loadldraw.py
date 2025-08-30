@@ -1990,9 +1990,9 @@ class LDrawLight:
         self.spot_blend       = 0.150
         self.cutoff_distance  = 40
         self.name             = "LDraw_Light"
-        self.color            = mathutils.Vector((1.0, 1.0, 1.0))
         self.use_cutoff       = False
         self.use_shadow       = True
+        self.color            = mathutils.Vector((1.0, 1.0, 1.0))
         self.position         = mathutils.Vector((0.0, 0.0, 0.0))
         self.target_position  = mathutils.Vector((1.0, 0.0, 0.0))
         self.up_vector        = mathutils.Vector((0.0, 1.0, 0.0))
@@ -2009,20 +2009,19 @@ class LDrawLight:
         light.data.use_custom_distance  = self.use_cutoff
         light.data.cutoff_distance      = self.cutoff_distance
         light.data.use_shadow           = self.use_shadow
-        light.data.shadow_soft_size     = self.shadow_radius
+        light.data.shadow_soft_size     = self.shadow_radius * globalScaleFactor
         if self.type == 'SUN':
-            light.data.angle                = math.radians(self.sun_angle)
+            light.data.angle            = math.radians(self.sun_angle)
         if self.type == 'SPOT':
-            light.data.spot_size            = math.radians(self.spot_size)
-            light.data.spot_blend           = self.spot_blend * globalScaleFactor
-            light.data.size                 = self.size * globalScaleFactor
+            light.data.spot_size        = math.radians(self.spot_size)
+            light.data.spot_blend       = self.spot_blend
         if self.type == 'AREA':
-            light.data.shape                = self.shape
+            light.data.shape            = self.shape
             if self.shape == 'RECTANGLE' or self.shape == 'ELLIPSE':
-                light.data.size             = self.area_size_x * globalScaleFactor
-                light.data.size_y           = self.area_size_y * globalScaleFactor
-            if (self.area_size_x == 0.0):
-                light.data.size             = self.size * globalScaleFactor
+                light.data.size         = self.area_size_x * globalScaleFactor
+                light.data.size_y       = self.area_size_y * globalScaleFactor
+            else:
+                light.data.size         = self.size * globalScaleFactor
 
         light.location                  = self.position
 
@@ -2425,7 +2424,7 @@ class LDrawFile:
                                     light.exponent = float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "BLENDER_SUN_ANGLE" or parameters[0] == "BLENDER_DIRECTIONAL_ANGLE" or parameters[0] == "ANGLE":
-                                    light.sun_angle = globalScaleFactor * float(parameters[1])
+                                    light.sun_angle = float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "BLENDER_POINT_RADIUS" or parameters[0] == "BLENDER_SPOT_RADIUS" or parameters[0] == "RADIUS":
                                     light.shadow_radius = float(parameters[1])
