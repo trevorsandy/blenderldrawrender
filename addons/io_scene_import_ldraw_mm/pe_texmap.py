@@ -73,19 +73,25 @@ class PETexmap:
                 pe_texmap.texture = p.image
 
                 p.matrix = p.matrix or mathutils.Matrix.Identity(4)
-                (translation, rotation, scale) = (ldraw_node.matrix @ p.matrix).decompose()
 
-                p.box_extents = scale
+                if ldraw_node.pe_tex_next_shear:
+                    p.matrix = ldraw_node.matrix @ p.matrix
+                    p.matrix_inverse = p.matrix.inverted()
+                    p.box_extents = mathutils.Vector((p.point_diff.x / 2, 0.25, p.point_diff.y / 2))
+                else:
+                    (translation, rotation, scale) = (ldraw_node.matrix @ p.matrix).decompose()
 
-                mirroring = mathutils.Vector((1, 1, 1))
-                for dim in range(3):
-                    if scale[dim] < 0:
-                        mirroring[dim] *= -1
-                        p.box_extents[dim] *= -1
+                    p.box_extents = scale
 
-                rhs = mathutils.Matrix.LocRotScale(translation, rotation, mirroring)
-                p.matrix = (ldraw_node.matrix.inverted() @ rhs).freeze()
-                p.matrix_inverse = p.matrix.inverted().freeze()
+                    mirroring = mathutils.Vector((1, 1, 1))
+                    for dim in range(3):
+                        if scale[dim] < 0:
+                            mirroring[dim] *= -1
+                            p.box_extents[dim] *= -1
+
+                    rhs = mathutils.Matrix.LocRotScale(translation, rotation, mirroring)
+                    p.matrix = (ldraw_node.matrix.inverted() @ rhs).freeze()
+                    p.matrix_inverse = p.matrix.inverted().freeze()
 
                 vertices = [p.matrix_inverse @ v for v in child_node.vertices]
                 if winding == 'CW':
