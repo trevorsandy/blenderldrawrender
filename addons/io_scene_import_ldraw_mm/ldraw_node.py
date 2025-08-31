@@ -184,8 +184,6 @@ class LDrawNode:
                         # custom minifig head > 3626tex.dat (has no pe_tex) > 3626texshell.dat
                         if len(self.pe_tex_info) < 1:
                             child_node.pe_tex_info = self.pe_tex_infos.get(subfile_line_index, [])
-                        else:
-                            child_node.pe_tex_info = self.pe_tex_info
 
                         subfile_pe_tex_infos = self.subfile_pe_tex_infos.get(subfile_line_index, {})
                         # don't replace the collection in case this file already has pe_tex_infos
@@ -287,6 +285,7 @@ class LDrawNode:
                     if child_node.meta_command == "pe_tex_path":
                         clean_line = child_node.line
                         _params = clean_line.split()[2:]
+                        print(_params)
 
                         self.current_pe_tex_path = int(_params[0])
                         if len(_params) == 2:

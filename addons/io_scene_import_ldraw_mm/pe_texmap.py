@@ -62,11 +62,11 @@ class PETexmap:
                         uv = mathutils.Vector((x, y))
                         pe_texmap.uvs.append(uv)
 
-            elif p.matrix_inverse:
+            elif p.matrix:
                 if p.point_min is None: continue
                 if p.point_max is None: continue
                 if p.point_diff is None: continue
-                if p.box_extents is None: continue
+                # if p.box_extents is None: continue
 
                 # TODO: calculate uvs
                 pe_texmap = PETexmap()
@@ -75,30 +75,39 @@ class PETexmap:
                 p.matrix = p.matrix or mathutils.Matrix.Identity(4)
                 (translation, rotation, scale) = (ldraw_node.matrix @ p.matrix).decompose()
 
-                # scale.x =  scale.x * .3
-                # scale.y =  scale.y * .3
-                # scale.z =  scale.z * .3
-
-                p.box_extents = scale
+                # p.box_extents = scale
                 # translation.y = -translation.y
                 # if ldraw_node.pe_tex_next_shear:
                 #     p.box_extents = scale * mathutils.Vector((p.point_diff.x / 2, 0.25, -p.point_diff.y / 2))
 
                 mirroring = mathutils.Vector((1, 1, 1))
-                for dim in range(3):
-                    if scale[dim] < 0:
-                        mirroring[dim] *= -1
-                        p.box_extents[dim] *= -1
+                # for dim in range(3):
+                #     if scale[dim] < 0:
+                #         mirroring[dim] *= -1
+                #         scale *= -1
 
                 rhs = mathutils.Matrix.LocRotScale(translation, rotation, mirroring)
                 p.matrix = ldraw_node.matrix.inverted() @ rhs
                 p.matrix_inverse = p.matrix.inverted()
 
                 vertices = [p.matrix_inverse @ v for v in child_node.vertices]
-                if winding == 'CW':
-                    vertices.reverse()
 
-                if not intersect(vertices, p.box_extents):
+                if winding == "CW":
+                    if vert_count == 3:
+                        vertices = [
+                            vertices[0],
+                            vertices[2],
+                            vertices[1],
+                        ]
+                    elif vert_count == 4:
+                        vertices = [
+                            vertices[0],
+                            vertices[3],
+                            vertices[2],
+                            vertices[1],
+                        ]
+
+                if not intersect(vertices, scale):
                     continue
 
                 ab = vertices[1] - vertices[0]
@@ -107,7 +116,7 @@ class PETexmap:
                 texture_normal = mathutils.Vector((0, -1, 0))
                 dot = face_normal.dot(texture_normal)
                 # if abs(dot) < 0.001: continue
-                if dot <= 0: continue
+                if dot <= 0.001: continue
 
                 for vert in vertices:
                     u = (vert.x - p.point_min.x) / p.point_diff.x
