@@ -2,13 +2,13 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Attach Debug",
-            "type": "python",
+            "name": "Python Debugger: Attach",
+            "type": "debugpy",
             "request": "attach",
             "connect": {
-                "host": "localhost",
-                "port": 5678
-            },
+                "port": 5678,
+                "host": "localhost"
+            }
         }
     ]
 }

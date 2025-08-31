@@ -140,6 +140,7 @@ blenderldrawrender_session.xml
 
 # Development - config file
 setup/addon_setup/config/LDrawRendererPreferences.ini
+addons/io_scene_render_ldraw/config/LDrawRendererPreferences.ini
 
 # Development - render script
 render_ldraw_model.bat
@@ -159,11 +160,16 @@ exr/background.exr
 # SHA file for packaged renderer addon
 LDrawBlenderRenderAddons.zip.sha256
 
-# Dev installation scripts
-blender_addon_install.bat
-blender_packages_install.bat
-refresh_blender.bat
+# Development - installation scripts
+1_dev_refresh_blender.bat
+2_dev_blender_packages_install.bat
+3_dev_blender_addon_install.bat
+4_dev_open_annotation809.bat
+5_dev_cleanup_pycache.bat
 
-# Dev demo scripts
+# Development - demo scripts
 open_annotation809.bat
 csi_blender.ldr
+stderr-blender-packages-install
+stderr-blender-addon-install
+stdout-blender-addon-install
