@@ -527,11 +527,22 @@ def set_texmap_end(texmaps):
 
     return texmap, texmap_start, texmap_next, texmap_fallback
 
+
+# https://github.com/ScanMountGoat/ldr_tools_blender/issues/31#issuecomment-2161285322
 # PE_TEX_PATH is the nth line of types 1,3,4
 # can be any number of subfile lines - n n n n
 # each n is the nth 1,3,4 at that line in that file of the hierarchy
 # if final number is a subfile, treat it like a -1 for that file
 # if final number is a polygon, apply it to that polygon
+# what do we do when there is a tex_path -1 alongside tex_path >= 0?
+# how do we handle instances of 0, 0 1, 0 2, 0 1 2 - overlap?
+
+# these parts don't render correctly - examples\bad_import
+# 4181pb014.dat - 23 is misplaced, has something to do with having 0 1 and 0 2 path
+# 15068pb046a.dat - texture is smeared, has something to do with PE_TEX_NEXT_SHEAR
+# 10202pb021.dat - texture shows on top and bottom and the entire under side, has something to do with having a 0 and -1 path
+# 10202pb022.dat - texture shows on top and bottom and sides, has something to do with having a 0 and -1 path
+# x.dat - multiple rendering errors, likely due to PE_TEX_NEXT_SHEAR and overlapping paths
 
 # apply to all lines of this file and subfiles that have uv coordinates in their polygon definitions
 # 0 PE_TEX_PATH -1
@@ -559,6 +570,9 @@ def set_texmap_end(texmaps):
 # PE_TEX_NEXT_SHEAR is unknown
 # this may be where PE_TEX_NEXT_SHEAR comes in
 # is there a hardcoded or programmatically determined shear matrix?
+# 0 PE_TEX_PATH ...
+# 0 PE_TEX_NEXT_SHEAR
+# 0 PE_TEX_INFO ...
 def meta_pe_tex(ldraw_node, child_node):
     if child_node.meta_command == "pe_tex_path":
         meta_pe_tex_path(ldraw_node, child_node)
