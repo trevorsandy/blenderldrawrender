@@ -267,10 +267,49 @@ class LDrawNode:
                         texmap_fallback=texmap_fallback,
                     )
                 elif child_node.meta_command.startswith("pe_tex_"):
-                    ldraw_meta.meta_pe_tex(
-                        ldraw_node=self,
-                        child_node=child_node,
-                    )
+                    # works
+                    # 0 PE_TEX_PATH -1
+                    # works
+                    # 0 PE_TEX_PATH 0
+                    # works
+                    # 0 PE_TEX_PATH 0
+                    # 0 PE_TEX_PATH -1
+                    # !works
+                    # 0 PE_TEX_PATH 0 1
+                    # !works
+                    # backside of studs have texture applied
+                    # 3004pb062.dat
+                    # 0 PE_TEX_PATH 0 0 2
+
+                    # 0 PE_TEX_PATH ...
+                    # 0 PE_TEX_NEXT_SHEAR -> optional
+                    # 0 PE_TEX_INFO ...
+                    if child_node.meta_command == "pe_tex_path":
+                        clean_line = child_node.line
+                        _params = clean_line.split()[2:]
+
+                        self.current_pe_tex_path = int(_params[0])
+                        if len(_params) == 2:
+                            self.current_subfile_pe_tex_path = int(_params[1])
+
+                        self.pe_tex_next_shear = False
+                    elif child_node.meta_command == "pe_tex_next_shear":
+                        self.pe_tex_next_shear = True
+                    elif child_node.meta_command == "pe_tex_info":
+                        pe_tex_info = ldraw_meta.meta_pe_tex_info(self, child_node)
+
+                        if self.current_subfile_pe_tex_path is not None:
+                            self.subfile_pe_tex_infos.setdefault(self.current_pe_tex_path, {})
+                            self.subfile_pe_tex_infos[self.current_pe_tex_path].setdefault(self.current_subfile_pe_tex_path, [])
+                            self.subfile_pe_tex_infos[self.current_pe_tex_path][self.current_subfile_pe_tex_path].append(pe_tex_info)
+                        else:
+                            self.pe_tex_infos.setdefault(self.current_pe_tex_path, [])
+                            self.pe_tex_infos[self.current_pe_tex_path].append(pe_tex_info)
+
+                        if self.current_pe_tex_path == -1:
+                            self.pe_tex_info = self.pe_tex_infos[self.current_pe_tex_path]
+
+                        self.pe_tex_next_shear = False
                 else:
                     # these meta commands really only make sense if they are encountered at the model level
                     # these should never be encountered when geometry_data not None
