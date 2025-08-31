@@ -570,43 +570,19 @@ def set_texmap_end(texmaps):
 # PE_TEX_NEXT_SHEAR is unknown
 # this may be where PE_TEX_NEXT_SHEAR comes in
 # is there a hardcoded or programmatically determined shear matrix?
-# 0 PE_TEX_PATH ...
-# 0 PE_TEX_NEXT_SHEAR
-# 0 PE_TEX_INFO ...
-def meta_pe_tex(ldraw_node, child_node):
-    if child_node.meta_command == "pe_tex_path":
-        meta_pe_tex_path(ldraw_node, child_node)
-        ldraw_node.pe_tex_next_shear = False
-    elif child_node.meta_command == "pe_tex_info":
-        meta_pe_tex_info(ldraw_node, child_node)
-        ldraw_node.pe_tex_next_shear = False
-    elif child_node.meta_command == "pe_tex_next_shear":
-        ldraw_node.pe_tex_next_shear = True
-
-
-def meta_pe_tex_path(ldraw_node, child_node):
-    clean_line = child_node.line
-    _params = clean_line.split()[2:]
-
-    ldraw_node.current_pe_tex_path = int(_params[0])
-    if len(_params) == 2:
-        ldraw_node.current_subfile_pe_tex_path = int(_params[1])
-
-
 def meta_pe_tex_info(ldraw_node, child_node):
-    if ldraw_node.current_pe_tex_path is None:
-        return
-
     clean_line = child_node.line
     _params = clean_line.split()[2:]
 
     pe_tex_info = PETexInfo()
 
+    # if there is one or 17, use the last item as the image data
     from . import base64_handler
     base64_str = _params[-1]
     image = base64_handler.named_png_from_base64_str(f"{ldraw_node.file.name}_{ldraw_node.current_pe_tex_path}.png", base64_str)
     pe_tex_info.image = image.name
 
+    # if there is 17, it defines the boundingbox
     if len(_params) == 17:
         # defines a bounding box and its transformation
         # this doesn't work well with some very distorted texture applications
@@ -640,16 +616,7 @@ def meta_pe_tex_info(ldraw_node, child_node):
         pe_tex_info.matrix = matrix.freeze()
         pe_tex_info.matrix_inverse = _inverse_matrix.freeze()
 
-    if ldraw_node.current_subfile_pe_tex_path is not None:
-        ldraw_node.subfile_pe_tex_infos.setdefault(ldraw_node.current_pe_tex_path, {})
-        ldraw_node.subfile_pe_tex_infos[ldraw_node.current_pe_tex_path].setdefault(ldraw_node.current_subfile_pe_tex_path, [])
-        ldraw_node.subfile_pe_tex_infos[ldraw_node.current_pe_tex_path][ldraw_node.current_subfile_pe_tex_path].append(pe_tex_info)
-    else:
-        ldraw_node.pe_tex_infos.setdefault(ldraw_node.current_pe_tex_path, [])
-        ldraw_node.pe_tex_infos[ldraw_node.current_pe_tex_path].append(pe_tex_info)
-
-    if ldraw_node.current_pe_tex_path == -1:
-        ldraw_node.pe_tex_info = ldraw_node.pe_tex_infos[ldraw_node.current_pe_tex_path]
+    return pe_tex_info
 
 
 def meta_edge(child_node, color_code, matrix, geometry_data):
