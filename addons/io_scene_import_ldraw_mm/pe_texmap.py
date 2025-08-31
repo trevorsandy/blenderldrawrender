@@ -75,7 +75,12 @@ class PETexmap:
                 p.matrix = p.matrix or mathutils.Matrix.Identity(4)
                 (translation, rotation, scale) = (ldraw_node.matrix @ p.matrix).decompose()
 
+                # scale.x =  scale.x * .3
+                # scale.y =  scale.y * .3
+                # scale.z =  scale.z * .3
+
                 p.box_extents = scale
+                # translation.y = -translation.y
                 # if ldraw_node.pe_tex_next_shear:
                 #     p.box_extents = scale * mathutils.Vector((p.point_diff.x / 2, 0.25, -p.point_diff.y / 2))
 
@@ -99,10 +104,10 @@ class PETexmap:
                 ab = vertices[1] - vertices[0]
                 bc = vertices[2] - vertices[1]
                 face_normal = ab.cross(bc).normalized()
-                texture_normal = mathutils.Vector((0, -1, 0))  # "down"
+                texture_normal = mathutils.Vector((0, -1, 0))
                 dot = face_normal.dot(texture_normal)
-                if abs(dot) < 0.001: continue
-                if dot < 0: continue
+                # if abs(dot) < 0.001: continue
+                if dot <= 0: continue
 
                 for vert in vertices:
                     u = (vert.x - p.point_min.x) / p.point_diff.x
