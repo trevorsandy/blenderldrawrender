@@ -82,6 +82,7 @@ class PETexmap:
                     (translation, rotation, scale) = (ldraw_node.matrix @ p.matrix).decompose()
 
                     p.box_extents = scale
+                    translation.y = -translation.y
 
                     mirroring = mathutils.Vector((1, 1, 1))
                     for dim in range(3):
@@ -104,8 +105,9 @@ class PETexmap:
                 bc = vertices[2] - vertices[1]
                 face_normal = ab.cross(bc).normalized()
                 texture_normal = mathutils.Vector((0, -1, 0))  # "down"
-                if abs(face_normal.dot(texture_normal)) < 0.001:
-                    continue
+                dot = face_normal.dot(texture_normal)
+                if abs(dot) < 0.001: continue
+                if dot < 0: continue
 
                 for vert in vertices:
                     # max - vert so that image will be oriented at the top left instead of bottom left
