@@ -1952,7 +1952,7 @@ class LDrawCamera:
         camera.data.angle      = self.fov_radians
         camera.data.clip_end   = self.far
         camera.data.clip_start = self.near
-        camera.data.show_name  = True        
+        camera.data.show_name  = True
         camera.hide_set(self.hidden)
         self.hidden = False
 
@@ -2368,10 +2368,10 @@ class LDrawFile:
                                 elif parameters[0] == "UP_VECTOR":
                                     if processingLPubMeta:
                                         # Convert transform from LDraw to Blender, switch Z and Y axis with -Z in the up direction
-                                        camera.up_vector = mathutils.Vector(
+                                        camera.up_vector = Math.scaleMatrix @ mathutils.Vector(
                                             (float(parameters[1]), float(parameters[3]), -float(parameters[2])))     
                                     else:
-                                        camera.up_vector = mathutils.Vector(
+                                        camera.up_vector = Math.scaleMatrix @ mathutils.Vector(
                                             (float(parameters[1]), float(parameters[2]), float(parameters[3])))
                                     parameters = parameters[4:]
                                 elif parameters[0] == "ORTHOGRAPHIC":
