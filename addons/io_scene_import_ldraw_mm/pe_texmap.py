@@ -73,26 +73,21 @@ class PETexmap:
                 pe_texmap.texture = p.image
 
                 p.matrix = p.matrix or mathutils.Matrix.Identity(4)
+                (translation, rotation, scale) = (ldraw_node.matrix @ p.matrix).decompose()
 
-                if ldraw_node.pe_tex_next_shear:
-                    p.matrix = ldraw_node.matrix @ p.matrix
-                    p.matrix_inverse = p.matrix.inverted()
-                    p.box_extents = mathutils.Vector((p.point_diff.x / 2, 0.25, p.point_diff.y / 2))
-                else:
-                    (translation, rotation, scale) = (ldraw_node.matrix @ p.matrix).decompose()
+                p.box_extents = scale
+                # if ldraw_node.pe_tex_next_shear:
+                #     p.box_extents = scale * mathutils.Vector((p.point_diff.x / 2, 0.25, -p.point_diff.y / 2))
 
-                    p.box_extents = scale
-                    translation.y = -translation.y
+                mirroring = mathutils.Vector((1, 1, 1))
+                for dim in range(3):
+                    if scale[dim] < 0:
+                        mirroring[dim] *= -1
+                        p.box_extents[dim] *= -1
 
-                    mirroring = mathutils.Vector((1, 1, 1))
-                    for dim in range(3):
-                        if scale[dim] < 0:
-                            mirroring[dim] *= -1
-                            p.box_extents[dim] *= -1
-
-                    rhs = mathutils.Matrix.LocRotScale(translation, rotation, mirroring)
-                    p.matrix = (ldraw_node.matrix.inverted() @ rhs).freeze()
-                    p.matrix_inverse = p.matrix.inverted().freeze()
+                rhs = mathutils.Matrix.LocRotScale(translation, rotation, mirroring)
+                p.matrix = ldraw_node.matrix.inverted() @ rhs
+                p.matrix_inverse = p.matrix.inverted()
 
                 vertices = [p.matrix_inverse @ v for v in child_node.vertices]
                 if winding == 'CW':
@@ -110,9 +105,8 @@ class PETexmap:
                 if dot < 0: continue
 
                 for vert in vertices:
-                    # max - vert so that image will be oriented at the top left instead of bottom left
                     u = (vert.x - p.point_min.x) / p.point_diff.x
-                    v = (p.point_max.y - vert.z) / p.point_diff.y
+                    v = (vert.z - -p.point_min.y) / -p.point_diff.y
                     uv = mathutils.Vector((u, v))
                     pe_texmap.uvs.append(uv)
 
