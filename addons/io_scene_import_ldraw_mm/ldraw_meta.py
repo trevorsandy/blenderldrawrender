@@ -317,7 +317,6 @@ def meta_lp_lc_camera(child_node, matrix):
             name_args = clean_line.split("NAME ")
             # _*_lp_lc_mod
             camera.name = "Imported {0}".format(name_args[1])
-            # _*_mod_end
 
             # By definition this is the last of the parameters
             _params = []
@@ -326,6 +325,7 @@ def meta_lp_lc_camera(child_node, matrix):
             camera = None
         else:
             _params = _params[1:]
+# _*_mod_end
 
 # _*_lp_lc_mod
 def meta_lp_lc_light(child_node, matrix):
@@ -544,7 +544,7 @@ def set_texmap_end(texmaps):
 # 10202pb022.dat - texture shows on top and bottom and sides, has something to do with having a 0 and -1 path
 # x.dat - multiple rendering errors, likely due to PE_TEX_NEXT_SHEAR and overlapping paths
 
-# apply to all lines of this file and subfiles that have uv coordinates in their polygon definitions
+# apply to all lines (polygons only?) of this file and subfiles that have uv coordinates in their polygon definitions
 # 0 PE_TEX_PATH -1
 # 0 PE_TEX_INFO PNGBASE64==
 
@@ -597,9 +597,6 @@ def meta_pe_tex_info(ldraw_node, child_node):
             (0, 0, 0, 1)
         ))
 
-        # this is the original transformation of the bounding box
-        _inverse_matrix = matrix.inverted()
-
         point_min = mathutils.Vector((0, 0))
         point_max = mathutils.Vector((0, 0))
         point_min.x = float(params[12])
@@ -614,7 +611,6 @@ def meta_pe_tex_info(ldraw_node, child_node):
         pe_tex_info.point_diff = point_diff.freeze()
         pe_tex_info.box_extents = box_extents.freeze()
         pe_tex_info.matrix = matrix.freeze()
-        pe_tex_info.matrix_inverse = _inverse_matrix.freeze()
 
     return pe_tex_info
 
