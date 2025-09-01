@@ -2422,7 +2422,7 @@ class LDrawFile:
                                 elif parameters[0] == "BLENDER_SUN_ANGLE" or parameters[0] == "BLENDER_DIRECTIONAL_ANGLE" or parameters[0] == "ANGLE":
                                     light.sun_angle = float(parameters[1])
                                     parameters = parameters[2:]
-                                elif parameters[0] == "BLENDER_POINT_RADIUS" or parameters[0] == "BLENDER_SPOT_RADIUS" or parameters[0] == "RADIUS":
+                                elif parameters[0] == "BLENDER_RADIUS" or parameters[0] == "BLENDER_POINT_RADIUS" or parameters[0] == "BLENDER_SPOT_RADIUS" or parameters[0] == "RADIUS":
                                     light.shadow_radius = float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "SPOT_CONE_ANGLE" or parameters[0] == "SPOT_SIZE":
