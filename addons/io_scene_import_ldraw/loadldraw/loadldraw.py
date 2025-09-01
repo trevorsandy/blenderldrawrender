@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update August 29, 2025
+Last Update September 01, 2025
 Copyright (c) 2024 by Toby Nelson
 Copyright (c) 2020 - 2025 by Trevor SANDY
 
@@ -1980,10 +1980,8 @@ class LDrawLight:
         self.sun_angle        = 0.0
         self.shadow_radius    = 0.0
         self.spot_blend       = 0.0
-        self.area_size        = 0.0
-        self.area_size_x      = 0.0
+        self.area_size        = 0.25
         self.area_size_y      = 0.0
-        self.size             = 0.25
         self.exponent         = 10
         self.specular         = 1.0
         self.spot_size        = 75        # degrees
@@ -2017,11 +2015,9 @@ class LDrawLight:
             light.data.spot_blend       = self.spot_blend
         if self.type == 'AREA':
             light.data.shape            = self.shape
+            light.data.size             = self.area_size * globalScaleFactor
             if self.shape == 'RECTANGLE' or self.shape == 'ELLIPSE':
-                light.data.size         = self.area_size_x * globalScaleFactor
                 light.data.size_y       = self.area_size_y * globalScaleFactor
-            else:
-                light.data.size         = self.size * globalScaleFactor
 
         light.location                  = self.position
 
@@ -2440,11 +2436,8 @@ class LDrawFile:
                                     if penumbra_angle > 0:
                                         light.spot_blend = penumbra_angle / light.spot_size
                                     parameters = parameters[2:]
-                                elif parameters[0] == "AREA_SIZE" or parameters[0] == "SIZE":
-                                    light.size = float(parameters[1])
-                                    parameters = parameters[2:]
-                                elif parameters[0] == "AREA_SIZE_X" or parameters[0] == "WIDTH":
-                                    light.area_size_x = float(parameters[1])
+                                elif parameters[0] == "AREA_SIZE_X" or parameters[0] == "AREA_SIZE" or parameters[0] == "SIZE" or parameters[0] == "WIDTH":
+                                    light.area_size = float(parameters[1])
                                     parameters = parameters[2:]
                                 elif parameters[0] == "AREA_SIZE_Y" or parameters[0] == "HEIGHT":
                                     light.area_size_y = float(parameters[1])
