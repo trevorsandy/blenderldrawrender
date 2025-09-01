@@ -389,11 +389,8 @@ def meta_lp_lc_light(child_node, matrix):
             if penumbra_angle > 0:
                 light.spot_blend = penumbra_angle / light.spot_size
             _params = _params[2:]
-        elif _params[0] == "area_size" or _params[0] == "size":
-            light.size = float(_params[1])
-            _params = _params[2:]
-        elif _params[0] == "area_size_x" or _params[0] == "width":
-            light.area_size_x = float(_params[1])
+        elif _params[0] == "area_size_x" or _params[0] == "area_size" or _params[0] == "size" or _params[0] == "width":
+            light.area_size = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "area_size_y" or _params[0] == "height":
             light.area_size_y = float(_params[1])

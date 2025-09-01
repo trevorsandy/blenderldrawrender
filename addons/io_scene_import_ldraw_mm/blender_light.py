@@ -23,11 +23,9 @@ def create_light(light, empty=None, collection=None):
         blender_light.spot_blend        = light.spot_blend
     if light.type == 'AREA':
         blender_light.shape             = light.shape
+        blender_light.size              = light.area_size * ImportOptions.import_scale
         if light.shape == 'RECTANGLE' or light.shape == 'ELLIPSE':
-            blender_light.size          = light.area_size_x * ImportOptions.import_scale
             blender_light.size_y        = light.area_size_y * ImportOptions.import_scale
-        else:
-            blender_light.size          = light.size * ImportOptions.import_scale
 
     light.position[0] = light.position[0] * ImportOptions.import_scale
     light.position[1] = light.position[1] * ImportOptions.import_scale
