@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Author: Trevor SANDY
-# Last Update August 13, 2025
+# Last Update September 01, 2025
 #
 # File: upload-github-release-asset.sh
 #
@@ -127,7 +127,7 @@ function display_arguments()
         if [ -n "$DEV_OPS_REL" ]; then
             DEV_OPS_NO_UPLOAD=true
             echo "--PUBLISH.........Publish Release To Dev Ops"
-            [ -n "$DEV_OPS_REL_UNZIP" ] && echo "--Unzip DevOps Release" || true
+            [ -n "$DEV_OPS_REL_UNZIP" ] && echo "--INSTALL.........Unzip DevOps Release" || true
             echo "--DEV_OPS_DEST....$DEV_OPS_PUBLISH_DEST"
         fi
         if [ "$DEV_OPS_NO_UPLOAD" = "true" ]; then
@@ -162,9 +162,8 @@ function mv_exr ()
 {
     dir="$2" # Include a / at the end to indicate directory (not filename)
     tmp="$2"; tmp="${tmp: -1}"
-    [ "$tmp" != "/" ] && dir="$(dirname "$2")"
-    [ -a "$dir" ] ||
-    mkdir -p "$dir" &&
+    [ "$tmp" != "/" ] && dir="$(dirname "$2")" || :
+    [ -a "$dir" ] || mkdir -p "$dir"
     mv "$@"
 }
 
