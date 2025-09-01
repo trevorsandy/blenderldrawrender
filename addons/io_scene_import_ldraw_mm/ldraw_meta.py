@@ -375,7 +375,7 @@ def meta_lp_lc_light(child_node, matrix):
         elif  _params[0] == "blender_sun_angle" or _params[0] == "blender_angle" or _params[0] == "blender_directional_angle" or _params[0] == "angle":
             light.sun_angle = float(_params[1])
             _params = _params[2:]
-        elif _params[0] == "blender_point_radius" or _params[0] == "blender_spot_radius" or _params[0] == "radius":
+        elif _params[0] == "blender_radius" or _params[0] == "blender_point_radius" or _params[0] == "blender_spot_radius" or _params[0] == "radius":
             light.shadow_radius = float(_params[1])
             _params = _params[2:]
         elif _params[0] == "spot_cone_angle" or _params[0] == "spot_size":
