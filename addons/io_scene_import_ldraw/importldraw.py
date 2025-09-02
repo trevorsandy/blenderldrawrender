@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update January 07, 2025
+Last Update September 01, 2025
 Copyright (c) 2024 by Toby Nelson
 Copyright (c) 2020 - 2025 by Trevor SANDY
 
@@ -427,6 +427,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
         box.prop(self, "realScale")
         box.prop(self, "look", expand=True)
         box.prop(self, "useColourScheme", expand=True)
+        box.prop(self, "defaultColour")
         box.prop(self, "positionCamera")
         box.prop(self, "cameraBorderPercentage")
         box.prop(self, "positionOnGround")
@@ -527,6 +528,7 @@ class ImportLDrawOps(bpy.types.Operator, ImportHelper):
             ImportLDrawOps.prefs.set("bevelWidth",             self.bevelWidth)
             ImportLDrawOps.prefs.set("cameraBorderPercentage", self.cameraBorderPercentage)
             ImportLDrawOps.prefs.set("curvedWalls",            self.curvedWalls)
+            ImportLDrawOps.prefs.set("defaultColour",          self.defaultColour)
             ImportLDrawOps.prefs.set("flattenHierarchy",       self.flatten)
             ImportLDrawOps.prefs.set("minifigHierarchy",       self.minifigHierarchy)
             ImportLDrawOps.prefs.set("gaps",                   self.addGaps)
