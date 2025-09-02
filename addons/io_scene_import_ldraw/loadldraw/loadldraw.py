@@ -386,149 +386,158 @@ class Configure:
     Stores warning messages we have already seen so we don't see them again.
     """
 
-    searchPaths = []
+    localSearchPaths = []
+    officialSearchPaths = []
+    unofficialSearchPaths = []
+
     warningSuppression = {}
     tempDir = None
 
-    def appendPath(path):
-        if os.path.exists(path) and not path in Configure.searchPaths:
-            Configure.searchPaths.append(path)
+    def appendLocalPath(path):
+        if os.path.exists(path):
+            Configure.localSearchPaths.append(path)
+
+    def appendOfficialPath(path):
+        if os.path.exists(path):
+            Configure.officialSearchPaths.append(path)
+
+    def appendUnofficialPath(path):
+        if os.path.exists(path):
+            Configure.unofficialSearchPaths.append(path)
 
     def __setSearchPaths():
-        Configure.searchPaths = []
+        Configure.localSearchPaths = []
+        Configure.officialSearchPaths = []
+        Configure.unofficialSearchPaths = []
+
+        # Always search for parts in the 'models' folder
+        models = os.path.join(Configure.ldrawInstallDirectory, "models")
+        Configure.appendOfficialPath(models)
+        if haveArchiveLibraries is True:
+            models = "ldraw/models"
+            CachedLibraries.appendLibraryPath(models)
+
+        # Search for stud logo parts first since we want our local stud files to take priority
+        # (Our local studs include versions with the 'LEGO' logo)
+        if Options.useLogoStuds:
+            if Options.studLogoDirectory != "":
+                if Options.resolution == "Low":
+                    Configure.appendLocalPath(os.path.join(Options.studLogoDirectory, "8"))
+                Configure.appendLocalPath(Options.studLogoDirectory)
+            else:
+                parts = os.path.join(Configure.ldrawInstallDirectory, "parts")
+                Configure.appendLocalPath(parts)
+                if haveArchiveLibraries is True:
+                    parts = "ldraw/parts"
+                    CachedLibraries.appendLibraryPath(parts)            
+                if Options.useUnofficialParts:
+                    parts = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "parts")
+                    Configure.appendLocalPath(parts)
+                    if haveArchiveLibraries is True:
+                        parts = "parts"
+                        CachedLibraries.appendLibraryPath(parts)
 
         # Search official parts
-        parts = os.path.join(Configure.ldrawInstallDirectory, "parts")
-        Configure.appendPath(parts)
-        if haveArchiveLibraries is True:
-            parts = "ldraw/parts"
-            CachedLibraries.appendLibraryPath(parts)
-
-        textures = os.path.join(Configure.ldrawInstallDirectory, "parts", "textures")
-        Configure.appendPath(textures)
-        if haveArchiveLibraries is True:
-            textures = "ldraw/parts/textures"
-            CachedLibraries.appendLibraryPath(textures)
-
-        primitives = os.path.join(Configure.ldrawInstallDirectory, "p")
-        Configure.appendPath(primitives)
-        if haveArchiveLibraries is True:
-            primitives = "ldraw/p"
-            CachedLibraries.appendLibraryPath(primitives)
-
         if Options.resolution == "High":
             primitivesHigh = os.path.join(Configure.ldrawInstallDirectory, "p", "48")
-            Configure.appendPath(primitivesHigh)
+            Configure.appendOfficialPath(primitivesHigh)
             if haveArchiveLibraries is True:
                 primitivesHigh = "ldraw/p/48"
                 CachedLibraries.appendLibraryPath(primitivesHigh)
             debugPrint("High-res primitives selected")
         elif Options.resolution == "Low":
             primitivesLow = os.path.join(Configure.ldrawInstallDirectory, "p", "8")
-            Configure.appendPath(primitivesLow)
+            Configure.appendOfficialPath(primitivesLow)
             if haveArchiveLibraries is True:
                 primitivesLow = "ldraw/p/8"
                 CachedLibraries.appendLibraryPath(primitivesLow)
             debugPrint("Low-res primitives selected")
 
+        primitives = os.path.join(Configure.ldrawInstallDirectory, "p")
+        Configure.appendOfficialPath(primitives)
+        if haveArchiveLibraries is True:
+            primitives = "ldraw/p"
+            CachedLibraries.appendLibraryPath(primitives)
+
+        parts = os.path.join(Configure.ldrawInstallDirectory, "parts")
+        Configure.appendOfficialPath(parts)
+        if haveArchiveLibraries is True:
+            parts = "ldraw/parts"
+            CachedLibraries.appendLibraryPath(parts)
+
+        textures = os.path.join(Configure.ldrawInstallDirectory, "parts", "textures")
+        Configure.appendOfficialPath(textures)
+        if haveArchiveLibraries is True:
+            textures = "ldraw/parts/textures"
+            CachedLibraries.appendLibraryPath(textures)
+
         # Search unofficial parts
         if Options.useUnofficialParts:
-            parts = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "parts")
-            Configure.appendPath(parts)
-            if haveArchiveLibraries is True:
-                parts = "parts"
-                CachedLibraries.appendLibraryPath(parts)
-
-            textures = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "parts", "textures")
-            Configure.appendPath(textures)
-            if haveArchiveLibraries is True:
-                textures = "parts/textures"
-                CachedLibraries.appendLibraryPath(textures)
-
-            primitives = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "p")
-            Configure.appendPath(primitives)
-            if haveArchiveLibraries is True:
-                primitives = "p"
-                CachedLibraries.appendLibraryPath(primitives)
-
             if Options.resolution == "High":
                 primitivesHigh = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "p", "48")
-                Configure.appendPath(primitivesHigh)
+                Configure.appendUnofficialPath(primitivesHigh)
                 if haveArchiveLibraries is True:
                     primitivesHigh = "p/48"
                     CachedLibraries.appendLibraryPath(primitivesHigh)
             elif Options.resolution == "Low":
                 primitivesLow = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "p", "8")
-                Configure.appendPath(primitivesLow)
+                Configure.appendUnofficialPath(primitivesLow)
                 if haveArchiveLibraries is True:
                     primitivesLow = "p/8"
                     CachedLibraries.appendLibraryPath(primitivesLow)
 
-            # Add 'Tente' parts too
-            Configure.appendPath(os.path.join(Configure.ldrawInstallDirectory, "tente", "parts"))
+            primitives = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "p")
+            Configure.appendUnofficialPath(primitives)
+            if haveArchiveLibraries is True:
+                primitives = "p"
+                CachedLibraries.appendLibraryPath(primitives)
+
+            parts = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "parts")
+            Configure.appendUnofficialPath(parts)
             if haveArchiveLibraries is True:
                 parts = "parts"
                 CachedLibraries.appendLibraryPath(parts)
-                
+
+            textures = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "parts", "textures")
+            Configure.appendUnofficialPath(textures)
+            if haveArchiveLibraries is True:
+                textures = "parts/textures"
+                CachedLibraries.appendLibraryPath(textures)
+
+        # Search LSynth parts
+        if Options.useLSynthParts:
+            if Options.LSynthDirectory != "":
+                Configure.appendOfficialPath(Options.LSynthDirectory)
+            elif Options.useUnofficialParts:
+                lsynth = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "lsynth")
+                Configure.appendUnofficialPath(lsynth)
+            debugPrint("Use LSynth Parts requested")
+
+        # Add 'Tente' parts too
+        if Options.useUnofficialParts:
             if Options.resolution == "High":
                 primitivesHigh = os.path.join(Configure.ldrawInstallDirectory, "tente", "p", "48")
-                Configure.appendPath(primitivesHigh)
+                Configure.appendUnofficialPath(primitivesHigh)
                 if haveArchiveLibraries is True:
                     primitivesHigh = "p/48"
                     CachedLibraries.appendLibraryPath(primitivesHigh)
             elif Options.resolution == "Low":
                 primitivesLow = os.path.join(Configure.ldrawInstallDirectory, "tente", "p", "8")
-                Configure.appendPath(primitivesLow)
+                Configure.appendUnofficialPath(primitivesLow)
                 if haveArchiveLibraries is True:
                     primitivesLow = "p/8"
                     CachedLibraries.appendLibraryPath(primitivesLow)
                     
             primitives = os.path.join(Configure.ldrawInstallDirectory, "tente", "p")
-            Configure.appendPath(primitives)
+            Configure.appendUnofficialPath(primitives)
             if haveArchiveLibraries is True:
                 primitives = "p"
                 CachedLibraries.appendLibraryPath(primitives)
 
-        # Search for parts in the 'models'
-        models = os.path.join(Configure.ldrawInstallDirectory, "models")
-        Configure.appendPath(models)
-        if haveArchiveLibraries is True:
-            models = "ldraw/models"
-            CachedLibraries.appendLibraryPath(models)
-            
-        # Search LSynth parts
-        if Options.useLSynthParts:
-            if Options.LSynthDirectory != "":
-                Configure.appendPath(Options.LSynthDirectory)
-            else:
-                lsynth = os.path.join(Configure.ldrawInstallDirectory, "lsynth")
-                Configure.appendPath(lsynth)                
-                if Options.useUnofficialParts:
-                    lsynth = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "lsynth")
-                    Configure.appendPath(lsynth)
-                if haveArchiveLibraries is True:
-                    lsynth = "parts"
-                    CachedLibraries.appendLibraryPath(lsynth)
-            debugPrint("Use LSynth Parts requested")
-
-        # Search for stud logo parts
-        if Options.useLogoStuds:
-            if Options.studLogoDirectory != "":
-                if Options.resolution == "Low":
-                    Configure.appendPath(os.path.join(Options.studLogoDirectory, "8"))
-                Configure.appendPath(Options.studLogoDirectory)
-            else:
-                parts = os.path.join(Configure.ldrawInstallDirectory, "parts")
-                Configure.appendPath(parts)
-                if haveArchiveLibraries is True:
-                    parts = "ldraw/parts"
-                    CachedLibraries.appendLibraryPath(parts)            
-                if Options.useUnofficialParts:
-                    parts = os.path.join(Configure.ldrawInstallDirectory, "unofficial", "parts")
-                    Configure.appendPath(parts)
-                    if haveArchiveLibraries is True:
-                        parts = "parts"
-                        CachedLibraries.appendLibraryPath(parts)
+            Configure.appendUnofficialPath(os.path.join(Configure.ldrawInstallDirectory, "tente", "parts"))
+            if haveArchiveLibraries is True:
+                parts = "parts"
+                CachedLibraries.appendLibraryPath(parts)
 
         # Search additional search paths
         if Options.searchAdditionalPaths and Options.additionalSearchPaths != "":
@@ -536,14 +545,14 @@ class Configure:
             additionalPaths = Options.additionalSearchPaths.replace("\"", "").strip().split(",")
             for additionalPath in additionalPaths:
                 path = additionalPath.replace("\\", os.path.sep).replace("/", os.path.sep).lower()
-                if path not in Configure.searchPaths and os.path.exists(additionalPath):
+                if path not in Configure.unofficialSearchPaths and os.path.exists(additionalPath):
                     subFolders = [entry.name for entry in os.scandir(path) if entry.is_dir()]
                     if subFolders:
                         for folder in subFolders:
                             if folder in subFolderList:
                                 for subFolder in subFolderList:
-                                    if os.path.join(path, subFolder) not in Configure.searchPaths:
-                                        Configure.appendPath(os.path.join(path, subFolder))
+                                    if os.path.join(path, subFolder) not in Configure.unofficialSearchPaths:
+                                        Configure.appendUnofficialPath(os.path.join(path, subFolder))
                                         debugPrint(f"Load additional LDraw path: {os.path.join(path, subFolder)}")
                             else:
                                 subPath = os.path.join(path, folder).lower()
@@ -551,17 +560,17 @@ class Configure:
                                 if subSubFolders:
                                     for subFolder in subSubFolders:
                                         if subFolder in subFolderList:
-                                            if os.path.join(subPath, subFolder) not in Configure.searchPaths:
-                                                Configure.appendPath(os.path.join(subPath, subFolder))
+                                            if os.path.join(subPath, subFolder) not in Configure.unofficialSearchPaths:
+                                                Configure.appendUnofficialPath(os.path.join(subPath, subFolder))
                                                 debugPrint(f"Load additional LDraw path: {os.path.join(subPath, subFolder)}")
                                         else:
-                                            Configure.appendPath(os.path.join(subPath, subFolder))
+                                            Configure.appendUnofficialPath(os.path.join(subPath, subFolder))
                                             debugPrint(f"Load additional search path: {subPath}")
                                 else:
-                                    Configure.appendPath(os.path.join(subPath))
+                                    Configure.appendUnofficialPath(os.path.join(subPath))
                                     debugPrint(f"Load additional search path: {subPath}")
                     else:
-                        Configure.appendPath(os.path.join(path))
+                        Configure.appendUnofficialPath(os.path.join(path))
                         debugPrint(f"Load additional search path: {path}")
 
     def archiveLibraryFound(path):
@@ -1422,7 +1431,11 @@ class FileSystem:
         if rootPath is None:
             rootPath = os.path.dirname(filename.lower())
 
-        allSearchPaths = Configure.searchPaths[:]
+        # Gather all paths in the order we want to search
+        allSearchPaths = []
+        allSearchPaths.extend(Configure.localSearchPaths)
+        allSearchPaths.extend(Configure.unofficialSearchPaths)
+        allSearchPaths.extend(Configure.officialSearchPaths)
         if rootPath not in allSearchPaths:
             allSearchPaths.append(rootPath)
 
@@ -2098,16 +2111,16 @@ class LDrawFile:
 
             for direct in [directory_to_extract_to, localDir]:
                 if direct:
-                    Configure.appendPath(os.path.join(direct, "CustomParts"))
-                    Configure.appendPath(os.path.join(direct, "CustomParts", "parts"))
+                    Configure.appendUnofficialPath(os.path.join(direct, "CustomParts"))
+                    Configure.appendUnofficialPath(os.path.join(direct, "CustomParts", "parts"))
 
                     if Options.resolution == "High":
-                        Configure.appendPath(os.path.join(direct, "CustomParts", "p", "48"))
+                        Configure.appendUnofficialPath(os.path.join(direct, "CustomParts", "p", "48"))
                     elif Options.resolution == "Low":
-                        Configure.appendPath(os.path.join(direct, "CustomParts", "p", "8"))
-                    Configure.appendPath(os.path.join(direct, "CustomParts", "p"))
-                    Configure.appendPath(os.path.join(direct, "CustomParts", "s"))
-                    Configure.appendPath(os.path.join(direct, "CustomParts", "s", "s"))
+                        Configure.appendUnofficialPath(os.path.join(direct, "CustomParts", "p", "8"))
+                    Configure.appendUnofficialPath(os.path.join(direct, "CustomParts", "p"))
+                    Configure.appendUnofficialPath(os.path.join(direct, "CustomParts", "s"))
+                    Configure.appendUnofficialPath(os.path.join(direct, "CustomParts", "s", "s"))
 
         self.fullFilepath = filepath
 
