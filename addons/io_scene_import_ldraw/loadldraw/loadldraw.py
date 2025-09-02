@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update September 01, 2025
+Last Update September 02, 2025
 Copyright (c) 2024 by Toby Nelson
 Copyright (c) 2020 - 2025 by Trevor SANDY
 
@@ -361,6 +361,7 @@ class Math:
         (0.0, 0.0, -1.0, 0.0),
         (0.0, 0.0, 0.0, 1.0)
     ))
+    studMinimalTranslationMatrix = mathutils.Matrix.Translation((0.0, -0.0001, 0))
 
     def clamp01(value):
         return max(min(value, 1.0), 0.0)
@@ -1701,7 +1702,7 @@ class LDrawGeometry:
             assert i < numPoints
             assert i >= 0
 
-    def appendGeometry(self, geometry, matrix, isStud, isStudLogo, parentMatrix, cull, invert):
+    def appendGeometry(self, geometry, matrix, isParentAStud, isStud, isStudLogo, parentMatrix, cull, invert):
         combinedMatrix = parentMatrix @ matrix
         isReflected = combinedMatrix.determinant() < 0.0
         reflectStudLogo = isStudLogo and isReflected
@@ -1710,6 +1711,10 @@ class LDrawGeometry:
         if reflectStudLogo:
             fixedMatrix = matrix @ Math.reflectionMatrix
             invert = not invert
+
+        # Move studs minimally upwards a smidge, to allow the instructions look to render the edge where the stud meets the base properly
+        if isParentAStud:
+            fixedMatrix = Math.studMinimalTranslationMatrix @ fixedMatrix
 
         # Append face information
         pointCount = len(self.points)
@@ -1915,7 +1920,7 @@ class LDrawNode:
             # Start with a copy of our file's geometry
             assert len(self.file.geometry.faces) == len(self.file.geometry.faceInfo)
             bakedGeometry = LDrawGeometry()
-            bakedGeometry.appendGeometry(self.file.geometry, Math.identityMatrix, self.file.isStud, self.file.isStudLogo, combinedMatrix, self.bfcCull, self.bfcInverted)
+            bakedGeometry.appendGeometry(self.file.geometry, Math.identityMatrix, False, self.file.isStud, self.file.isStudLogo, combinedMatrix, self.bfcCull, self.bfcInverted)
 
             # Replaces the default colour 16 in our faceColours list with a specific colour
             for faceInfo in bakedGeometry.faceInfo:
@@ -1930,7 +1935,7 @@ class LDrawNode:
 
                     isStud = child.file.isStud
                     isStudLogo = child.file.isStudLogo
-                    bakedGeometry.appendGeometry(bg, child.matrix, isStud, isStudLogo, combinedMatrix, self.bfcCull, self.bfcInverted)
+                    bakedGeometry.appendGeometry(bg, child.matrix, self.file.isStud, isStud, isStudLogo, combinedMatrix, self.bfcCull, self.bfcInverted)
 
             CachedGeometry.addToCache(key, bakedGeometry)
         assert len(bakedGeometry.faces) == len(bakedGeometry.faceInfo)
@@ -2201,6 +2206,7 @@ class LDrawFile:
         name = os.path.basename(filename).lower()
 
         return name in (
+            "stud.dat",
             "stud2.dat",
             "stud6.dat",
             "stud6a.dat",
