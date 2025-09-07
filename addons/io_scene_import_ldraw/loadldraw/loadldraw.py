@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Trevor SANDY
-Last Update September 02, 2025
+Last Update September 06, 2025
 Copyright (c) 2024 by Toby Nelson
 Copyright (c) 2020 - 2025 by Trevor SANDY
 
@@ -4831,8 +4831,8 @@ def setupLineset(lineset, thickness, group):
     # Use square caps
     lineset.linestyle.caps = 'SQUARE'       # Can be 'ROUND', 'BUTT', or 'SQUARE'
 
-    # Draw inside the edge of the object
-    lineset.linestyle.thickness_position = 'INSIDE'
+    # Draw centered on the edge of the object
+    lineset.linestyle.thickness_position = 'CENTER'
 
     # Set Thickness
     lineset.linestyle.thickness = thickness
