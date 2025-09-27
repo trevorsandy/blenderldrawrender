@@ -46,15 +46,20 @@ basic file using this spec can be found [here](https://www.ldraw.org/article/47.
 Stud.io parts can be used if you set the **Stud.io LDraw path** value correctly. On Windows, that should
 be **C:\Program Files\Studio 2.0\ldraw**. This should auto-populate on Windows if Stud.io is installed.
 
-Stud.io decals are mostly supported. There are some aspects of the spec I have to figure out still, but the current 
-level of support should be sufficient for most things. In this example, the textures on the hands are missing. This is 
-due to a more challenging part of the wholly undocumented pe_tex spec that Stud.io uses not yet being implemented.  
+Stud.io decals are almost entirely supported. There are some minor issues with sloped/curved parts but in my testing,
+the flaws are not visible unless you know where to look, and only on a very few amount of pieces. The spec is wholly 
+undocumented, and I believe that fully supporting it would require implementing some type of camera system to properly 
+map the decal to the part after it is fully assembled in code, but before it is added to the scene as an object. If you 
+want to take a crack at it, feel free.
 
-**Part with decal in PartDesigner**
-![Image of PartDesigner](examples/import/stud_io.jpg)
+bl_36036pb045.dat is one of the pieces that doesn't unwrap exactly correctly, but under normal circumstances, you won't
+see the problem.
+
+**bl_36036pb045.dat with decal in PartDesigner**
+![Image of PartDesigner](examples/import/bl_36036pb045_part_designer.jpg)
 
 **The same part imported into Blender**
-![Image of PartDesigner](examples/import/stud_io_imported.jpg)
+![Image of PartDesigner](examples/import/bl_36036pb045_blender.jpg)
 
 **A note about Stud.io projects**  
 Stud.io project files are in actuality just password-protected zip files. Older projects are protected by a password, but 
