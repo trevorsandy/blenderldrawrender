@@ -15,76 +15,88 @@ class PETexPath:
 
         vert_count = len(child_node.vertices)
 
-        pe_texmap = PETexmap()
-        pe_texmap.image_name = self.tex_info.image_name
+        pe_texmaps = []
 
-        # if we have uv data and a pe_tex_info, otherwise pass
-        # # custom minifig head > 3626tex.dat (has no pe_tex) > 3626texpole.dat (has no uv data)
-        if len(_params) == 15:  # use uvs provided in file
-            for i in range(vert_count):
-                if vert_count == 3:
-                    x = round(float(_params[i * 2 + 9]), 3)
-                    y = round(float(_params[i * 2 + 10]), 3)
-                    uv = mathutils.Vector((x, y))
+        for tex_info in self.tex_infos:
+            # if we have uv data and a pe_tex_info, otherwise pass
+            # # custom minifig head > 3626tex.dat (has no pe_tex) > 3626texpole.dat (has no uv data)
+            if len(_params) == 15:  # use uvs provided in file
+                pe_texmap = PETexmap()
+                pe_texmap.image_name = tex_info.image_name
+
+                for i in range(vert_count):
+                    if vert_count == 3:
+                        x = round(float(_params[i * 2 + 9]), 3)
+                        y = round(float(_params[i * 2 + 10]), 3)
+                        uv = mathutils.Vector((x, y))
+                        pe_texmap.uvs.append(uv)
+                    elif vert_count == 4:
+                        x = round(float(_params[i * 2 + 11]), 3)
+                        y = round(float(_params[i * 2 + 12]), 3)
+                        uv = mathutils.Vector((x, y))
+                        pe_texmap.uvs.append(uv)
+
+                pe_texmaps.append(pe_texmap)
+
+            elif tex_info.matrix is not None:
+                pe_texmap = PETexmap()
+                pe_texmap.image_name = tex_info.image_name
+
+                (translation, rotation, box_extents) = (ldraw_node.matrix @ tex_info.matrix).decompose()
+
+                mirroring = mathutils.Vector((1, 1, 1))
+                for dim in range(3):
+                    if box_extents[dim] < 0:
+                        mirroring[dim] *= -1
+                        box_extents[dim] *= -1
+
+                rhs = mathutils.Matrix.LocRotScale(translation, rotation, mirroring)
+
+                matrix = ldraw_node.matrix.inverted() @ rhs
+                matrix_inverse = matrix.inverted()
+
+                vertices = [matrix_inverse @ v for v in child_node.vertices]
+
+                if winding == "CW":
+                    if vert_count == 3:
+                        vertices = [
+                            vertices[0],
+                            vertices[2],
+                            vertices[1],
+                        ]
+                    elif vert_count == 4:
+                        vertices = [
+                            vertices[0],
+                            vertices[3],
+                            vertices[2],
+                            vertices[1],
+                        ]
+                        FaceData.fix_bowties(vertices)
+
+                if not intersect(vertices, box_extents):
+                    continue
+
+                ab = vertices[1] - vertices[0]
+                bc = vertices[2] - vertices[1]
+                face_normal = ab.cross(bc).normalized()
+                texture_normal = mathutils.Vector((0, -1, 0))
+                dot = face_normal.dot(texture_normal)
+                # if abs(dot) <= 0.001:
+                #     continue
+                if dot <= 0.001:
+                    continue
+                # if dot == 0:
+                #     continue
+
+                for vert in vertices:
+                    u = (vert.x - tex_info.point_min.x) / tex_info.point_diff.x
+                    v = (vert.z - -tex_info.point_min.y) / -tex_info.point_diff.y
+                    uv = mathutils.Vector((u, v))
                     pe_texmap.uvs.append(uv)
-                elif vert_count == 4:
-                    x = round(float(_params[i * 2 + 11]), 3)
-                    y = round(float(_params[i * 2 + 12]), 3)
-                    uv = mathutils.Vector((x, y))
-                    pe_texmap.uvs.append(uv)
 
-        elif self.tex_info.matrix is not None:
-            (translation, rotation, box_extents) = (ldraw_node.matrix @ self.tex_info.matrix).decompose()
+                pe_texmaps.append(pe_texmap)
 
-            mirroring = mathutils.Vector((1, 1, 1))
-            for dim in range(3):
-                if box_extents[dim] < 0:
-                    mirroring[dim] *= -1
-                    box_extents[dim] *= -1
-
-            rhs = mathutils.Matrix.LocRotScale(translation, rotation, mirroring)
-
-            matrix = ldraw_node.matrix.inverted() @ rhs
-            matrix_inverse = matrix.inverted()
-
-            m = matrix_inverse.copy()
-            vertices = [m @ v for v in child_node.vertices]
-
-            if winding == "CW":
-                if vert_count == 3:
-                    vertices = [
-                        vertices[0],
-                        vertices[2],
-                        vertices[1],
-                    ]
-                elif vert_count == 4:
-                    vertices = [
-                        vertices[0],
-                        vertices[3],
-                        vertices[2],
-                        vertices[1],
-                    ]
-                    FaceData.fix_bowties(vertices)
-
-            if not intersect(vertices, box_extents):
-                return None
-
-            ab = vertices[1] - vertices[0]
-            bc = vertices[2] - vertices[1]
-            face_normal = ab.cross(bc).normalized()
-            texture_normal = mathutils.Vector((0, -1, 0))
-            dot = face_normal.dot(texture_normal)
-            # if abs(dot) <= 0.001: return None
-            if dot <= 0.001: return None
-            # if dot == 0: return None
-
-            for vert in vertices:
-                u = (vert.x - self.tex_info.point_min.x) / self.tex_info.point_diff.x
-                v = (vert.z - -self.tex_info.point_min.y) / -self.tex_info.point_diff.y
-                uv = mathutils.Vector((u, v))
-                pe_texmap.uvs.append(uv)
-
-        return pe_texmap
+        return pe_texmaps
 
 
 class PETexInfo:

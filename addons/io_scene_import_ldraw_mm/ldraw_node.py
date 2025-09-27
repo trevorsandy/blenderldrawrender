@@ -196,8 +196,13 @@ class LDrawNode:
                         # there are no official stud.io files like this
                         # remove all tex_infos with a matrix and pass that tex_path to the child_node if lan(tex_infos) > 0
                         _pe_tex_paths = {}
-                        if pe_tex_path is not None and pe_tex_path.tex_info.matrix is None:
-                            _pe_tex_paths[None] = pe_tex_path
+                        if pe_tex_path is not None:
+                            _pe_tex_path = PETexPath()
+                            _pe_tex_path.tex_path = pe_tex_path.tex_path.copy()
+                            _pe_tex_path.tex_infos = [i for i in pe_tex_path.tex_infos if i.matrix is None]
+                            _pe_tex_path.tex_info = pe_tex_path.tex_info
+                            if len(_pe_tex_path.tex_infos) > 0 and _pe_tex_path.tex_infos[0].matrix is None:
+                                _pe_tex_paths[None] = _pe_tex_path
 
                         for _pe_tex_path in pe_tex_paths.get(subfile_line_index, []):
                             if len(_pe_tex_path.tex_path) == 1:
@@ -352,7 +357,7 @@ class LDrawNode:
                             pe_tex_info.point_max = point_max.freeze()
                             pe_tex_info.point_diff = point_diff.freeze()
 
-                        # TODO: change to append to list
+                        current_pe_tex_path.tex_infos.append(pe_tex_info)
                         current_pe_tex_path.tex_info = pe_tex_info
 
                         tex_path = current_pe_tex_path.tex_path[0]
@@ -451,7 +456,8 @@ class LDrawNode:
             _key += (texmap.method, texmap.image_name, texmap.glossmap_image_name)
 
         if pe_tex_path is not None:
-            _key += (pe_tex_path.tex_info.image_name,)
+            for tex_info in pe_tex_path.tex_infos:
+                _key += (tex_info.image_name,)
 
         if matrix is not None:
             _key += (matrix,)

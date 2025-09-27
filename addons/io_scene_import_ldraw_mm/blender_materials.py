@@ -45,14 +45,14 @@ class BlenderMaterials:
             node_group.use_fake_user = True
 
     @classmethod
-    def get_material(cls, color_code, bfc_certified=True, part_slopes=None, parts_cloth=False, texmap=None, pe_texmap=None, easy_key=False):
+    def get_material(cls, color_code, bfc_certified=True, part_slopes=None, parts_cloth=False, texmap=None, pe_texmaps=None, easy_key=False):
         color = LDrawColor.get_color(color_code)
         bfc_certified = bfc_certified is True
 
         if easy_key:
             key = color_code
         else:
-            key = cls.__build_key(color, bfc_certified, part_slopes, parts_cloth, texmap, pe_texmap)
+            key = cls.__build_key(color, bfc_certified, part_slopes, parts_cloth, texmap, pe_texmaps)
 
         # Reuse current material if it exists, otherwise create a new material
         material = bpy.data.materials.get(key)
@@ -66,12 +66,12 @@ class BlenderMaterials:
             part_slopes=part_slopes,
             parts_cloth=parts_cloth,
             texmap=texmap,
-            pe_texmap=pe_texmap,
+            pe_texmaps=pe_texmaps,
         )
         return material
 
     @classmethod
-    def __build_key(cls, color, bfc_certified, part_slopes, parts_cloth, texmap, pe_texmap):
+    def __build_key(cls, color, bfc_certified, part_slopes, parts_cloth, texmap, pe_texmaps):
         _key = ()
 
         _key += (color.name, color.code,)
@@ -91,8 +91,9 @@ class BlenderMaterials:
         if texmap is not None:
             _key += (texmap.method, texmap.image_name, texmap.glossmap_image_name,)
 
-        if pe_texmap is not None:
-            _key += (pe_texmap.image_name,)
+        if pe_texmaps is not None:
+            for pe_texmap in pe_texmaps:
+                _key += (pe_texmap.image_name,)
 
         str_key = str(_key)
         if len(str_key) < 60:
@@ -106,7 +107,7 @@ class BlenderMaterials:
         return key
 
     @classmethod
-    def __create_node_based_material(cls, key, color, bfc_certified=True, part_slopes=None, parts_cloth=False, texmap=None, pe_texmap=None):
+    def __create_node_based_material(cls, key, color, bfc_certified=True, part_slopes=None, parts_cloth=False, texmap=None, pe_texmaps=None):
         material = bpy.data.materials.new(key)
         material.use_fake_user = True
         material.use_nodes = True
@@ -141,7 +142,7 @@ class BlenderMaterials:
         if texmap is not None:
             cls.__create_texmap(nodes, links, -500, -140, texmap, mix_rgb_node.inputs["Color2"], mix_rgb_node.inputs["Fac"], node.inputs["Specular"])
 
-        if pe_texmap is not None:
+        for pe_texmap in pe_texmaps:
             cls.__create_pe_texmap(nodes, links, -500, -140, pe_texmap, mix_rgb_node.inputs["Color2"], mix_rgb_node.inputs["Fac"])
 
         return material

@@ -143,7 +143,7 @@ def __process_bmesh_faces(mesh, geometry_data, color_code):
             part_slopes=part_slopes,
             parts_cloth=parts_cloth,
             texmap=face_data.texmap,
-            pe_texmap=face_data.pe_texmap,
+            pe_texmaps=face_data.pe_texmaps,
         )
 
         material_index = mesh.materials.find(material.name)
@@ -158,8 +158,8 @@ def __process_bmesh_faces(mesh, geometry_data, color_code):
         if face_data.texmap is not None:
             face_data.texmap.uv_unwrap_face(bm, face)
 
-        if face_data.pe_texmap is not None:
-            face_data.pe_texmap.uv_unwrap_face(bm, face)
+        for pe_texmap in face_data.pe_texmaps:
+            pe_texmap.uv_unwrap_face(bm, face)
 
     return bm
 
