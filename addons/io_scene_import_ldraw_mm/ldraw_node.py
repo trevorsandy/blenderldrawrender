@@ -192,8 +192,13 @@ class LDrawNode:
 
                     if child_node.meta_command == "1":
                         # don't pass -1 tex_paths since those are only meant for the current_node
+                        # if tex_info has no matrix, it's supposed to apply to the child_nodes too
+                        # it is possible to have multiple tex_infos with a mix of matrix and no matrix
+                        # that would mean that there are a mix of uvs and no uvs in the same file
+                        # there are no official stud.io files like this
+                        # remove all tex_infos with a matrix and pass that tex_path to the child_node if lan(tex_infos) > 0
                         _pe_tex_paths = {}
-                        if pe_tex_path is not None and pe_tex_path.tex_path[0] != -1:
+                        if pe_tex_path is not None and pe_tex_path.tex_info.matrix is None:
                             _pe_tex_paths[None] = pe_tex_path
 
                         for _pe_tex_path in pe_tex_paths.get(subfile_line_index, []):
