@@ -58,6 +58,9 @@ class LDrawNode:
              pe_tex_paths=None,
              ):
 
+        if self.file.is_edge_logo() and not ImportOptions.display_logo: return
+        if self.file.is_stud() and ImportOptions.no_studs: return
+
         if texmaps is None:
             texmaps = []
 
@@ -65,11 +68,6 @@ class LDrawNode:
             pe_tex_paths = dict()
 
         pe_tex_path = pe_tex_paths.get(None)
-
-        if self.file.is_edge_logo() and not ImportOptions.display_logo:
-            return
-        if self.file.is_stud() and ImportOptions.no_studs:
-            return
 
         LDrawNode.current_filename = self.file.name
 
