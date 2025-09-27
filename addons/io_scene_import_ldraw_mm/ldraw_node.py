@@ -337,7 +337,6 @@ class LDrawNode:
                             # defines a bounding box and its transformation
                             # this doesn't work well with some very distorted texture applications
                             # this also may be where PE_TEX_NEXT_SHEAR comes in
-                            params = _params
 
                             (x, y, z, a, b, c, d, e, f, g, h, i) = map(float, _params[0:12])
                             matrix = mathutils.Matrix((
@@ -349,10 +348,10 @@ class LDrawNode:
 
                             point_min = mathutils.Vector((0, 0))
                             point_max = mathutils.Vector((0, 0))
-                            point_min.x = float(params[12])
-                            point_min.y = float(params[13])
-                            point_max.x = float(params[14])
-                            point_max.y = float(params[15])
+                            point_min.x = float(_params[12])
+                            point_min.y = float(_params[13])
+                            point_max.x = float(_params[14])
+                            point_max.y = float(_params[15])
                             point_diff = point_max - point_min
 
                             pe_tex_info.point_min = point_min.freeze()
