@@ -13,7 +13,7 @@ class PETexInfo:
     def __init__(self):
         self.next_shear = False
         self.matrix = None
-        self.image = None
+        self.image_name = None
 
         self.point_min = None  # bottom corner of bounding box
         self.point_max = None  # top corner of bounding box
@@ -22,7 +22,7 @@ class PETexInfo:
 
 class PETexmap:
     def __init__(self):
-        self.texture = None
+        self.image_name = None
         self.uvs = []
 
     def uv_unwrap_face(self, bm, face):
@@ -46,7 +46,7 @@ class PETexmap:
         vert_count = len(child_node.vertices)
 
         pe_texmap = PETexmap()
-        pe_texmap.texture = pe_tex_path.tex_info.image
+        pe_texmap.image_name = pe_tex_path.tex_info.image_name
 
         # if we have uv data and a pe_tex_info, otherwise pass
         # # custom minifig head > 3626tex.dat (has no pe_tex) > 3626texpole.dat (has no uv data)

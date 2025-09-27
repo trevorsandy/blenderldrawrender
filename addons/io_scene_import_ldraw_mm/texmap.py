@@ -25,8 +25,8 @@ class TexMap:
         self.id = str(uuid.uuid4())
         self.method = method
         self.parameters = None
-        self.texture = None
-        self.glossmap = None
+        self.image_name = None
+        self.glossmap_image_name = None
 
     def is_planar(self):
         return self.method == 'PLANAR'

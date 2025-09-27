@@ -89,10 +89,10 @@ class BlenderMaterials:
             _key += ("cloth",)
 
         if texmap is not None:
-            _key += (texmap.method, texmap.texture, texmap.glossmap,)
+            _key += (texmap.method, texmap.image_name, texmap.glossmap_image_name,)
 
         if pe_texmap is not None:
-            _key += (pe_texmap.texture,)
+            _key += (pe_texmap.image_name,)
 
         str_key = str(_key)
         if len(str_key) < 60:
@@ -142,7 +142,7 @@ class BlenderMaterials:
             cls.__create_texmap(nodes, links, -500, -140, texmap, mix_rgb_node.inputs["Color2"], mix_rgb_node.inputs["Fac"], node.inputs["Specular"])
 
         if pe_texmap is not None:
-            cls.__create_texture(nodes, links, -500, -140, pe_texmap, mix_rgb_node.inputs["Color2"], mix_rgb_node.inputs["Fac"])
+            cls.__create_pe_texmap(nodes, links, -500, -140, pe_texmap, mix_rgb_node.inputs["Color2"], mix_rgb_node.inputs["Fac"])
 
         return material
 
@@ -273,21 +273,28 @@ class BlenderMaterials:
         return node
 
     @classmethod
-    def __create_texture(cls, nodes, links, x, y, texmap, color_input, alpha_input):
-        image_name = texmap.texture
+    def __create_image(cls, nodes, links, x, y, texmap, color_input, alpha_input):
+        image_name = texmap.image_name
         if image_name is not None:
             texmap_image = cls.__node_tex_image_closest_clip(nodes, x, y, image_name, "sRGB")
             links.new(texmap_image.outputs["Color"], color_input)
             links.new(texmap_image.outputs["Alpha"], alpha_input)
 
     @classmethod
-    def __create_texmap(cls, nodes, links, x, y, texmap, color_input, alpha_input, specular_input):
-        cls.__create_texture(nodes, links, x, y, texmap, color_input, alpha_input)
-
-        image_name = texmap.glossmap
+    def __create_glossmap_image(cls, nodes, links, x, y, texmap, specular_input):
+        image_name = texmap.glossmap_image_name
         if image_name is not None:
             glossmap_image = cls.__node_tex_image_closest_clip(nodes, x, y - 280, image_name, "Non-Color")
             links.new(glossmap_image.outputs["Color"], specular_input)
+
+    @classmethod
+    def __create_texmap(cls, nodes, links, x, y, texmap, color_input, alpha_input, specular_input):
+        cls.__create_image(nodes, links, x, y, texmap, color_input, alpha_input)
+        cls.__create_glossmap_image(nodes, links, x, y, texmap, specular_input)
+
+    @classmethod
+    def __create_pe_texmap(cls, nodes, links, x, y, pe_texmap, color_input, alpha_input):
+        cls.__create_image(nodes, links, x, y, pe_texmap, color_input, alpha_input)
 
     @staticmethod
     def __node_tex_image_closest_clip(nodes, x, y, image_name, colorspace):

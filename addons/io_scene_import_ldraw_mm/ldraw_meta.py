@@ -452,28 +452,28 @@ def meta_texmap(clean_line, matrix, texmaps, texmap, texmap_start, texmap_next, 
             (x1, y1, z1, x2, y2, z2, x3, y3, z3) = map(float, _params[4:13])
 
             texture_params = helpers.parse_csv_line(_params[13], 2)
-            texture = texture_params[0]
-            glossmap = texture_params[1]
-            if glossmap == "":
-                glossmap = None
+            image_name = texture_params[0]
+            glossmap_image_name = texture_params[1]
+            if glossmap_image_name == "":
+                glossmap_image_name = None
 
             new_texmap.parameters = [
                 matrix @ mathutils.Vector((x1, y1, z1)),
                 matrix @ mathutils.Vector((x2, y2, z2)),
                 matrix @ mathutils.Vector((x3, y3, z3)),
             ]
-            new_texmap.texture = texture
-            new_texmap.glossmap = glossmap
+            new_texmap.image_name = image_name
+            new_texmap.glossmap_image_name = glossmap_image_name
         elif new_texmap.is_cylindrical():
             _params = clean_line.split(maxsplit=14)  # cylindrical
 
             (x1, y1, z1, x2, y2, z2, x3, y3, z3, a) = map(float, _params[4:14])
 
             texture_params = helpers.parse_csv_line(_params[14], 2)
-            texture = texture_params[0]
-            glossmap = texture_params[1]
-            if glossmap == "":
-                glossmap = None
+            image_name = texture_params[0]
+            glossmap_image_name = texture_params[1]
+            if glossmap_image_name == "":
+                glossmap_image_name = None
 
             new_texmap.parameters = [
                 matrix @ mathutils.Vector((x1, y1, z1)),
@@ -481,18 +481,18 @@ def meta_texmap(clean_line, matrix, texmaps, texmap, texmap_start, texmap_next, 
                 matrix @ mathutils.Vector((x3, y3, z3)),
                 a,
             ]
-            new_texmap.texture = texture
-            new_texmap.glossmap = glossmap
+            new_texmap.image_name = image_name
+            new_texmap.glossmap_image_name = glossmap_image_name
         elif new_texmap.is_spherical():
             _params = clean_line.split(maxsplit=15)  # spherical
 
             (x1, y1, z1, x2, y2, z2, x3, y3, z3, a, b) = map(float, _params[4:15])
 
             texture_params = helpers.parse_csv_line(_params[15], 2)
-            texture = texture_params[0]
-            glossmap = texture_params[1]
-            if glossmap == "":
-                glossmap = None
+            image_name = texture_params[0]
+            glossmap_image_name = texture_params[1]
+            if glossmap_image_name == "":
+                glossmap_image_name = None
 
             new_texmap.parameters = [
                 matrix @ mathutils.Vector((x1, y1, z1)),
@@ -501,8 +501,8 @@ def meta_texmap(clean_line, matrix, texmaps, texmap, texmap_start, texmap_next, 
                 a,
                 b,
             ]
-            new_texmap.texture = texture
-            new_texmap.glossmap = glossmap
+            new_texmap.image_name = image_name
+            new_texmap.glossmap_image_name = glossmap_image_name
 
         # move current texmap to the texmaps list and set the current texmap to new_texmap
         if texmap is not None:

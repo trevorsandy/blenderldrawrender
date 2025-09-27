@@ -319,7 +319,7 @@ class LDrawNode:
 
                         pe_tex_info = PETexInfo()
                         pe_tex_info.shear = next_shear
-                        pe_tex_info.image = image.name
+                        pe_tex_info.image_name = image.name
 
                         # if there is 17, it defines the boundingbox
                         if len(_params) == 17:
@@ -445,10 +445,10 @@ class LDrawNode:
         _key = (filename, color_code,)
 
         if texmap is not None:
-            _key += (texmap.method, texmap.texture,)
+            _key += (texmap.method, texmap.image_name, texmap.glossmap_image_name)
 
         if pe_tex_path is not None:
-            _key += (pe_tex_path.tex_info.image,)
+            _key += (pe_tex_path.tex_info.image_name,)
 
         if matrix is not None:
             _key += (matrix,)
