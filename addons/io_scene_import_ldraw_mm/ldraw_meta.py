@@ -525,6 +525,11 @@ def set_texmap_end(texmaps):
     return texmap, texmap_start, texmap_next, texmap_fallback
 
 
+# PE_TEX_INFO PNGBASE64== is applied to all lines, including subfiles, that have uv coordinates, should only follow path -1
+# PE_TEX_INFO x,y,z,a,b,c,d,e,f,g,h,i,bl/tl,tr/br PNGBASE64== defines a bounding box and its transformation. intersection determines how the uvs will be unwrapped
+# multiple PE_TEX_INFO will only respect the most recent one
+# if no matrix, identity @ rotation?
+
 # https://github.com/ScanMountGoat/ldr_tools_blender/issues/31#issuecomment-2161285322
 # PE_TEX_PATH is the nth line of types 1,3,4
 # can be any number of subfile lines - n n n n
@@ -558,59 +563,10 @@ def set_texmap_end(texmaps):
 # 0 PE_TEX_NEXT_SHEAR
 # 0 PE_TEX_INFO 0.6682 7.2554 13.4921 -3.9588 -1.0797 1.9523 -40.5715 0.2365 -24.6051 -16.5249 0.2054 16.5954 15.5934 18.4983 19.7776 12.8449 PNGBASE64==
 
-# PE_TEX_INFO PNGBASE64== is applied to all lines, including subfiles, that have uv coordinates, should only follow path -1
-# PE_TEX_INFO x,y,z,a,b,c,d,e,f,g,h,i,bl/tl,tr/br PNGBASE64== defines a bounding box and its transformation. intersection determines how the uvs will be unwrapped
-# multiple PE_TEX_INFO will only respect the most recent one
-# if no matrix, identity @ rotation?
-
 # this doesn't work well with some very distorted texture applications
 # PE_TEX_NEXT_SHEAR is unknown
 # this may be where PE_TEX_NEXT_SHEAR comes in
 # is there a hardcoded or programmatically determined shear matrix?
-def meta_pe_tex_info(ldraw_node, child_node):
-    clean_line = child_node.line
-    _params = clean_line.split()[2:]
-
-    pe_tex_info = PETexInfo()
-
-    # if there is one or 17, use the last item as the image data
-    from . import base64_handler
-    base64_str = _params[-1]
-    image = base64_handler.named_png_from_base64_str(f"{ldraw_node.file.name}_{ldraw_node.current_pe_tex_path}.png", base64_str)
-    pe_tex_info.image = image.name
-
-    # if there is 17, it defines the boundingbox
-    if len(_params) == 17:
-        # defines a bounding box and its transformation
-        # this doesn't work well with some very distorted texture applications
-        # this also may be where PE_TEX_NEXT_SHEAR comes in
-        params = _params
-
-        (x, y, z, a, b, c, d, e, f, g, h, i) = map(float, _params[0:12])
-        matrix = mathutils.Matrix((
-            (a, b, c, x),
-            (d, e, f, y),
-            (g, h, i, z),
-            (0, 0, 0, 1)
-        ))
-
-        point_min = mathutils.Vector((0, 0))
-        point_max = mathutils.Vector((0, 0))
-        point_min.x = float(params[12])
-        point_min.y = float(params[13])
-        point_max.x = float(params[14])
-        point_max.y = float(params[15])
-        point_diff = point_max - point_min
-        box_extents = 0.5 * mathutils.Vector((1, 1))
-
-        pe_tex_info.point_min = point_min.freeze()
-        pe_tex_info.point_max = point_max.freeze()
-        pe_tex_info.point_diff = point_diff.freeze()
-        pe_tex_info.box_extents = box_extents.freeze()
-        pe_tex_info.matrix = matrix.freeze()
-
-    return pe_tex_info
-
 
 def meta_edge(child_node, color_code, matrix, geometry_data):
     vertices = [matrix @ v for v in child_node.vertices]
@@ -621,9 +577,9 @@ def meta_edge(child_node, color_code, matrix, geometry_data):
     )
 
 
-def meta_face(ldraw_node, child_node, color_code, matrix, geometry_data, winding, texmap):
+def meta_face(ldraw_node, child_node, color_code, matrix, geometry_data, winding, texmap, pe_tex_info_list):
     vertices = FaceData.handle_vertex_winding(child_node, matrix, winding)
-    pe_texmap = PETexmap.build_pe_texmap(ldraw_node, child_node, winding)
+    pe_texmap = PETexmap.build_pe_texmap(ldraw_node, child_node, winding, pe_tex_info_list)
 
     geometry_data.add_face_data(
         vertices=vertices,
