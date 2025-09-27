@@ -581,7 +581,7 @@ def meta_face(ldraw_node, child_node, color_code, matrix, geometry_data, winding
     vertices = FaceData.handle_vertex_winding(child_node, matrix, winding)
     pe_texmap = None
     if pe_tex_path is not None:
-        pe_texmap = PETexmap.build_pe_texmap(ldraw_node, child_node, winding, pe_tex_path)
+        pe_texmap = pe_tex_path.build_pe_texmap(ldraw_node, child_node, winding)
 
     geometry_data.add_face_data(
         vertices=vertices,

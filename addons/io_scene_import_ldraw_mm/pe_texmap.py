@@ -8,37 +8,7 @@ class PETexPath:
         self.tex_infos = []
         self.tex_info = None
 
-
-class PETexInfo:
-    def __init__(self):
-        self.next_shear = False
-        self.matrix = None
-        self.image_name = None
-
-        self.point_min = None  # bottom corner of bounding box
-        self.point_max = None  # top corner of bounding box
-        self.point_diff = None  # center of bounding box
-
-
-class PETexmap:
-    def __init__(self):
-        self.image_name = None
-        self.uvs = []
-
-    def uv_unwrap_face(self, bm, face):
-        if not self.uvs:
-            return
-
-        uv_layer = bm.loops.layers.uv.verify()
-        uvs = {}
-        for i, loop in enumerate(face.loops):
-            p = loop.vert.co.copy().freeze()
-            if p not in uvs:
-                uvs[p] = self.uvs[i]
-            loop[uv_layer].uv = uvs[p]
-
-    @staticmethod
-    def build_pe_texmap(ldraw_node, child_node, winding, pe_tex_path):
+    def build_pe_texmap(self, ldraw_node, child_node, winding):
         # child_node is a 3 or 4 line
         clean_line = child_node.line
         _params = clean_line.split()[2:]
@@ -46,7 +16,7 @@ class PETexmap:
         vert_count = len(child_node.vertices)
 
         pe_texmap = PETexmap()
-        pe_texmap.image_name = pe_tex_path.tex_info.image_name
+        pe_texmap.image_name = self.tex_info.image_name
 
         # if we have uv data and a pe_tex_info, otherwise pass
         # # custom minifig head > 3626tex.dat (has no pe_tex) > 3626texpole.dat (has no uv data)
@@ -63,8 +33,8 @@ class PETexmap:
                     uv = mathutils.Vector((x, y))
                     pe_texmap.uvs.append(uv)
 
-        elif pe_tex_path.tex_info.matrix is not None:
-            (translation, rotation, box_extents) = (ldraw_node.matrix @ pe_tex_path.tex_info.matrix).decompose()
+        elif self.tex_info.matrix is not None:
+            (translation, rotation, box_extents) = (ldraw_node.matrix @ self.tex_info.matrix).decompose()
 
             mirroring = mathutils.Vector((1, 1, 1))
             for dim in range(3):
@@ -109,12 +79,41 @@ class PETexmap:
             # if dot == 0: return None
 
             for vert in vertices:
-                u = (vert.x - pe_tex_path.tex_info.point_min.x) / pe_tex_path.tex_info.point_diff.x
-                v = (vert.z - -pe_tex_path.tex_info.point_min.y) / -pe_tex_path.tex_info.point_diff.y
+                u = (vert.x - self.tex_info.point_min.x) / self.tex_info.point_diff.x
+                v = (vert.z - -self.tex_info.point_min.y) / -self.tex_info.point_diff.y
                 uv = mathutils.Vector((u, v))
                 pe_texmap.uvs.append(uv)
 
         return pe_texmap
+
+
+class PETexInfo:
+    def __init__(self):
+        self.next_shear = False
+        self.matrix = None
+        self.image_name = None
+
+        self.point_min = None  # bottom corner of bounding box
+        self.point_max = None  # top corner of bounding box
+        self.point_diff = None  # center of bounding box
+
+
+class PETexmap:
+    def __init__(self):
+        self.image_name = None
+        self.uvs = []
+
+    def uv_unwrap_face(self, bm, face):
+        if not self.uvs:
+            return
+
+        uv_layer = bm.loops.layers.uv.verify()
+        uvs = {}
+        for i, loop in enumerate(face.loops):
+            p = loop.vert.co.copy().freeze()
+            if p not in uvs:
+                uvs[p] = self.uvs[i]
+            loop[uv_layer].uv = uvs[p]
 
 
 def intersect(polygon, box_extents):
