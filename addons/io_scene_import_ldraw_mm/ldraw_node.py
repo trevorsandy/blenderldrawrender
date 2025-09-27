@@ -55,18 +55,16 @@ class LDrawNode:
              texmap_start=False,
              texmap_next=False,
              texmap_fallback=False,
-             pe_tex_info_lists=None,
-             pe_tex_info_list=None,
+             pe_tex_infos=None,
              ):
 
         if texmaps is None:
             texmaps = []
 
-        if pe_tex_info_lists is None:
-            pe_tex_info_lists = {}
+        if pe_tex_infos is None:
+            pe_tex_infos = {}
 
-        if pe_tex_info_list is None:
-            pe_tex_info_list = []
+        pe_tex_info = pe_tex_infos.get(None)
 
         if self.file.is_edge_logo() and not ImportOptions.display_logo:
             return
@@ -101,7 +99,7 @@ class LDrawNode:
         # don't change the attributes of the child_nodes because that will affect other parts that use a given file
         # pass that information down to .load and modify geometry_data instead
         # the only thing unique about a geometry_data object is its filename, color, texmap, pe_tex_info
-        geometry_data_key = LDrawNode.__build_key(self.file.name, color_code=current_color_code, texmap=texmap, pe_tex_info=pe_tex_info_list)
+        geometry_data_key = LDrawNode.__build_key(self.file.name, color_code=current_color_code, texmap=texmap, pe_tex_info=pe_tex_info)
 
         # if there's no geometry_data and some part type, it's a top level part so start collecting geometry
         # there are occasions where files with part_type of model have geometry so you can't rely on its part_type
@@ -177,16 +175,14 @@ class LDrawNode:
             winding = "CCW"
             invert_next = False
 
-            pe_tex_info = None
+            current_pe_tex_info = None
             current_pe_tex_path = None
-            current_subfile_pe_tex_path = None
-            subfile_pe_tex_infos = {}
             subfile_line_index = 0
 
             for child_node in self.file.child_nodes:
                 # PE_TEX_NEXT_SHEAR always comes before PE_TEX_INFO
                 if not child_node.meta_command.startswith("pe_tex"):
-                    pe_tex_info = None
+                    current_pe_tex_info = None
 
                 # texmap_fallback will only be true if ImportOptions.meta_texmap == True and you're on a fallback line
                 # if ImportOptions.meta_texmap == False, it will always be False
@@ -194,20 +190,17 @@ class LDrawNode:
                     child_current_color = LDrawNode.__determine_color(color_code, child_node.color_code)
 
                     if child_node.meta_command == "1":
-                        # if we have no pe_tex_info, try to get one from pe_tex_infos otherwise keep using the one we have
-                        # custom minifig head > 3626tex.dat (has no pe_tex) > 3626texshell.dat
-                        _pe_tex_info = []
-                        if len(pe_tex_info_list) < 1:
-                            _pe_tex_info = pe_tex_info_lists.get(subfile_line_index, [])
-                        elif current_pe_tex_path != -1:
-                            # current_pe_tex_path == -1 means only applies to this node
-                            _pe_tex_info = pe_tex_info_list
+                        _pe_tex_infos = {}
+                        if pe_tex_info is not None and pe_tex_info.matrix is None:
+                            _pe_tex_infos[None] = pe_tex_info
 
-                        _subfile_pe_tex_infos = subfile_pe_tex_infos.get(subfile_line_index, {})
-                        _pe_tex_info_lists = {}
-                        # don't replace the collection in case this file already has pe_tex_infos
-                        for k, v in _subfile_pe_tex_infos.items():
-                            _pe_tex_info_lists.setdefault(k, v)
+                        for _pe_tex_info in pe_tex_infos.get(subfile_line_index, []):
+                            if len(_pe_tex_info.tex_path) == 1:
+                                _pe_tex_infos[None] = _pe_tex_info
+                            else:
+                                _pe_tex_info.tex_path = _pe_tex_info.tex_path[1:]
+                                _pe_tex_infos.setdefault(_pe_tex_info.tex_path[0], [])
+                                _pe_tex_infos[_pe_tex_info.tex_path[0]].append(_pe_tex_info)
 
                         child_node.load(
                             color_code=child_current_color,
@@ -223,8 +216,7 @@ class LDrawNode:
                             texmap_start=texmap_start,
                             texmap_next=texmap_next,
                             texmap_fallback=texmap_fallback,
-                            pe_tex_info_lists=_pe_tex_info_lists,
-                            pe_tex_info_list=_pe_tex_info,
+                            pe_tex_infos=_pe_tex_infos,
                         )
 
                         # from testing Part Designer, only subfiles count
@@ -254,7 +246,7 @@ class LDrawNode:
                             geometry_data=geometry_data,
                             winding=_winding,
                             texmap=texmap,
-                            pe_tex_info_list=pe_tex_info_list,
+                            pe_tex_info=pe_tex_info,
                         )
                     elif child_node.meta_command == "5":
                         ldraw_meta.meta_line(
@@ -307,22 +299,13 @@ class LDrawNode:
                     # 0 PE_TEX_NEXT_SHEAR -> optional
                     # 0 PE_TEX_INFO ...
                     if child_node.meta_command == "pe_tex_path":
-                        pe_tex_info = PETexInfo()
-
                         clean_line = child_node.line
                         _params = clean_line.split()[2:]
 
-                        tex_path = _params
-                        pe_tex_info.tex_path = tex_path
-
-                        current_pe_tex_path = int(_params[0])
-                        # if tex_path == -1, use this text_info just for this ldraw_node's 3,4 lines
-                        # if len(text_path) == 1 use that tex_info for that child lines 1 lines
-                        #  if len(text_path) > 1 use that tex_info for that child lines 1 lines
-                        if len(_params) == 2:
-                            current_subfile_pe_tex_path = int(_params[1])
+                        current_pe_tex_info = PETexInfo()
+                        current_pe_tex_info.tex_path = [int(x) for x in _params]
                     elif child_node.meta_command == "pe_tex_next_shear":
-                        pe_tex_info.next_shear = True
+                        current_pe_tex_info.next_shear = True
                     elif child_node.meta_command == "pe_tex_info":
                         clean_line = child_node.line
                         _params = clean_line.split()[2:]
@@ -330,7 +313,7 @@ class LDrawNode:
                         # if there is one or 17, use the last item as the image data
                         base64_str = _params[-1]
                         image = base64_handler.named_png_from_base64_str(f"{self.file.name}_{current_pe_tex_path}.png", base64_str)
-                        pe_tex_info.image = image.name
+                        current_pe_tex_info.image = image.name
 
                         # if there is 17, it defines the boundingbox
                         if len(_params) == 17:
@@ -346,6 +329,8 @@ class LDrawNode:
                                 (0, 0, 0, 1)
                             ))
 
+                            current_pe_tex_info.matrix = matrix.freeze()
+
                             point_min = mathutils.Vector((0, 0))
                             point_max = mathutils.Vector((0, 0))
                             point_min.x = float(_params[12])
@@ -354,21 +339,16 @@ class LDrawNode:
                             point_max.y = float(_params[15])
                             point_diff = point_max - point_min
 
-                            pe_tex_info.point_min = point_min.freeze()
-                            pe_tex_info.point_max = point_max.freeze()
-                            pe_tex_info.point_diff = point_diff.freeze()
-                            pe_tex_info.matrix = matrix.freeze()
+                            current_pe_tex_info.point_min = point_min.freeze()
+                            current_pe_tex_info.point_max = point_max.freeze()
+                            current_pe_tex_info.point_diff = point_diff.freeze()
 
-                        if current_subfile_pe_tex_path is not None:
-                            subfile_pe_tex_infos.setdefault(current_pe_tex_path, {})
-                            subfile_pe_tex_infos[current_pe_tex_path].setdefault(current_subfile_pe_tex_path, [])
-                            subfile_pe_tex_infos[current_pe_tex_path][current_subfile_pe_tex_path].append(pe_tex_info)
+                        tex_path = current_pe_tex_info.tex_path[0]
+                        if tex_path == -1:
+                            pe_tex_info = current_pe_tex_info
                         else:
-                            pe_tex_info_lists.setdefault(current_pe_tex_path, [])
-                            pe_tex_info_lists[current_pe_tex_path].append(pe_tex_info)
-
-                        if current_pe_tex_path == -1:
-                            pe_tex_info_list = pe_tex_info_lists[current_pe_tex_path]
+                            pe_tex_infos.setdefault(tex_path, [])
+                            pe_tex_infos[tex_path].append(current_pe_tex_info)
                 else:
                     # these meta commands really only make sense if they are encountered at the model level
                     # these should never be encountered when geometry_data not None
@@ -459,8 +439,7 @@ class LDrawNode:
             _key += (texmap.method, texmap.texture,)
 
         if pe_tex_info is not None:
-            for p in pe_tex_info:
-                _key += (p.image,)
+            _key += (pe_tex_info.image, str(uuid.uuid4()))
 
         if matrix is not None:
             _key += (matrix,)
