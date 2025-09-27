@@ -1,8 +1,10 @@
 import os
 from pathlib import Path
 
+import hashlib
 import struct
 import base64
+
 
 try:
     from .definitions import APP_ROOT
@@ -10,6 +12,8 @@ try:
 except ImportError as e:
     print(e)
     import traceback
+
+
     print(traceback.format_exc())
     from definitions import APP_ROOT
     from helpers import get_bytes
@@ -33,6 +37,10 @@ def is_png(data):
 # https://blender.stackexchange.com/questions/240137/is-it-possible-to-create-image-data-from-a-base64-encoded-png
 def image_from_data(name, data, height=1, width=1):
     import bpy
+
+    img = bpy.data.images.get(name)
+    if img is not None:
+        return img
 
     # Create image, width and height are dummy values
     img = bpy.data.images.new(name, height, width)
@@ -62,6 +70,14 @@ def image_from_base64_str(filename, base64_str):
 
 def named_png_from_base64_str(filename, base64_str):
     filename = f"{Path(filename).stem}.png"
+    return image_from_base64_str(filename, base64_str)
+
+
+def sha_named_png_from_base64_str(base64_str):
+    img_data = base64_to_png_data(base64_str)
+    hash_object = hashlib.sha256(img_data)
+    basename = hash_object.hexdigest()[:16]
+    filename = f"{basename}.png"
     return image_from_base64_str(filename, base64_str)
 
 

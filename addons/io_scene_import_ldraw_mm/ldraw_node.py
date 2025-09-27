@@ -313,7 +313,7 @@ class LDrawNode:
 
                         # if there is one or 17, use the last item as the image data
                         base64_str = _params[-1]
-                        image = base64_handler.named_png_from_base64_str(f"{self.file.name}_{current_pe_tex_path}.png", base64_str)
+                        image = base64_handler.sha_named_png_from_base64_str(base64_str)
 
                         pe_tex_info = PETexInfo()
                         pe_tex_info.shear = next_shear
