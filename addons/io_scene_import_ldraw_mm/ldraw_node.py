@@ -344,6 +344,7 @@ class LDrawNode:
                             ))
 
                             pe_tex_info.matrix = matrix.freeze()
+                            pe_tex_info.matrix_inverse = matrix.inverted().freeze()
 
                             point_min = mathutils.Vector((0, 0))
                             point_max = mathutils.Vector((0, 0))
@@ -351,11 +352,21 @@ class LDrawNode:
                             point_min.y = float(_params[13])
                             point_max.x = float(_params[14])
                             point_max.y = float(_params[15])
+                            box_extents = .5 * mathutils.Vector((1, 1, 1))
+                            min_height = 0 - box_extents.y
+
                             point_diff = point_max - point_min
+
+                            camera_origin = mathutils.Vector((0, 0, 0))
+                            vector = (point_min + point_max) * .5
+                            camera_origin.x = vector.x
+                            camera_origin.y = min_height - 10
+                            camera_origin.z = vector.y
 
                             pe_tex_info.point_min = point_min.freeze()
                             pe_tex_info.point_max = point_max.freeze()
                             pe_tex_info.point_diff = point_diff.freeze()
+                            pe_tex_info.camera_origin = camera_origin.freeze()
 
                         current_pe_tex_path.tex_infos.append(pe_tex_info)
                         current_pe_tex_path.tex_info = pe_tex_info

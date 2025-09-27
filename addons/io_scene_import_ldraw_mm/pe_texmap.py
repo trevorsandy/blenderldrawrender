@@ -43,6 +43,10 @@ class PETexPath:
                 pe_texmap.image_name = tex_info.image_name
 
                 (translation, rotation, box_extents) = (ldraw_node.matrix @ tex_info.matrix).decompose()
+                # print(tex_info.camera_origin)
+
+                # this is almost certainly not how it's supposed to be handled, but the end result is the same
+                box_extents *= 10
 
                 mirroring = mathutils.Vector((1, 1, 1))
                 for dim in range(3):
@@ -73,16 +77,21 @@ class PETexPath:
                         ]
                         FaceData.fix_bowties(vertices)
 
-                # next_shear isn't actually handled like this but the outcome is the same if you don't test for collision
-                if not tex_info.next_shear:
-                    if not intersect(vertices, box_extents):
-                        continue
+                if not intersect(vertices, box_extents):
+                    continue
 
                 ab = vertices[1] - vertices[0]
                 bc = vertices[2] - vertices[1]
                 face_normal = ab.cross(bc).normalized()
+
                 texture_normal = mathutils.Vector((0, -1, 0))
                 dot = face_normal.dot(texture_normal)
+                if dot <= 0.001:
+                    continue
+
+                # TODO: camera_origin is a camera that is looking at the mesh
+                #  only unwrap the faces the camera can actually see, not every face that points toward the camera
+                dot = face_normal.dot(tex_info.camera_origin)
                 if dot <= 0.001:
                     continue
 
@@ -101,11 +110,13 @@ class PETexInfo:
     def __init__(self):
         self.next_shear = False
         self.matrix = None
+        self.matrix_inverse = None
         self.image_name = None
 
         self.point_min = None  # bottom corner of bounding box
         self.point_max = None  # top corner of bounding box
         self.point_diff = None  # center of bounding box
+        self.camera_origin = None  # center of bounding box
 
 
 class PETexmap:
