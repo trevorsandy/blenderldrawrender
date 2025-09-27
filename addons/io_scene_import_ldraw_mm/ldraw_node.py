@@ -326,7 +326,7 @@ class LDrawNode:
                         image = base64_handler.sha_named_png_from_base64_str(base64_str)
 
                         pe_tex_info = PETexInfo()
-                        pe_tex_info.shear = next_shear
+                        pe_tex_info.next_shear = next_shear
                         pe_tex_info.image_name = image.name
 
                         # if there is 17, it defines the boundingbox

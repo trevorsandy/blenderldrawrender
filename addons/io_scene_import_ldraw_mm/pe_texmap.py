@@ -73,20 +73,18 @@ class PETexPath:
                         ]
                         FaceData.fix_bowties(vertices)
 
-                if not intersect(vertices, box_extents):
-                    continue
+                # next_shear isn't actually handled like this but the outcome is the same if you don't test for collision
+                if not tex_info.next_shear:
+                    if not intersect(vertices, box_extents):
+                        continue
 
                 ab = vertices[1] - vertices[0]
                 bc = vertices[2] - vertices[1]
                 face_normal = ab.cross(bc).normalized()
                 texture_normal = mathutils.Vector((0, -1, 0))
                 dot = face_normal.dot(texture_normal)
-                # if abs(dot) <= 0.001:
-                #     continue
                 if dot <= 0.001:
                     continue
-                # if dot == 0:
-                #     continue
 
                 for vert in vertices:
                     u = (vert.x - tex_info.point_min.x) / tex_info.point_diff.x
