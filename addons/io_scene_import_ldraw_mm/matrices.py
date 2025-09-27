@@ -4,6 +4,7 @@ import math
 
 from .import_options import ImportOptions
 
+
 auto_smooth_angle_deg = 89.9  # 89.9 so 90 degrees and up are affected
 auto_smooth_angle = math.radians(auto_smooth_angle_deg)  # 1.56905
 

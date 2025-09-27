@@ -62,7 +62,7 @@ class LDrawNode:
             texmaps = []
 
         if pe_tex_paths is None:
-            pe_tex_paths = {}
+            pe_tex_paths = dict()
 
         pe_tex_path = pe_tex_paths.get(None)
 
@@ -191,8 +191,9 @@ class LDrawNode:
                     child_current_color = LDrawNode.__determine_color(color_code, child_node.color_code)
 
                     if child_node.meta_command == "1":
+                        # don't pass -1 tex_paths since those are only meant for the current_node
                         _pe_tex_paths = {}
-                        if pe_tex_path is not None and pe_tex_path.tex_info.matrix is None:
+                        if pe_tex_path is not None and pe_tex_path.tex_path[0] != -1:
                             _pe_tex_paths[None] = pe_tex_path
 
                         for _pe_tex_path in pe_tex_paths.get(subfile_line_index, []):
@@ -200,8 +201,9 @@ class LDrawNode:
                                 _pe_tex_paths[None] = _pe_tex_path
                             else:
                                 _pe_tex_path.tex_path = _pe_tex_path.tex_path[1:]
-                                _pe_tex_paths.setdefault(_pe_tex_path.tex_path[0], [])
-                                _pe_tex_paths[_pe_tex_path.tex_path[0]].append(_pe_tex_path)
+                                _tex_path = _pe_tex_path.tex_path[0]
+                                _pe_tex_paths.setdefault(_tex_path, set())
+                                _pe_tex_paths[_tex_path].add(_pe_tex_path)
 
                         child_node.load(
                             color_code=child_current_color,
@@ -354,8 +356,8 @@ class LDrawNode:
                         if tex_path == -1:
                             pe_tex_path = current_pe_tex_path
                         else:
-                            pe_tex_paths.setdefault(tex_path, [])
-                            pe_tex_paths[tex_path].append(current_pe_tex_path)
+                            pe_tex_paths.setdefault(tex_path, set())
+                            pe_tex_paths[tex_path].add(current_pe_tex_path)
                 else:
                     # these meta commands really only make sense if they are encountered at the model level
                     # these should never be encountered when geometry_data not None

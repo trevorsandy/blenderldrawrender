@@ -63,7 +63,7 @@ class PETexmap:
                     uv = mathutils.Vector((x, y))
                     pe_texmap.uvs.append(uv)
 
-        elif pe_tex_path.tex_info.matrix:
+        elif pe_tex_path.tex_info.matrix is not None:
             (translation, rotation, box_extents) = (ldraw_node.matrix @ pe_tex_path.tex_info.matrix).decompose()
 
             mirroring = mathutils.Vector((1, 1, 1))
