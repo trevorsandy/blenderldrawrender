@@ -609,7 +609,7 @@ class LDrawFile:
             self.child_nodes.append(ldraw_node)
             return True
 
-        # TODO: find out what this does
+        # this matrix is sheared, so correct it in build_pe_texmap
         if clean_line.startswith("0 PE_TEX_NEXT_SHEAR"):
             ldraw_node = LDrawNode()
             ldraw_node.line = clean_line
