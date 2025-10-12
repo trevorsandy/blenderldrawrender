@@ -4,10 +4,10 @@ import math
 import mathutils
 
 from .ldraw_file import LDrawFile
-from .ldraw_node import LDrawNode
 from .ldraw_color import LDrawColor
 from .filesystem import FileSystem
 from .export_options import ExportOptions
+from .base64_handler import blender_image_to_base64
 from . import strings
 from . import helpers
 from . import ldraw_props
@@ -36,7 +36,7 @@ def do_export(filepath):
 
     if active_object is None:
         print("No selected objects")
-        return
+        return False
 
     name = active_object.ldraw_props.name
 
@@ -72,6 +72,8 @@ def do_export(filepath):
         # objects during a failed export would be such an object
         if obj.users < 1:
             continue
+
+        handle_texture_header_data(obj, ldraw_file.lines)
 
         if obj.ldraw_props.export_polygons:
             polygon_obj_names.append(obj.name)
@@ -290,6 +292,8 @@ def __export_polygons(obj, aa, lines):
             for vv in co:
                 line.append(__fix_round(vv, precision))
 
+        handle_polygon_uvs(obj, mesh, polygon, line)
+
         lines.append(line)
 
     af = 1.0
@@ -387,3 +391,57 @@ def __export_polygons(obj, aa, lines):
 
 def edge_key(i1, i2):
     return (min(i1, i2), max(i1, i2))
+
+
+# TODO: cache results
+def get_material_image(obj):
+    mesh = obj.data
+
+    if len(mesh.uv_layers) < 1:
+        return None
+
+    nodes = []
+    if len(mesh.materials) > 0:
+        material = mesh.materials[0]
+        nodes = material.node_tree.nodes
+
+    image = None
+    for node in nodes:
+        if node.type == 'TEX_IMAGE':
+            if node.image is not None and node.image.file_format == 'PNG':
+                image = node.image
+                break
+
+    return image
+
+
+def handle_texture_header_data(obj, lines):
+    if obj.ldraw_props.texture_format == 'Stud.io':
+        image = get_material_image(obj)
+        if image is None:
+            return
+
+        image_base64 = blender_image_to_base64(image)
+
+        lines.append('0 PE_TEX_PATH -1')
+        lines.append(f"0 PE_TEX_INFO {image_base64}")
+    elif obj.ldraw_props.texture_format == 'LDraw':
+        pass
+
+
+def handle_polygon_uvs(obj, mesh, polygon, line):
+    if obj.ldraw_props.texture_format == 'Stud.io':
+        image = get_material_image(obj)
+        if image is None:
+            return
+
+        if len(mesh.uv_layers) < 1:
+            return
+
+        uv_layer = mesh.uv_layers[0].data
+        for loop_index in polygon.loop_indices:
+            uv = uv_layer[loop_index].uv
+            line.append(__fix_round(uv.x, 3))
+            line.append(__fix_round(uv.y, 3))
+    elif obj.ldraw_props.texture_format == 'LDraw':
+        pass

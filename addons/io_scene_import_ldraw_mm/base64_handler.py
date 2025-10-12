@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
-
 import hashlib
+import zlib
 import struct
 import base64
 
@@ -86,3 +86,30 @@ def write_png_data(app_root, filename, data):
     filepath = os.path.join(app_root, f"{os.path.basename(filename)}.png")
     with open(filepath, 'wb') as file:
         file.write(data)
+
+
+def png_pack(png_tag, data):
+    chunk_head = png_tag + data
+    return (struct.pack("!I", len(data)) +
+            chunk_head +
+            struct.pack("!I", 0xFFFFFFFF & zlib.crc32(chunk_head)))
+
+
+def blender_image_to_base64(image):
+    width = image.size[0]
+    height = image.size[1]
+
+    buf = bytearray([int(p * 255) for p in image.pixels])
+
+    # Reverse vertical order and prepend null bytes for PNG scanline filter
+    width_byte_4 = width * 4
+    raw_data = b''.join(b'\x00' + buf[span:span + width_byte_4] for span in range((height - 1) * width_byte_4, -1, -width_byte_4))
+
+    png_bytes = b''.join([
+        b'\x89PNG\r\n\x1a\n',
+        png_pack(b'IHDR', struct.pack("!2I5B", width, height, 8, 6, 0, 0, 0)),
+        png_pack(b'IDAT', zlib.compress(raw_data, 9)),
+        png_pack(b'IEND', b'')
+    ])
+
+    return base64.b64encode(png_bytes).decode()
