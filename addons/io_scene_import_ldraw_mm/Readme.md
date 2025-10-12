@@ -46,7 +46,8 @@ basic file using this spec can be found [here](https://www.ldraw.org/article/47.
 Stud.io parts can be used if you set the **Stud.io LDraw path** value correctly. On Windows, that should
 be **C:\Program Files\Studio 2.0\ldraw**. This should auto-populate on Windows if Stud.io is installed.
 
-Stud.io decals are almost entirely supported. There are some minor issues with sloped/curved parts but in my testing,
+**Importing Stud.io Decals**  
+Importing Stud.io decals are almost entirely supported. There are some minor issues with sloped/curved parts but in my testing,
 the flaws are not visible unless you know where to look, and only on a very few amount of pieces. The spec is wholly 
 undocumented, and I believe that fully supporting it would require implementing some type of camera system to properly 
 map the decal to the part after it is fully assembled in code, but before it is added to the scene as an object. If you 
