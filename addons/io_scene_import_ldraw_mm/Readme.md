@@ -62,6 +62,14 @@ see the problem.
 **The same part imported into Blender**
 ![Image of PartDesigner](examples/import/bl_36036pb045_blender.jpg)
 
+**Exporting Stud.io Decals**  
+Exporting Stud.io decals is supported, but support is more limited than the full spec allows. The sections of the part
+that are textured must joined as one mesh, triangulated, uv unwrapped, and if there is more than one image for the material, 
+the textures have to be baked into a single image. Then, in the **LDraw** panel, make sure **Export polygons** is checked 
+for everything that is to be exported and **Texture format** is set to **Stud.io**.
+![test1234.dat test inside of Blender](examples/export/test1234_blender.png)
+![test1234.dat test inside of Part Designer](examples/export/test1234_part_designer.png)
+
 **A note about Stud.io projects**  
 Stud.io project files are in actuality just password-protected zip files. Older projects are protected by a password, but 
 due to regulations related to DRM, importing those projects can't be implemented here even though it would be relatively trivial.
